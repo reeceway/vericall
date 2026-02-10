@@ -8,6 +8,8 @@ from uuid import UUID
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
+from app.logger import AuthLogger
+
 # Configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
@@ -93,12 +95,14 @@ def generate_otp(phone_number: str) -> str:
     expiry = datetime.utcnow() + timedelta(minutes=5)
     _pending_otps[phone_number] = (otp, expiry)
     
+    AuthLogger.log_otp_request(phone_number, success=True)
     return otp
 
 
 def verify_otp(phone_number: str, otp: str) -> bool:
     """Verify OTP for phone number."""
     if phone_number not in _pending_otps:
+        AuthLogger.log_otp_verify(phone_number, success=False, error="No pending OTP")
         return False
     
     stored_otp, expiry = _pending_otps[phone_number]
@@ -106,11 +110,14 @@ def verify_otp(phone_number: str, otp: str) -> bool:
     # Check expiry
     if datetime.utcnow() > expiry:
         del _pending_otps[phone_number]
+        AuthLogger.log_otp_verify(phone_number, success=False, error="OTP expired")
         return False
     
     # Verify OTP
     if stored_otp == otp:
         del _pending_otps[phone_number]
+        AuthLogger.log_otp_verify(phone_number, success=True)
         return True
     
+    AuthLogger.log_otp_verify(phone_number, success=False, error="Invalid OTP")
     return False

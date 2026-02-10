@@ -19,6 +19,10 @@ from app.crypto import (
     format_call_signature_message
 )
 from app.websocket import handle_websocket
+from app.logger import (
+    RequestLogger, AuthLogger, CryptoLogger, CallLogger,
+    ErrorLogger, log_call
+)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
