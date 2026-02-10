@@ -13,6 +13,7 @@ class CallManager: ObservableObject {
     private let webSocketService = WebSocketService.shared
     private let callKitManager = CallKitManager.shared
     private let callSignaling = CallSignaling.shared
+    private let voiceVerificationService = VoiceVerificationService()
     private var cancellables = Set<AnyCancellable>()
     
     private init() {
@@ -123,6 +124,9 @@ class CallManager: ObservableObject {
         let isVerified = signal.signature != nil ? 
             await callSignaling.verifySignal(signal) : false
         
+        // Extract voice thumbprint from incoming signal (for caller verification)
+        let receivedVoiceThumbprint = signal.voiceThumbprint
+        
         let call = Call(
             id: signal.callId,
             callerId: signal.fromUserId,
@@ -134,7 +138,8 @@ class CallManager: ObservableObject {
             startedAt: nil,
             endedAt: nil,
             isVerified: isVerified,
-            voiceMatchPercentage: nil
+            voiceMatchPercentage: nil,
+            voiceThumbprint: receivedVoiceThumbprint
         )
         
         await MainActor.run {
@@ -170,6 +175,12 @@ class CallManager: ObservableObject {
         try await webSocketService.sendSignal(acceptSignal)
         await updateCallState(.connecting)
         
+        // Start voice verification if we have the caller's thumbprint
+        if let voiceThumbprint = call.voiceThumbprint {
+            print("[CallManager] Starting voice verification with received thumbprint")
+            try? await voiceVerificationService.startVerification(withExternalThumbprint: voiceThumbprint)
+        }
+        
         // Simulate connection delay
         try await Task.sleep(nanoseconds: 1_000_000_000)
         await updateCallState(.connected)
@@ -181,6 +192,9 @@ class CallManager: ObservableObject {
         guard let currentCall = currentCall, currentCall.id == call.id else {
             throw CallError.invalidState
         }
+        
+        // Stop voice verification if it was started
+        voiceVerificationService.stopVerification()
         
         let rejectSignal = await callSignaling.createRejectSignal(
             callId: call.id,
@@ -277,6 +291,9 @@ class CallManager: ObservableObject {
             throw CallError.invalidState
         }
         
+        // Stop voice verification
+        voiceVerificationService.stopVerification()
+        
         let endSignal = CallSignal(
             type: .end,
             callId: call.id,
@@ -284,7 +301,8 @@ class CallManager: ObservableObject {
             toUserId: call.direction == .incoming ? call.callerId : call.recipientId,
             timestamp: Date(),
             payload: CallSignalPayload(),
-            signature: nil
+            signature: nil,
+            voiceThumbprint: nil
         )
         
         try? await webSocketService.sendSignal(endSignal)
@@ -294,6 +312,9 @@ class CallManager: ObservableObject {
     
     private func handleCallEnded(_ signal: CallSignal) async {
         guard let call = currentCall else { return }
+        
+        // Stop voice verification
+        voiceVerificationService.stopVerification()
         
         await MainActor.run {
             var endedCall = call

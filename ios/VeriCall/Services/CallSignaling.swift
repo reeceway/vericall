@@ -20,7 +20,16 @@ class CallSignaling {
         toUserId: String,
         isVerified: Bool
     ) async throws -> CallSignal {
-        let payload = CallSignalPayload()
+        // Get voice thumbprint from Keychain
+        let voiceThumbprint = await getVoiceThumbprint()
+        
+        // Generate nonce for replay protection
+        let nonce = UUID().uuidString
+        
+        let payload = CallSignalPayload(
+            nonce: nonce,
+            deviceSignature: nil  // Will be set after signing
+        )
         
         // Create signal data for signing
         let signalData = SignalData(
@@ -29,7 +38,8 @@ class CallSignaling {
             fromUserId: "current_user_id",
             toUserId: toUserId,
             timestamp: Date().iso8601String,
-            payloadHash: payload.hashValue.description
+            payloadHash: payload.hashValue.description,
+            voiceThumbprintHash: voiceThumbprint?.hashValue.description
         )
         
         // Sign with device private key
@@ -41,9 +51,25 @@ class CallSignaling {
             fromUserId: "current_user_id",
             toUserId: toUserId,
             timestamp: Date(),
-            payload: payload,
-            signature: signature
+            payload: CallSignalPayload(
+                nonce: nonce,
+                deviceSignature: signature
+            ),
+            signature: signature,
+            voiceThumbprint: voiceThumbprint
         )
+    }
+    
+    /// Retrieve the current user's voice thumbprint from Keychain
+    private func getVoiceThumbprint() async -> [Float]? {
+        let keychainService = VoiceKeychainService()
+        
+        // Try to load "self" signature first
+        if let signature = try? keychainService.loadSignature(for: "self") {
+            return signature.vector
+        }
+        
+        return nil
     }
     
     func createOfferSignal(
@@ -71,7 +97,8 @@ class CallSignaling {
             toUserId: toUserId,
             timestamp: Date(),
             payload: payload,
-            signature: signature
+            signature: signature,
+            voiceThumbprint: nil
         )
     }
     
@@ -100,7 +127,8 @@ class CallSignaling {
             toUserId: toUserId,
             timestamp: Date(),
             payload: payload,
-            signature: signature
+            signature: signature,
+            voiceThumbprint: nil
         )
     }
     
@@ -128,7 +156,8 @@ class CallSignaling {
             toUserId: toUserId,
             timestamp: Date(),
             payload: payload,
-            signature: signature
+            signature: signature,
+            voiceThumbprint: nil
         )
     }
     
@@ -147,7 +176,8 @@ class CallSignaling {
             toUserId: toUserId,
             timestamp: Date(),
             payload: payload,
-            signature: nil
+            signature: nil,
+            voiceThumbprint: nil
         )
     }
     
@@ -164,7 +194,8 @@ class CallSignaling {
             toUserId: toUserId,
             timestamp: Date(),
             payload: payload,
-            signature: nil
+            signature: nil,
+            voiceThumbprint: nil
         )
     }
     
@@ -188,7 +219,8 @@ class CallSignaling {
             toUserId: toUserId,
             timestamp: Date(),
             payload: payload,
-            signature: nil
+            signature: nil,
+            voiceThumbprint: nil
         )
     }
     
@@ -226,7 +258,8 @@ class CallSignaling {
                 fromUserId: signal.fromUserId,
                 toUserId: signal.toUserId,
                 timestamp: signal.timestamp.iso8601String,
-                payloadHash: signal.payload.hashValue.description
+                payloadHash: signal.payload.hashValue.description,
+                voiceThumbprintHash: signal.voiceThumbprint?.hashValue.description
             )
             
             let encoder = JSONEncoder()
@@ -313,6 +346,7 @@ private struct SignalData: Codable {
     let toUserId: String
     let timestamp: String
     let payloadHash: String
+    let voiceThumbprintHash: String?
 }
 
 // MARK: - Date Extension

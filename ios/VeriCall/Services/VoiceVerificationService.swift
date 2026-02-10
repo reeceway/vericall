@@ -36,18 +36,33 @@ public final class VoiceVerificationService: ObservableObject {
     
     // MARK: - Public Methods
     
-    /// Start verification for a specific contact
+    /// Start verification for a specific contact using stored signature
     public func startVerification(for contactId: String) async throws {
-        // Load stored signature
+        // Load stored signature from Keychain
         guard let signature = try? await keychainService.loadSignature(for: contactId) else {
             throw VerificationError.noStoredSignature
         }
         
+        try await startVerification(with: signature, contactId: contactId)
+    }
+    
+    /// Start verification with received voice thumbprint (from incoming call)
+    public func startVerification(withExternalThumbprint receivedThumbprint: [Float], contactId: String? = nil) async throws {
+        let signature = VoiceSignature(
+            userId: contactId ?? "unknown",
+            embedding: receivedThumbprint,
+            createdAt: Date(),
+            sampleCount: 5
+        )
+        
+        try await startVerification(with: signature, contactId: contactId)
+    }
+    
+    /// Internal method to start verification with a signature
+    private func startVerification(with signature: VoiceSignature, contactId: String?) async throws {
         self.contactId = contactId
         self.storedSignature = signature
         self.recentResults.removeAll()
-        
-        // Start audio capture
         try await audioCaptureService.startCapture()
         
         await MainActor.run {

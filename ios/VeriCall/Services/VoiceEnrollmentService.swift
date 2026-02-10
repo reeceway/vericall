@@ -49,6 +49,31 @@ public final class VoiceEnrollmentService: ObservableObject {
     
     // MARK: - Public Methods
     
+    /// Get the current user's voice signature from Keychain
+    public func getVoiceSignature() -> [Float]? {
+        return try? getOwnVoiceSignatureFromKeychain()
+    }
+    
+    /// Save the final voice signature to Keychain for the current user
+    public func saveVoiceSignatureToKeychain(contactId: String) async throws {
+        guard let signature = getFinalSignature(contactId: contactId) else {
+            throw EnrollmentError.processingFailed
+        }
+        
+        let keychainService = VoiceKeychainService()
+        try keychainService.saveSignature(signature)
+        
+        // Also save as "self" for easy retrieval during calls
+        let selfSignature = VoiceSignature(
+            vector: signature.vector,
+            contactId: "self",
+            phraseCount: signature.phraseCount
+        )
+        try keychainService.saveSignature(selfSignature)
+        
+        print("[VoiceEnrollmentService] Voice signature saved to Keychain for contact: \(contactId)")
+    }
+    
     /// Start enrollment process
     public func startEnrollment() async throws {
         // Request microphone permission
@@ -345,6 +370,15 @@ public final class VoiceEnrollmentService: ObservableObject {
         vDSP_vsmul(vector, 1, &scale, &normalized, 1, vDSP_Length(vector.count))
         
         return normalized
+    }
+    
+    private func getOwnVoiceSignatureFromKeychain() throws -> [Float]? {
+        let keychainService = VoiceKeychainService()
+        // Try to load "self" signature first, otherwise use current user ID
+        if let signature = try? keychainService.loadSignature(for: "self") {
+            return signature.vector
+        }
+        return nil
     }
 }
 

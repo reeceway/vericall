@@ -13,6 +13,7 @@ struct Call: Identifiable, Codable, Equatable {
     var endedAt: Date?
     var isVerified: Bool
     var voiceMatchPercentage: Double?
+    var voiceThumbprint: [Float]?  // Received caller's voice thumbprint during call
     
     var duration: TimeInterval {
         guard let startedAt = startedAt else { return 0 }
@@ -96,6 +97,7 @@ struct CallSignal: Codable {
     let timestamp: Date
     let payload: CallSignalPayload
     let signature: String?
+    let voiceThumbprint: [Float]?  // Caller's voice thumbprint for verification
 }
 
 // MARK: - Call Signal Payload
@@ -107,6 +109,8 @@ struct CallSignalPayload: Codable {
     let voiceMatchPercentage: Double?
     let reason: String?
     let isMuted: Bool?
+    let nonce: String?  // For replay attack prevention
+    let deviceSignature: String?  // Device authentication signature
     
     init(
         sdp: String? = nil,
@@ -115,7 +119,9 @@ struct CallSignalPayload: Codable {
         sdpMLineIndex: Int32? = nil,
         voiceMatchPercentage: Double? = nil,
         reason: String? = nil,
-        isMuted: Bool? = nil
+        isMuted: Bool? = nil,
+        nonce: String? = nil,
+        deviceSignature: String? = nil
     ) {
         self.sdp = sdp
         self.iceCandidate = iceCandidate
@@ -124,6 +130,8 @@ struct CallSignalPayload: Codable {
         self.voiceMatchPercentage = voiceMatchPercentage
         self.reason = reason
         self.isMuted = isMuted
+        self.nonce = nonce
+        self.deviceSignature = deviceSignature
     }
 }
 

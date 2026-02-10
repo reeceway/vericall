@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import select, or_, and_
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 import logging
@@ -18,7 +18,7 @@ from app.crypto import (
     verify_ecdsa_signature, get_public_key_fingerprint,
     format_call_signature_message
 )
-from app.websocket import handle_websocket
+from app.websocket import handle_websocket, WebSocketManager
 from app.logger import (
     RequestLogger, AuthLogger, CryptoLogger, CallLogger,
     ErrorLogger, log_call
@@ -107,6 +107,7 @@ class CallInitiateRequest(BaseModel):
     timestamp: int
     nonce: str
     signature: str
+    voice_thumbprint: Optional[List[float]] = None  # Array of 192 floats for voice verification
 
 
 class CallInitiateResponse(BaseModel):
@@ -326,6 +327,7 @@ async def initiate_call(
         caller_id=request.recipient_id,  # Placeholder - should be from auth
         recipient_id=request.recipient_id,
         device_verified=False,  # Will be updated after verification
+        voice_thumbprint=request.voice_thumbprint,  # Store voice thumbprint for verification
         started_at=None
     )
     db.add(call)
@@ -362,6 +364,15 @@ async def initiate_call(
             detail="Invalid signature - device verification failed"
         )
     
+    # Notify recipient via WebSocket if they're online
+    if WebSocketManager.is_user_online(call.recipient_id):
+        await WebSocketManager.send_to_user(call.recipient_id, {
+            "type": "call:incoming",
+            "call_id": str(call.id),
+            "caller_id": str(call.caller_id),
+            "voice_thumbprint": call.voice_thumbprint  # Include caller's voice thumbprint
+        })
+    
     return CallInitiateResponse(
         call_id=call.id,
         verified=verified,
@@ -388,7 +399,12 @@ async def answer_call(
     
     call.started_at = datetime.utcnow()
     
-    return {"call_id": call_id, "status": "answered"}
+    return {
+        "call_id": call_id,
+        "status": "answered",
+        "caller_id": str(call.caller_id),
+        "voice_thumbprint": call.voice_thumbprint  # Include caller's voice thumbprint for verification
+    }
 
 
 @app.post("/calls/{call_id}/end")

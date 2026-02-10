@@ -129,6 +129,7 @@ async def handle_call_initiate(sender_id: UUID, message: dict, websocket: WebSoc
     recipient_id_str = message.get("recipient_id")
     call_id = message.get("call_id")
     offer = message.get("offer")  # WebRTC offer
+    voice_thumbprint = message.get("voice_thumbprint")  # Voice thumbprint for verification
     
     if not recipient_id_str or not call_id:
         await websocket.send_json({
@@ -146,14 +147,21 @@ async def handle_call_initiate(sender_id: UUID, message: dict, websocket: WebSoc
         })
         return
     
+    # Build the notification payload
+    notification = {
+        "type": "call:incoming",
+        "call_id": call_id,
+        "caller_id": str(sender_id),
+        "offer": offer
+    }
+    
+    # Include voice thumbprint if provided
+    if voice_thumbprint is not None:
+        notification["voice_thumbprint"] = voice_thumbprint
+    
     # Forward to recipient if online
     if WebSocketManager.is_user_online(recipient_id):
-        await WebSocketManager.send_to_user(recipient_id, {
-            "type": "call:incoming",
-            "call_id": call_id,
-            "caller_id": str(sender_id),
-            "offer": offer
-        })
+        await WebSocketManager.send_to_user(recipient_id, notification)
     else:
         await websocket.send_json({
             "type": "call:unavailable",
