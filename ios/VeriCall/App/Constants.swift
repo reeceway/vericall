@@ -19,6 +19,17 @@ enum Constants {
     
     // Demo codes
     static let demoVerificationCode = "123456"
+
+    // Voice verification thresholds (from TECH_SPEC.md)
+    static let voiceMatchThreshold: Float = 0.75
+    static let voiceWarningThreshold: Float = 0.55
+
+    // Colors
+    enum Colors {
+        static let verifiedGreen = Color.green
+        static let error = Color.red
+        static let warning = Color.orange
+    }
 }
 
 // MARK: - Custom Colors

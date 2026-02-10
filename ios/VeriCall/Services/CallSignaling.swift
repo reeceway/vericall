@@ -38,10 +38,10 @@ class CallSignaling {
             fromUserId: "current_user_id",
             toUserId: toUserId,
             timestamp: Date().iso8601String,
-            payloadHash: payload.hashValue.description,
-            voiceThumbprintHash: voiceThumbprint?.hashValue.description
+            payloadHash: contentHash(of: payload),
+            voiceThumbprintHash: voiceThumbprint.map { "\($0.hashValue)" }
         )
-        
+
         // Sign with device private key
         let signature = try await signSignalData(signalData)
         
@@ -85,7 +85,7 @@ class CallSignaling {
             fromUserId: "current_user_id",
             toUserId: toUserId,
             timestamp: Date().iso8601String,
-            payloadHash: payload.hashValue.description
+            payloadHash: contentHash(of: payload)
         )
         
         let signature = try await signSignalData(signalData)
@@ -115,7 +115,7 @@ class CallSignaling {
             fromUserId: "current_user_id",
             toUserId: toUserId,
             timestamp: Date().iso8601String,
-            payloadHash: payload.hashValue.description
+            payloadHash: contentHash(of: payload)
         )
         
         let signature = try await signSignalData(signalData)
@@ -144,7 +144,7 @@ class CallSignaling {
             fromUserId: "current_user_id",
             toUserId: toUserId,
             timestamp: Date().iso8601String,
-            payloadHash: payload.hashValue.description
+            payloadHash: contentHash(of: payload)
         )
         
         let signature = try await signSignalData(signalData)
@@ -224,8 +224,15 @@ class CallSignaling {
         )
     }
     
+    // MARK: - Hashing
+
+    private func contentHash(of payload: CallSignalPayload) -> String {
+        guard let data = try? JSONEncoder().encode(payload) else { return "0" }
+        return SHA256.hash(data: data).compactMap { String(format: "%02x", $0) }.joined()
+    }
+
     // MARK: - Signing
-    
+
     private func signSignalData(_ data: SignalData) async throws -> String {
         // Retrieve private key from secure storage
         guard let privateKey = await getDevicePrivateKey() else {
@@ -258,8 +265,8 @@ class CallSignaling {
                 fromUserId: signal.fromUserId,
                 toUserId: signal.toUserId,
                 timestamp: signal.timestamp.iso8601String,
-                payloadHash: signal.payload.hashValue.description,
-                voiceThumbprintHash: signal.voiceThumbprint?.hashValue.description
+                payloadHash: contentHash(of: signal.payload),
+                voiceThumbprintHash: signal.voiceThumbprint.map { "\($0.hashValue)" }
             )
             
             let encoder = JSONEncoder()
@@ -347,6 +354,16 @@ private struct SignalData: Codable {
     let timestamp: String
     let payloadHash: String
     let voiceThumbprintHash: String?
+
+    init(type: String, callId: String, fromUserId: String, toUserId: String, timestamp: String, payloadHash: String, voiceThumbprintHash: String? = nil) {
+        self.type = type
+        self.callId = callId
+        self.fromUserId = fromUserId
+        self.toUserId = toUserId
+        self.timestamp = timestamp
+        self.payloadHash = payloadHash
+        self.voiceThumbprintHash = voiceThumbprintHash
+    }
 }
 
 // MARK: - Date Extension

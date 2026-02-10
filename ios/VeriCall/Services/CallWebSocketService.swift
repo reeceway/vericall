@@ -1,6 +1,19 @@
 import Foundation
 import Combine
 
+// MARK: - Supporting Types
+struct CallerInfo: Codable {
+    let id: String
+    let displayName: String?
+    let verified: Bool?
+}
+
+struct ICECandidate: Codable {
+    let candidate: String?
+    let sdpMid: String?
+    let sdpMLineIndex: Int32?
+}
+
 enum WebSocketEvent {
     case connected
     case disconnected
@@ -14,7 +27,7 @@ enum WebSocketEvent {
     case error(message: String)
 }
 
-class CallWebSocketService: ObservableObject {
+class CallWebSocketService: NSObject, ObservableObject {
     static let shared = CallWebSocketService()
     
     @Published var isConnected = false

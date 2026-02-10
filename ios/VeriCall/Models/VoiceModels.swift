@@ -35,7 +35,7 @@ public struct VoiceSignature: Codable, Equatable {
 }
 
 // MARK: - Voice Verification Result
-public struct VoiceVerificationResult {
+public struct VoiceVerificationResult: Equatable {
     /// Cosine similarity score (0.0 to 1.0)
     public let similarity: Float
     

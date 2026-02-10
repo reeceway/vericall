@@ -39,20 +39,19 @@ public final class VoiceVerificationService: ObservableObject {
     /// Start verification for a specific contact using stored signature
     public func startVerification(for contactId: String) async throws {
         // Load stored signature from Keychain
-        guard let signature = try? await keychainService.loadSignature(for: contactId) else {
+        guard let signature = try? keychainService.loadSignature(for: contactId) else {
             throw VerificationError.noStoredSignature
         }
-        
+
         try await startVerification(with: signature, contactId: contactId)
     }
     
     /// Start verification with received voice thumbprint (from incoming call)
     public func startVerification(withExternalThumbprint receivedThumbprint: [Float], contactId: String? = nil) async throws {
         let signature = VoiceSignature(
-            userId: contactId ?? "unknown",
-            embedding: receivedThumbprint,
-            createdAt: Date(),
-            sampleCount: 5
+            vector: receivedThumbprint,
+            contactId: contactId ?? "unknown",
+            phraseCount: 5
         )
         
         try await startVerification(with: signature, contactId: contactId)
@@ -105,7 +104,7 @@ public final class VoiceVerificationService: ObservableObject {
     
     /// Check if a contact has a stored voice signature
     public func hasSignature(for contactId: String) async -> Bool {
-        (try? await keychainService.loadSignature(for: contactId)) != nil
+        (try? keychainService.loadSignature(for: contactId)) != nil
     }
     
     /// Get audio level for UI visualization
@@ -192,7 +191,7 @@ public final class VoiceKeychainService {
         // Add new item
         let status = SecItemAdd(query as CFDictionary, nil)
         guard status == errSecSuccess else {
-            throw KeychainError.saveFailed(status)
+            throw VoiceKeychainError.saveFailed(status)
         }
         
         print("[VoiceKeychainService] Saved signature for contact: \(signature.contactId)")
@@ -212,11 +211,11 @@ public final class VoiceKeychainService {
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         
         guard status == errSecSuccess else {
-            throw KeychainError.loadFailed(status)
+            throw VoiceKeychainError.loadFailed(status)
         }
         
         guard let data = result as? Data else {
-            throw KeychainError.invalidData
+            throw VoiceKeychainError.invalidData
         }
         
         let signature = try JSONDecoder().decode(VoiceSignature.self, from: data)
@@ -234,7 +233,7 @@ public final class VoiceKeychainService {
         
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw KeychainError.deleteFailed(status)
+            throw VoiceKeychainError.deleteFailed(status)
         }
         
         print("[VoiceKeychainService] Deleted signature for contact: \(contactId)")
@@ -276,12 +275,12 @@ public enum VerificationError: Error, LocalizedError {
     }
 }
 
-public enum KeychainError: Error, LocalizedError {
+public enum VoiceKeychainError: Error, LocalizedError {
     case saveFailed(OSStatus)
     case loadFailed(OSStatus)
     case deleteFailed(OSStatus)
     case invalidData
-    
+
     public var errorDescription: String? {
         switch self {
         case .saveFailed(let status):

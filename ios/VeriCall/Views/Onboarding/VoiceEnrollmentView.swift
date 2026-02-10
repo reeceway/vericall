@@ -244,8 +244,8 @@ public struct VoiceEnrollmentView: View {
                 .foregroundColor(.secondary)
             
             AudioVisualizerView(
-                audioLevels: $enrollmentService.audioSpectrum,
-                currentLevel: $enrollmentService.currentAudioLevel,
+                audioLevels: Binding(get: { enrollmentService.audioSpectrum }, set: { _ in }),
+                currentLevel: Binding(get: { enrollmentService.currentAudioLevel }, set: { _ in }),
                 barColor: .accentColor,
                 barCount: 24
             )
@@ -289,8 +289,8 @@ public struct VoiceEnrollmentView: View {
                     .background(Color.accentColor)
                     .cornerRadius(16)
                 }
-                .disabled(enrollmentService.progress.isComplete || case .processing = enrollmentService.state)
-                .opacity(enrollmentService.progress.isComplete || case .processing = enrollmentService.state ? 0.5 : 1)
+                .disabled(enrollmentService.progress.isComplete || isProcessing)
+                .opacity(enrollmentService.progress.isComplete || isProcessing ? 0.5 : 1)
             }
             
             // Retry button (only show if we have at least one phrase recorded)
@@ -308,6 +308,13 @@ public struct VoiceEnrollmentView: View {
     
     private var isRecording: Bool {
         if case .recording = enrollmentService.state {
+            return true
+        }
+        return false
+    }
+
+    private var isProcessing: Bool {
+        if case .processing = enrollmentService.state {
             return true
         }
         return false

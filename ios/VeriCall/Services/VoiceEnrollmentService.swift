@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import Accelerate
 import Combine
 
 /// Handles voice enrollment for new contacts
@@ -234,7 +235,7 @@ public final class VoiceEnrollmentService: ObservableObject {
         
         // Simple window and FFT
         var windowed = [Float](repeating: 0, count: fftSize)
-        let window = vDSP.window(ofLength: fftSize, using: .hanningDenormalized)
+        let window: [Float] = vDSP.window(ofType: Float.self, usingSequence: .hanningDenormalized, count: fftSize, isHalfWindow: false)
         vDSP_vmul(frame, 1, window, 1, &windowed, 1, vDSP_Length(fftSize))
         
         // Create FFT setup
@@ -248,7 +249,7 @@ public final class VoiceEnrollmentService: ObservableObject {
         var outImag = [Float](repeating: 0, count: fftSize)
         
         vDSP_DFT_Execute(fftSetup, real, imag, &outReal, &outImag)
-        vDSP_DFT_DestroySetupD(fftSetup)
+        vDSP_DFT_DestroySetup(fftSetup)
         
         // Calculate magnitudes (first half only)
         var magnitudes = [Float](repeating: 0, count: 32)
@@ -269,18 +270,20 @@ public final class VoiceEnrollmentService: ObservableObject {
     private func resample(_ samples: [Float], from sourceRate: Double, to targetRate: Double) -> [Float] {
         let ratio = targetRate / sourceRate
         let newLength = Int(Double(samples.count) * ratio)
-        
-        var resampled = [Float](repeating: 0, count: newLength)
-        var source = samples
-        var resampleRatio = Float(1.0 / ratio)
-        
-        vDSP_vgenp(&source, vDSP_Stride(1),
-                   &resampled, vDSP_Stride(1),
-                   &resampleRatio,
-                   vDSP_Length(newLength),
-                   vDSP_Length(samples.count))
-        
-        return resampled
+        guard newLength > 0, samples.count > 1 else { return samples }
+
+        var result = [Float](repeating: 0, count: newLength)
+        for i in 0..<newLength {
+            let srcIndex = Double(i) / ratio
+            let idx = Int(srcIndex)
+            let frac = Float(srcIndex - Double(idx))
+            if idx + 1 < samples.count {
+                result[i] = samples[idx] * (1.0 - frac) + samples[idx + 1] * frac
+            } else if idx < samples.count {
+                result[i] = samples[idx]
+            }
+        }
+        return result
     }
     
     private func finishRecordingPhrase() async {

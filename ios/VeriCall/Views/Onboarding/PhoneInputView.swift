@@ -126,6 +126,7 @@ struct PhoneInputView: View {
                 .background(isValid ? Color.veriBlue : Color.gray.opacity(0.4))
                 .cornerRadius(16)
                 .disabled(!isValid || isLoading)
+                .buttonStyle(ScaleButtonStyle())
                 .padding(.horizontal, 24)
                 .padding(.vertical, 20)
             }
@@ -169,11 +170,11 @@ struct PhoneInputView: View {
     private func submitPhoneNumber() {
         let cleaned = phoneNumber.filter { $0.isNumber }
         let fullNumber = "+1\(cleaned)"
-        
+
         isLoading = true
         errorMessage = nil
-        
-        Task {
+
+        Task { @MainActor in
             do {
                 _ = try await authService.requestOTP(phoneNumber: fullNumber)
                 isLoading = false

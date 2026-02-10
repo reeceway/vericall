@@ -182,7 +182,7 @@ struct VerificationCodeView: View {
         errorMessage = nil
         focusedField = nil
         
-        Task {
+        Task { @MainActor in
             do {
                 _ = try await authService.verifyOTP(phoneNumber: phoneNumber, code: code)
                 isLoading = false
@@ -195,14 +195,14 @@ struct VerificationCodeView: View {
             }
         }
     }
-    
+
     private func resendCode() {
         guard canResend else { return }
-        
+
         isLoading = true
         errorMessage = nil
-        
-        Task {
+
+        Task { @MainActor in
             do {
                 _ = try await authService.requestOTP(phoneNumber: phoneNumber)
                 isLoading = false

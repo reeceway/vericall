@@ -102,7 +102,7 @@ class CallManager: ObservableObject {
             await callKitManager.reportOutgoingCall(call: call)
             
         } catch {
-            await endCall()
+            try? await endCall()
             throw error
         }
     }
@@ -204,7 +204,7 @@ class CallManager: ObservableObject {
         
         try await webSocketService.sendSignal(rejectSignal)
         await updateCallState(.declined)
-        await endCall()
+        try await endCall()
     }
     
     // MARK: - Handle Answers
@@ -231,22 +231,23 @@ class CallManager: ObservableObject {
             toUserId: call.direction == .incoming ? call.callerId : call.recipientId,
             timestamp: Date(),
             payload: CallSignalPayload(isMuted: muted),
-            signature: nil
+            signature: nil,
+            voiceThumbprint: nil
         )
-        
+
         try await webSocketService.sendSignal(signal)
     }
-    
+
     func setSpeaker(_ enabled: Bool) async throws {
         // This would configure audio session
         // For now, just a placeholder
     }
-    
+
     func holdCall() async throws {
         guard let call = currentCall else {
             throw CallError.invalidState
         }
-        
+
         let signal = CallSignal(
             type: .hold,
             callId: call.id,
@@ -254,18 +255,19 @@ class CallManager: ObservableObject {
             toUserId: call.direction == .incoming ? call.callerId : call.recipientId,
             timestamp: Date(),
             payload: CallSignalPayload(),
-            signature: nil
+            signature: nil,
+            voiceThumbprint: nil
         )
-        
+
         try await webSocketService.sendSignal(signal)
         await updateCallState(.held)
     }
-    
+
     func resumeCall() async throws {
         guard let call = currentCall else {
             throw CallError.invalidState
         }
-        
+
         let signal = CallSignal(
             type: .resume,
             callId: call.id,
@@ -273,7 +275,8 @@ class CallManager: ObservableObject {
             toUserId: call.direction == .incoming ? call.callerId : call.recipientId,
             timestamp: Date(),
             payload: CallSignalPayload(),
-            signature: nil
+            signature: nil,
+            voiceThumbprint: nil
         )
         
         try await webSocketService.sendSignal(signal)

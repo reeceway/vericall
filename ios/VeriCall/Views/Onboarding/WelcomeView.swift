@@ -68,6 +68,7 @@ struct WelcomeView: View {
                 .background(Color.veriBlue)
                 .cornerRadius(16)
             }
+            .buttonStyle(ScaleButtonStyle())
             .padding(.horizontal, 24)
             .padding(.bottom, 40)
             .opacity(isAnimating ? 1.0 : 0.0)
@@ -97,6 +98,16 @@ struct FeatureRow: View {
                 .font(.body)
                 .foregroundColor(.veriDark)
         }
+    }
+}
+
+// MARK: - Scale Button Style
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .opacity(configuration.isPressed ? 0.85 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 

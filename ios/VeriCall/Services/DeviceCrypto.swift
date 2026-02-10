@@ -8,6 +8,7 @@ enum DeviceCryptoError: Error {
     case signingFailed
     case biometricsNotAvailable
     case invalidKeyData
+    case invalidStatus(OSStatus)
 }
 
 actor DeviceCrypto {

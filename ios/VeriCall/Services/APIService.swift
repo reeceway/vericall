@@ -36,7 +36,7 @@ actor APIService {
         self.baseURL = Constants.apiBaseURL
         
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForRequest = 60
         config.timeoutIntervalForResource = 300
         self.session = URLSession(configuration: config)
     }

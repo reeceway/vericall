@@ -1,5 +1,7 @@
 import Foundation
 import os.log
+import SwiftUI
+import UIKit
 
 /// Comprehensive logging system for VeriCall
 enum VeriCallLogger {

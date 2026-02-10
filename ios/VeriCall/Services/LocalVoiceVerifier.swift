@@ -43,7 +43,7 @@ public final class LocalVoiceVerifier {
         self.fftSize = frameSize
         
         // Initialize Hann window
-        self.window = vDSP.window(ofLength: frameSize, using: .hanningDenormalized)
+        self.window = vDSP.window(ofType: Float.self, usingSequence: .hanningDenormalized, count: frameSize, isHalfWindow: false)
         
         // Initialize FFT setup
         self.fftSetup = vDSP_DFT_zop_CreateSetup(
@@ -60,17 +60,18 @@ public final class LocalVoiceVerifier {
         
         // Initialize log-spaced frequency bands (0 to Nyquist)
         let nyquist = Float(sampleRate / 2.0)
-        self.frequencyBands = (0..<frequencyBandCount).map { i in
-            let logMin = log10(20.0)  // 20 Hz
+        let bandCount = frequencyBandCount
+        self.frequencyBands = (0..<bandCount).map { i in
+            let logMin = log10(Float(20.0))  // 20 Hz
             let logMax = log10(nyquist)
-            let t = Float(i) / Float(frequencyBandCount - 1)
+            let t = Float(i) / Float(bandCount - 1)
             return powf(10.0, logMin + t * (logMax - logMin))
         }
     }
     
     deinit {
         if let setup = fftSetup {
-            vDSP_DFT_DestroySetupD(setup)
+            vDSP_DFT_DestroySetup(setup)
         }
     }
     

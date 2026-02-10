@@ -9,7 +9,7 @@ struct Call: Identifiable, Codable, Equatable {
     let recipientName: String
     let direction: CallDirection
     var state: CallState
-    let startedAt: Date?
+    var startedAt: Date?
     var endedAt: Date?
     var isVerified: Bool
     var voiceMatchPercentage: Double?

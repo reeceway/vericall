@@ -3,7 +3,7 @@ import Combine
 
 // MARK: - WebSocket Service
 @MainActor
-class WebSocketService: ObservableObject {
+class WebSocketService: NSObject, ObservableObject {
     static let shared = WebSocketService()
     
     @Published var connectionStatus: ConnectionStatus = .disconnected
@@ -25,10 +25,11 @@ class WebSocketService: ObservableObject {
         }
     }
     
-    private init() {
+    private override init() {
         // Constants from other agents
         self.wsBaseURL = "wss://api.vericall.example.com/ws" // Replace with actual wsBaseURL
         self.authToken = nil // TODO: Get from secure storage
+        super.init()
     }
     
     // MARK: - Connection
@@ -167,7 +168,8 @@ class WebSocketService: ObservableObject {
             toUserId: "",
             timestamp: Date(),
             payload: CallSignalPayload(),
-            signature: nil
+            signature: nil,
+            voiceThumbprint: nil
         )
         
         try await sendSignal(heartbeat)

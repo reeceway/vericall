@@ -176,26 +176,30 @@ private class CallProviderDelegate: NSObject, CXProviderDelegate {
     
     func providerDidReset(_ provider: CXProvider) {
         print("CallKit provider reset")
-        manager?.deactivateAudioSession()
+        Task { @MainActor in manager?.deactivateAudioSession() }
     }
-    
+
     func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
         print("CallKit: Answer call \(action.callUUID)")
-        manager?.configureAudioSession()
-        manager?.handleCallAccepted()
+        Task { @MainActor in
+            manager?.configureAudioSession()
+            manager?.handleCallAccepted()
+        }
         action.fulfill()
     }
-    
+
     func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
         print("CallKit: End call \(action.callUUID)")
-        manager?.deactivateAudioSession()
-        manager?.handleCallRejected()
+        Task { @MainActor in
+            manager?.deactivateAudioSession()
+            manager?.handleCallRejected()
+        }
         action.fulfill()
     }
-    
+
     func provider(_ provider: CXProvider, perform action: CXStartCallAction) {
         print("CallKit: Start call \(action.callUUID)")
-        manager?.configureAudioSession()
+        Task { @MainActor in manager?.configureAudioSession() }
         action.fulfill()
     }
     
