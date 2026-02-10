@@ -1,0 +1,31 @@
+# VeriCall Voice ML - Requirements
+# Speaker recognition and voice verification system
+
+# Core dependencies
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Audio processing
+librosa>=0.10.0
+soundfile>=0.12.0
+
+# Deep learning (for Resemblyzer)
+torch>=2.0.0
+torchaudio>=2.0.0
+
+# Speaker recognition
+resemblyzer>=0.1.1
+
+# Alternative: SpeechBrain (uncomment if using instead of Resemblyzer)
+# speechbrain>=0.5.0
+
+# API and web (for FastAPI endpoints)
+fastapi>=0.100.0
+uvicorn>=0.23.0
+python-multipart>=0.0.6
+
+# Data validation
+pydantic>=2.0.0
+
+# Utilities
+python-dotenv>=1.0.0

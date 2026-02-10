@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Identity -->
+    <key>CFBundleDisplayName</key>
+    <string>VeriCall</string>
+    <key>CFBundleName</key>
+    <string>VeriCall</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.vericall.app</string>
+    
+    <!-- Required Permissions -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>VeriCall needs access to your microphone to record voice samples for authentication and to make calls.</string>
+    
+    <key>NSCameraUsageDescription</key>
+    <string>VeriCall needs access to your camera for future video calling features.</string>
+    
+    <key>NSContactsUsageDescription</key>
+    <string>VeriCall needs access to your contacts to help you find and call your friends securely.</string>
+    
+    <!-- Push Notifications -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>remote-notification</string>
+        <string>voip</string>
+        <string>audio</string>
+    </array>
+    
+    <!-- App Transport Security -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <false/>
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>localhost</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+            </dict>
+        </dict>
+    </dict>
+    
+    <!-- Orientation -->
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+    </array>
+    
+    <!-- Appearance -->
+    <key>UIUserInterfaceStyle</key>
+    <string>Automatic</string>
+</dict>
+</plist>
