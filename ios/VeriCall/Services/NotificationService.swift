@@ -91,20 +91,23 @@ class NotificationService: NSObject, ObservableObject {
     ) async {
         let content = UNMutableNotificationContent()
         
-        if matchPercentage >= 0.75 {
+        // matchPercentage comes in as 0-100 from NativeCallObserver
+        let pct = Int(matchPercentage)
+
+        if matchPercentage >= 75 {
             // Good voice match
-            content.title = "🎤 Voice Verified"
-            content.body = "\(callerName)'s voice matches - \(Int(matchPercentage * 100))% confidence"
+            content.title = "Voice Verified"
+            content.body = "\(callerName)'s voice matches - \(pct)% confidence"
             content.categoryIdentifier = "VOICE_VERIFIED"
-        } else if matchPercentage >= 0.55 {
+        } else if matchPercentage >= 55 {
             // Uncertain match
-            content.title = "🎤 Voice Uncertain"
-            content.body = "\(callerName)'s voice partially matches - \(Int(matchPercentage * 100))%"
+            content.title = "Voice Uncertain"
+            content.body = "\(callerName)'s voice partially matches - \(pct)%"
             content.categoryIdentifier = "VOICE_UNCERTAIN"
         } else {
             // Voice mismatch - WARNING
-            content.title = "⚠️ VOICE MISMATCH"
-            content.body = "Voice does NOT match \(callerName)'s profile - \(Int(matchPercentage * 100))%"
+            content.title = "VOICE MISMATCH"
+            content.body = "Voice does NOT match \(callerName)'s profile - \(pct)%"
             content.sound = UNNotificationSound.defaultCritical
             content.categoryIdentifier = "VOICE_MISMATCH"
             content.interruptionLevel = .critical

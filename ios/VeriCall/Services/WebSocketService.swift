@@ -14,9 +14,6 @@ class WebSocketService: NSObject, ObservableObject {
     private var reconnectDelay: TimeInterval = 1.0
     private var isReconnecting = false
     
-    private let wsBaseURL: String
-    private let authToken: String?
-    
     private var signalContinuation: AsyncStream<CallSignal>.Continuation?
     
     var incomingSignals: AsyncStream<CallSignal> {
@@ -26,32 +23,39 @@ class WebSocketService: NSObject, ObservableObject {
     }
     
     private override init() {
-        // Constants from other agents
-        self.wsBaseURL = "wss://api.vericall.example.com/ws" // Replace with actual wsBaseURL
-        self.authToken = nil // TODO: Get from secure storage
         super.init()
     }
     
     // MARK: - Connection
     func connect() {
         guard webSocketTask == nil || webSocketTask?.state == .completed else {
-            return // Already connected or connecting
+            print("[WebSocketService] Already connected or connecting")
+            return
         }
         
         connectionStatus = .connecting
         
-        guard let url = URL(string: wsBaseURL) else {
-            connectionStatus = .error("Invalid WebSocket URL")
+        // Get auth token first
+        guard let token = getAuthToken() else {
+            print("[WebSocketService] ❌ No auth token in UserDefaults - cannot connect")
+            connectionStatus = .error("Not authenticated")
             return
         }
         
+        print("[WebSocketService] ✅ Found auth token: \(token.prefix(20))...")
+        
+        // Use Constants for the WebSocket URL + add /ws path with token as query param
+        let wsURLString = Constants.wsBaseURL + "/ws?token=\(token)"
+        guard let url = URL(string: wsURLString) else {
+            connectionStatus = .error("Invalid WebSocket URL")
+            print("[WebSocketService] ❌ Invalid URL")
+            return
+        }
+        
+        print("[WebSocketService] 📡 Connecting to: \(Constants.wsBaseURL)/ws")
+        
         var request = URLRequest(url: url)
         request.timeoutInterval = 30
-        
-        // Add auth token if available
-        if let token = authToken {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
         
         let session = URLSession(configuration: .default)
         webSocketTask = session.webSocketTask(with: request)
@@ -63,7 +67,14 @@ class WebSocketService: NSObject, ObservableObject {
         receiveMessage()
     }
     
+    private func getAuthToken() -> String? {
+        // Use UserDefaults for auth token (simpler for now)
+        // In production, migrate to Keychain with proper async handling
+        return UserDefaults.standard.string(forKey: "authToken")
+    }
+    
     func disconnect() {
+        print("[WebSocketService] Disconnecting")
         webSocketTask?.cancel(with: .normalClosure, reason: nil)
         webSocketTask = nil
         connectionStatus = .disconnected
@@ -75,6 +86,7 @@ class WebSocketService: NSObject, ObservableObject {
         guard !isReconnecting, reconnectAttempts < maxReconnectAttempts else {
             if reconnectAttempts >= maxReconnectAttempts {
                 connectionStatus = .error("Max reconnection attempts reached")
+                print("[WebSocketService] Max reconnection attempts reached")
             }
             return
         }
@@ -83,6 +95,7 @@ class WebSocketService: NSObject, ObservableObject {
         reconnectAttempts += 1
         
         connectionStatus = .reconnecting(attempt: reconnectAttempts)
+        print("[WebSocketService] Reconnecting... attempt \(reconnectAttempts)")
         
         let delay = min(reconnectDelay * pow(2.0, Double(reconnectAttempts - 1)), 30.0)
         
@@ -105,11 +118,10 @@ class WebSocketService: NSObject, ObservableObject {
                 switch result {
                 case .success(let message):
                     self.handleMessage(message)
-                    // Continue receiving
                     self.receiveMessage()
                     
                 case .failure(let error):
-                    print("WebSocket receive error: \(error)")
+                    print("[WebSocketService] Receive error: \(error)")
                     self.connectionStatus = .error(error.localizedDescription)
                     self.scheduleReconnect()
                 }
@@ -120,6 +132,7 @@ class WebSocketService: NSObject, ObservableObject {
     private func handleMessage(_ message: URLSessionWebSocketTask.Message) {
         switch message {
         case .string(let text):
+            print("[WebSocketService] Received: \(text.prefix(200))")
             handleTextMessage(text)
         case .data(let data):
             handleBinaryMessage(data)
@@ -134,12 +147,11 @@ class WebSocketService: NSObject, ObservableObject {
     }
     
     private func handleBinaryMessage(_ data: Data) {
-        // First try to parse as generic JSON to check message type
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let messageType = json["type"] as? String {
             
-            // Handle native call handshake messages
             if messageType.hasPrefix("native_call:") {
+                print("[WebSocketService] Native call message: \(messageType)")
                 Task { @MainActor in
                     await handleNativeCallMessage(json: json, type: messageType)
                 }
@@ -147,55 +159,94 @@ class WebSocketService: NSObject, ObservableObject {
             }
         }
         
-        // Otherwise decode as CallSignal
         do {
             let signal = try JSONDecoder().decode(CallSignal.self, from: data)
             signalContinuation?.yield(signal)
         } catch {
-            print("Failed to decode signal: \(error)")
+            print("[WebSocketService] Failed to decode signal: \(error)")
         }
     }
     
     @MainActor
     private func handleNativeCallMessage(json: [String: Any], type: String) async {
         let observer = NativeCallObserver.shared
+        let notificationService = NotificationService.shared
         
         switch type {
         case "native_call:handshake":
-            // Someone is calling us and sent their thumbprint
+            // Someone is calling us and sent THEIR voiceprint
+            // We can now verify THEIR voice during the call
+            print("[WebSocketService] ✅ Received HANDSHAKE (caller's voiceprint)")
             if let fromUserId = json["fromUserId"] as? String,
-               let thumbprint = json["voiceThumbprint"] as? [Double],
                let phoneNumber = json["phoneNumber"] as? String {
-                let floatThumbprint = thumbprint.map { Float($0) }
+                
+                var floatThumbprint: [Float]? = nil
+                if let thumbprint = json["voiceThumbprint"] as? [Double] {
+                    floatThumbprint = thumbprint.map { Float($0) }
+                } else if let thumbprint = json["voiceThumbprint"] as? [NSNumber] {
+                    floatThumbprint = thumbprint.map { Float(truncating: $0) }
+                }
+                
                 let displayName = json["displayName"] as? String
-                await observer.handleReceivedHandshake(
-                    fromUserId: fromUserId,
-                    displayName: displayName,
-                    voiceThumbprint: floatThumbprint,
-                    phoneNumber: phoneNumber
+                
+                print("[WebSocketService] 📞 Call from: \\(displayName ?? phoneNumber)")
+                
+                // Show notification immediately
+                await notificationService.showCallVerificationNotification(
+                    callerName: displayName ?? phoneNumber,
+                    callerId: fromUserId,
+                    isDeviceVerified: true,
+                    hasVoiceThumbprint: floatThumbprint != nil
                 )
+                
+                if let thumbprint = floatThumbprint {
+                    print("[WebSocketService] ✅ Got \\(thumbprint.count) value voiceprint")
+                    await observer.handleReceivedHandshake(
+                        fromUserId: fromUserId,
+                        displayName: displayName,
+                        voiceThumbprint: thumbprint,
+                        phoneNumber: phoneNumber
+                    )
+                } else {
+                    print("[WebSocketService] ⚠️ Handshake had no voiceprint")
+                }
             }
             
         case "native_call:request_thumbprint":
-            // They're requesting our thumbprint
+            print("[WebSocketService] Received thumbprint request")
             if let fromUserId = json["fromUserId"] as? String,
                let phoneNumber = json["phoneNumber"] as? String {
                 await observer.handleThumbprintRequest(fromUserId: fromUserId, phoneNumber: phoneNumber)
             }
             
         case "native_call:handshake_response":
-            // Response to our outgoing call handshake
-            if let fromUserId = json["fromUserId"] as? String,
-               let thumbprint = json["voiceThumbprint"] as? [Double],
-               let phoneNumber = json["phoneNumber"] as? String {
-                let floatThumbprint = thumbprint.map { Float($0) }
+            // This is when the other party sends THEIR voiceprint back to us
+            // Now we can verify THEIR voice during the call
+            print("[WebSocketService] ✅ Received handshake RESPONSE (their voiceprint)")
+            if let fromUserId = json["fromUserId"] as? String {
+                
+                var floatThumbprint: [Float]? = nil
+                if let thumbprint = json["voiceThumbprint"] as? [Double] {
+                    floatThumbprint = thumbprint.map { Float($0) }
+                } else if let thumbprint = json["voiceThumbprint"] as? [NSNumber] {
+                    floatThumbprint = thumbprint.map { Float(truncating: $0) }
+                }
+                
                 let displayName = json["displayName"] as? String
-                await observer.handleReceivedHandshake(
-                    fromUserId: fromUserId,
-                    displayName: displayName,
-                    voiceThumbprint: floatThumbprint,
-                    phoneNumber: phoneNumber
-                )
+                let phoneNumber = json["phoneNumber"] as? String ?? "Unknown"
+                
+                if let thumbprint = floatThumbprint {
+                    print("[WebSocketService] ✅ Got \\(thumbprint.count) value voiceprint from \\(displayName ?? fromUserId)")
+                    // Process as incoming handshake - this will start voice verification
+                    await observer.handleReceivedHandshake(
+                        fromUserId: fromUserId,
+                        displayName: displayName,
+                        voiceThumbprint: thumbprint,
+                        phoneNumber: phoneNumber
+                    )
+                } else {
+                    print("[WebSocketService] ⚠️ Handshake response had no voiceprint")
+                }
             }
             
         default:
@@ -221,10 +272,9 @@ class WebSocketService: NSObject, ObservableObject {
         try await webSocketTask?.send(.string(jsonString))
     }
     
-    
-    // MARK: - Send Raw Message (for native call handshakes)
     func sendRaw(message: [String: Any]) async throws {
         guard connectionStatus.isConnected else {
+            print("[WebSocketService] Cannot send - not connected")
             throw CallError.webSocketDisconnected
         }
         
@@ -233,6 +283,7 @@ class WebSocketService: NSObject, ObservableObject {
             throw CallError.signalingError("Failed to encode raw message")
         }
         
+        print("[WebSocketService] Sending: \(jsonString.prefix(200))")
         try await webSocketTask?.send(.string(jsonString))
     }
 
@@ -260,7 +311,7 @@ extension WebSocketService: URLSessionWebSocketDelegate {
         didOpenWithProtocol protocol: String?
     ) {
         Task { @MainActor in
-            print("WebSocket connected")
+            print("[WebSocketService] Connected!")
             self.connectionStatus = .connected
             self.reconnectAttempts = 0
         }
@@ -273,7 +324,7 @@ extension WebSocketService: URLSessionWebSocketDelegate {
         reason: Data?
     ) {
         Task { @MainActor in
-            print("WebSocket closed with code: \(closeCode)")
+            print("[WebSocketService] Closed with code: \(closeCode)")
             self.connectionStatus = .disconnected
             self.scheduleReconnect()
         }
@@ -286,7 +337,7 @@ extension WebSocketService: URLSessionWebSocketDelegate {
     ) {
         if let error = error {
             Task { @MainActor in
-                print("WebSocket error: \(error)")
+                print("[WebSocketService] Error: \(error)")
                 self.connectionStatus = .error(error.localizedDescription)
                 self.scheduleReconnect()
             }

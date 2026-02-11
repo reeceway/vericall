@@ -10,6 +10,7 @@
 		F3F1498750604DA89CF7CEF5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DE526AC80224DE480E8D062 /* AppDelegate.swift */; };
 		922A9FC1C44741E4B6BCCBBA /* NativeCallObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7FF01B4311944159CE6F57F /* NativeCallObserver.swift */; };
 		520B93C5072545BEBC0D6AC9 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38711FD7CDD24875B2627F4E /* NotificationService.swift */; };
+				FCC8334E5F4C4E4445B6ADC2 /* FirebasePushService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBDDF7A76D1B57460BA3FC82 /* FirebasePushService.swift */; };
 		48CD292584F748D1AFD18091 /* SelfVoiceEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 889046B3DBDC40EE8F42622F /* SelfVoiceEnrollmentView.swift */; };
 		AA000001 /* VeriCallApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101 /* VeriCallApp.swift */; };
 		AA000002 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000102 /* RootView.swift */; };
@@ -57,6 +58,7 @@
 		7DE526AC80224DE480E8D062 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		E7FF01B4311944159CE6F57F /* NativeCallObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeCallObserver.swift; sourceTree = "<group>"; };
 		38711FD7CDD24875B2627F4E /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+				FBDDF7A76D1B57460BA3FC82 /* FirebasePushService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebasePushService.swift; sourceTree = "<group>"; };
 		889046B3DBDC40EE8F42622F /* SelfVoiceEnrollmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfVoiceEnrollmentView.swift; sourceTree = "<group>"; };
 		AA000100 /* VeriCall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VeriCall.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA000101 /* VeriCallApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VeriCallApp.swift; sourceTree = "<group>"; };
@@ -162,6 +164,7 @@
 				AA000107 /* APIService.swift */,
 				E7FF01B4311944159CE6F57F /* NativeCallObserver.swift */,
 				38711FD7CDD24875B2627F4E /* NotificationService.swift */,
+						FBDDF7A76D1B57460BA3FC82 /* FirebasePushService.swift */,
 				AA000126 /* AuthService.swift */,
 				AA000108 /* DeviceCrypto.swift */,
 				AA000109 /* KeychainService.swift */,
@@ -331,6 +334,7 @@
 				F3F1498750604DA89CF7CEF5 /* AppDelegate.swift in Sources */,
 				922A9FC1C44741E4B6BCCBBA /* NativeCallObserver.swift in Sources */,
 				520B93C5072545BEBC0D6AC9 /* NotificationService.swift in Sources */,
+						FCC8334E5F4C4E4445B6ADC2 /* FirebasePushService.swift in Sources */,
 				48CD292584F748D1AFD18091 /* SelfVoiceEnrollmentView.swift in Sources */,
 				AA000001 /* VeriCallApp.swift in Sources */,
 				AA000002 /* RootView.swift in Sources */,

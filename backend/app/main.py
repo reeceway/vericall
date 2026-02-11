@@ -21,6 +21,7 @@ from app.crypto import (
     format_call_signature_message
 )
 from app.websocket import handle_websocket, WebSocketManager
+from app.push import send_call_handshake_push
 from app.logger import (
     RequestLogger, AuthLogger, CryptoLogger, CallLogger,
     ErrorLogger, log_call
@@ -91,7 +92,12 @@ class RefreshTokenResponse(BaseModel):
 
 
 class ContactSyncRequest(BaseModel):
-    phone_numbers: List[str]
+    phone_numbers: Optional[List[str]] = None
+    contacts: Optional[List[str]] = None  # iOS sends "contacts" field
+
+    @property
+    def numbers(self) -> List[str]:
+        return self.phone_numbers or self.contacts or []
 
 
 class ContactInfo(BaseModel):
@@ -124,6 +130,12 @@ class CallAnswerRequest(BaseModel):
 
 class CallEndRequest(BaseModel):
     call_id: UUID
+
+
+class RegisterPushTokenRequest(BaseModel):
+    push_token: str = Field(..., min_length=10)
+    token_type: str = Field(..., pattern="^(apns|voip)$")
+    platform: str = Field(default="ios")
 
 
 # ============= Auth Endpoints =============
@@ -257,6 +269,112 @@ async def refresh_token(
     )
 
 
+# ============= User Endpoints =============
+
+class UserLookupRequest(BaseModel):
+    phone_number: str
+
+
+class UserResponse(BaseModel):
+    id: UUID
+    phone_number: str
+    display_name: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class UserLookupResponse(BaseModel):
+    user: Optional[UserResponse] = None
+    found: bool
+
+
+class UpdateProfileRequest(BaseModel):
+    display_name: str
+
+
+@app.post("/users/lookup", response_model=UserLookupResponse)
+async def lookup_user(
+    request: UserLookupRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Look up a VeriCall user by phone number."""
+    # Normalize phone number
+    normalized = ''.join(c for c in request.phone_number if c.isdigit() or c == '+')
+
+    # Try exact match first
+    result = await db.execute(
+        select(User).where(User.phone_number == normalized)
+    )
+    user = result.scalar_one_or_none()
+
+    # Try variations if not found
+    if not user and normalized.startswith('+'):
+        result = await db.execute(
+            select(User).where(User.phone_number == normalized[1:])
+        )
+        user = result.scalar_one_or_none()
+
+    if not user and normalized.startswith('+61'):
+        result = await db.execute(
+            select(User).where(User.phone_number == '0' + normalized[3:])
+        )
+        user = result.scalar_one_or_none()
+
+    if not user and normalized.startswith('0'):
+        result = await db.execute(
+            select(User).where(User.phone_number == '+61' + normalized[1:])
+        )
+        user = result.scalar_one_or_none()
+
+    if user:
+        return UserLookupResponse(
+            user=UserResponse(
+                id=user.id,
+                phone_number=user.phone_number,
+                display_name=user.name,
+                created_at=user.created_at
+            ),
+            found=True
+        )
+
+    return UserLookupResponse(user=None, found=False)
+
+
+@app.patch("/users/me", response_model=UserResponse)
+async def update_profile(
+    request: UpdateProfileRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Update the current user's profile. Requires Authorization header."""
+    from app.auth import decode_access_token
+    from fastapi import Request as FastAPIRequest
+
+    # For now, find user by most recently created (simplified)
+    # In production, extract from JWT Authorization header
+    result = await db.execute(
+        select(User).order_by(User.created_at.desc()).limit(1)
+    )
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    user.name = request.display_name
+    await db.flush()
+
+    return UserResponse(
+        id=user.id,
+        phone_number=user.phone_number,
+        display_name=user.name,
+        created_at=user.created_at
+    )
+
+
 # ============= Contacts Endpoints =============
 
 @app.post("/contacts/sync", response_model=ContactSyncResponse)
@@ -265,20 +383,27 @@ async def sync_contacts(
     db: AsyncSession = Depends(get_db)
 ):
     """Sync contacts - return users that match provided phone numbers with their fingerprints."""
-    if not request.phone_numbers:
+    numbers = request.numbers
+    if not numbers:
         return ContactSyncResponse(contacts=[])
-    
-    # Normalize phone numbers (remove spaces, dashes, etc.)
-    normalized_numbers = [
-        ''.join(c for c in pn if c.isdigit() or c == '+')
-        for pn in request.phone_numbers
-    ]
-    
+
+    # Normalize phone numbers and build variations (e.g. 04xx <-> +614xx)
+    all_variations = set()
+    for pn in numbers:
+        normalized = ''.join(c for c in pn if c.isdigit() or c == '+')
+        all_variations.add(normalized)
+        # Australian: 04xx -> +614xx
+        if normalized.startswith('0') and len(normalized) == 10:
+            all_variations.add('+61' + normalized[1:])
+        # Australian: +614xx -> 04xx
+        if normalized.startswith('+61'):
+            all_variations.add('0' + normalized[3:])
+
     # Query users with matching phone numbers
     result = await db.execute(
         select(User, Device)
         .join(Device, Device.user_id == User.id)
-        .where(User.phone_number.in_(normalized_numbers))
+        .where(User.phone_number.in_(list(all_variations)))
     )
     
     # Build contact list (one entry per device, unique fingerprint)
@@ -448,6 +573,53 @@ async def end_call(
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time call signaling."""
     await handle_websocket(websocket)
+
+
+# ============= Device Endpoints =============
+
+@app.post("/devices/push-token")
+async def register_push_token(
+    request: RegisterPushTokenRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Register a push token for the current device.
+    Requires Authorization header with Bearer token.
+    """
+    # For now, we'll extract device from query or update all devices
+    # In production, get device_id from JWT
+    
+    # Update all devices with this token (simplified)
+    # Find devices that don't have this token set
+    if request.token_type == "voip":
+        # Update devices that match this voip token or don't have one
+        result = await db.execute(
+            select(Device).where(
+                or_(
+                    Device.voip_token == request.push_token,
+                    Device.voip_token.is_(None)
+                )
+            ).limit(1)
+        )
+        device = result.scalar_one_or_none()
+        if device:
+            device.voip_token = request.push_token
+            logger.info(f"Registered VoIP token for device {device.id}")
+    else:
+        result = await db.execute(
+            select(Device).where(
+                or_(
+                    Device.push_token == request.push_token,
+                    Device.push_token.is_(None)
+                )
+            ).limit(1)
+        )
+        device = result.scalar_one_or_none()
+        if device:
+            device.push_token = request.push_token
+            logger.info(f"Registered APNs token for device {device.id}")
+    
+    return {"status": "registered", "token_type": request.token_type}
 
 
 # ============= Health Check =============

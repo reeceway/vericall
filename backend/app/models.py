@@ -31,6 +31,8 @@ class Device(Base):
     public_key = Column(Text, nullable=False)
     fingerprint = Column(String(64), unique=True, nullable=False, index=True)
     device_name = Column(String(100), nullable=True)
+    push_token = Column(String(200), nullable=True)  # APNs push token
+    voip_token = Column(String(200), nullable=True)  # VoIP push token for PushKit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

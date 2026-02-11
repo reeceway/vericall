@@ -42,28 +42,128 @@ struct RootView: View {
 
 struct MainTabView: View {
     @EnvironmentObject var authService: AuthService
+    @ObservedObject private var callObserver = NativeCallObserver.shared
 
     var body: some View {
-        TabView {
-            CallHistoryView()
-                .tabItem {
-                    Image(systemName: "phone.fill")
-                    Text("Calls")
-                }
+        VStack(spacing: 0) {
+            // Call verification banner - shown during active calls
+            if callObserver.verificationStatus.isActive {
+                CallVerificationBanner(
+                    status: callObserver.verificationStatus,
+                    remoteName: callObserver.remoteUserName,
+                    voiceMatch: callObserver.voiceMatchPercentage
+                )
+            }
 
-            ContactListView()
-                .tabItem {
-                    Image(systemName: "person.2.fill")
-                    Text("Contacts")
-                }
+            TabView {
+                CallHistoryView()
+                    .tabItem {
+                        Image(systemName: "phone.fill")
+                        Text("Calls")
+                    }
 
-            SettingsView()
-                .environmentObject(authService)
-                .tabItem {
-                    Image(systemName: "gear")
-                    Text("Settings")
-                }
+                ContactListView()
+                    .tabItem {
+                        Image(systemName: "person.2.fill")
+                        Text("Contacts")
+                    }
+
+                SettingsView()
+                    .environmentObject(authService)
+                    .tabItem {
+                        Image(systemName: "gear")
+                        Text("Settings")
+                    }
+            }
+            .accentColor(.veriBlue)
         }
-        .accentColor(.veriBlue)
+        .onAppear {
+            // Ensure WebSocket is connected and NativeCallObserver is initialized
+            _ = NativeCallObserver.shared
+        }
+    }
+}
+
+// MARK: - Call Verification Banner
+struct CallVerificationBanner: View {
+    let status: NativeCallVerificationStatus
+    let remoteName: String?
+    let voiceMatch: Double?
+
+    var body: some View {
+        HStack(spacing: 10) {
+            statusIcon
+                .font(.system(size: 16))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(status.displayText)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(textColor)
+
+                if let name = remoteName {
+                    Text(name)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
+                }
+
+                if let match = voiceMatch {
+                    Text("Voice match: \(Int(match))%")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
+                }
+            }
+
+            Spacer()
+
+            if status == .verifyingVoice || status == .sendingHandshake || status == .awaitingResponse || status == .monitoring {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .scaleEffect(0.8)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(backgroundColor)
+        .animation(.easeInOut(duration: 0.3), value: status)
+    }
+
+    @ViewBuilder
+    private var statusIcon: some View {
+        switch status {
+        case .verified, .verifyingVoice:
+            Image(systemName: "checkmark.shield.fill")
+                .foregroundColor(.white)
+        case .unverified:
+            Image(systemName: "exclamationmark.shield.fill")
+                .foregroundColor(.white)
+        case .monitoring, .sendingHandshake, .awaitingResponse:
+            Image(systemName: "shield.lefthalf.filled")
+                .foregroundColor(.white)
+        case .handshakeTimeout, .handshakeFailed, .recipientNotOnVeriCall, .notEnrolled:
+            Image(systemName: "shield.slash")
+                .foregroundColor(.white)
+        case .idle:
+            EmptyView()
+        }
+    }
+
+    private var backgroundColor: Color {
+        switch status {
+        case .verified, .verifyingVoice:
+            return .green
+        case .unverified:
+            return .red
+        case .monitoring, .sendingHandshake, .awaitingResponse:
+            return .orange
+        case .handshakeTimeout, .handshakeFailed, .recipientNotOnVeriCall, .notEnrolled:
+            return .gray
+        case .idle:
+            return .clear
+        }
+    }
+
+    private var textColor: Color {
+        .white
     }
 }

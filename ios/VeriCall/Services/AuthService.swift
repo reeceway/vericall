@@ -16,10 +16,13 @@ class AuthService: ObservableObject {
 
     func checkExistingAuth() async {
         do {
-            _ = try await keychain.retrieveString(
+            let accessToken = try await keychain.retrieveString(
                 service: "VeriCall",
                 account: Constants.KeychainKeys.accessToken
             )
+            
+            // Also store in UserDefaults for WebSocket access
+            UserDefaults.standard.set(accessToken, forKey: "authToken")
 
             let user = try await keychain.retrieveCodable(
                 User.self,
@@ -41,6 +44,9 @@ class AuthService: ObservableObject {
 
             self.currentUser = user
             self.isAuthenticated = true
+            
+            // Connect WebSocket after auth check succeeds
+            WebSocketService.shared.connect()
         } catch {
             // No existing auth found
             self.isAuthenticated = false
@@ -85,6 +91,10 @@ class AuthService: ObservableObject {
             let user = User(id: response.userId ?? "", phoneNumber: phoneNumber)
             self.currentUser = user
             self.isAuthenticated = true
+            
+            // Connect WebSocket with fresh token
+            WebSocketService.shared.disconnect()  // Disconnect old connection if any
+            WebSocketService.shared.connect()     // Connect with new token
 
             return true
         } catch {
@@ -132,6 +142,12 @@ class AuthService: ObservableObject {
         try? await keychain.delete(service: "VeriCall", account: Constants.KeychainKeys.accessToken)
         try? await keychain.delete(service: "VeriCall", account: Constants.KeychainKeys.refreshToken)
         try? await keychain.delete(service: "VeriCall", account: Constants.KeychainKeys.userData)
+        
+        // Clear UserDefaults
+        UserDefaults.standard.removeObject(forKey: "authToken")
+        
+        // Disconnect WebSocket
+        WebSocketService.shared.disconnect()
 
         self.currentUser = nil
         self.isAuthenticated = false
@@ -151,6 +167,9 @@ class AuthService: ObservableObject {
             service: "VeriCall",
             account: Constants.KeychainKeys.refreshToken
         )
+        
+        // Also store in UserDefaults for WebSocket access
+        UserDefaults.standard.set(response.accessToken, forKey: "authToken")
 
         // Store user data locally
         let user = User(id: response.userId ?? "", phoneNumber: phoneNumber)

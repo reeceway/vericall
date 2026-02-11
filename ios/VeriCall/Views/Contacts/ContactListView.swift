@@ -1,22 +1,21 @@
 import SwiftUI
+import Contacts
 
 struct ContactListView: View {
     @StateObject private var viewModel = ContactListViewModel()
     @State private var searchText = ""
     @State private var selectedContact: Contact?
-    @State private var showingCallSheet = false
-    
+
     var filteredContacts: [Contact] {
         if searchText.isEmpty {
             return viewModel.contacts
         }
         return viewModel.contacts.filter { contact in
             contact.name.localizedCaseInsensitiveContains(searchText) ||
-            (contact.phoneNumber?.localizedCaseInsensitiveContains(searchText) ?? false) ||
-            (contact.email?.localizedCaseInsensitiveContains(searchText) ?? false)
+            (contact.phoneNumber?.localizedCaseInsensitiveContains(searchText) ?? false)
         }
     }
-    
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -30,20 +29,40 @@ struct ContactListView: View {
                     .listRowInsets(EdgeInsets())
                     .padding(.horizontal)
                     .padding(.vertical, 4)
-                    
-                    if !viewModel.verifiedContacts.isEmpty {
-                        Section(header: Text("Verified Contacts")) {
-                            ForEach(viewModel.verifiedContacts) { contact in
+
+                    if !viewModel.contactsPermissionGranted {
+                        Section {
+                            VStack(spacing: 12) {
+                                Image(systemName: "person.crop.circle.badge.questionmark")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.secondary)
+                                Text("VeriCall needs access to your contacts to identify VeriCall users you can verify calls with.")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                Button("Grant Access") {
+                                    viewModel.requestContactsPermission()
+                                }
+                                .buttonStyle(.borderedProminent)
+                            }
+                            .padding(.vertical, 12)
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+
+                    if !filteredVerifiedContacts.isEmpty {
+                        Section(header: Text("VeriCall Users")) {
+                            ForEach(filteredVerifiedContacts) { contact in
                                 ContactRowView(contact: contact) {
                                     initiateCall(to: contact)
                                 }
                             }
                         }
                     }
-                    
-                    if !viewModel.unverifiedContacts.isEmpty {
-                        Section(header: Text("Contacts")) {
-                            ForEach(viewModel.unverifiedContacts) { contact in
+
+                    if !filteredUnverifiedContacts.isEmpty {
+                        Section(header: Text("Other Contacts")) {
+                            ForEach(filteredUnverifiedContacts) { contact in
                                 ContactRowView(contact: contact) {
                                     initiateCall(to: contact)
                                 }
@@ -71,10 +90,10 @@ struct ContactListView: View {
                 .sheet(item: $selectedContact) { contact in
                     ContactCallSheet(contact: contact) {
                         selectedContact = nil
-                        viewModel.makeCall(to: contact)
+                        makePhoneCall(to: contact)
                     }
                 }
-                
+
                 if viewModel.isLoading {
                     ProgressView()
                         .scaleEffect(1.2)
@@ -90,9 +109,35 @@ struct ContactListView: View {
             viewModel.loadContacts()
         }
     }
-    
+
+    private var filteredVerifiedContacts: [Contact] {
+        filteredContacts.filter { $0.isVerified }.sorted { $0.name < $1.name }
+    }
+
+    private var filteredUnverifiedContacts: [Contact] {
+        filteredContacts.filter { !$0.isVerified }.sorted { $0.name < $1.name }
+    }
+
     private func initiateCall(to contact: Contact) {
         selectedContact = contact
+    }
+
+    private func makePhoneCall(to contact: Contact) {
+        guard let phoneNumber = contact.phoneNumber else { return }
+
+        // Tell NativeCallObserver what number we're calling
+        // so it can send the handshake when CXCallObserver detects the outgoing call
+        NativeCallObserver.shared.userInitiatedCall(to: phoneNumber)
+
+        // Open the Phone app to make the call
+        let cleaned = phoneNumber.replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "-", with: "")
+            .replacingOccurrences(of: "(", with: "")
+            .replacingOccurrences(of: ")", with: "")
+
+        if let url = URL(string: "tel://\(cleaned)") {
+            UIApplication.shared.open(url)
+        }
     }
 }
 
@@ -104,60 +149,157 @@ class ContactListViewModel: ObservableObject {
     @Published var showError = false
     @Published var errorMessage = ""
     @Published var connectionStatus: ConnectionStatus = .disconnected
-    
-    private let callManager = CallManager.shared
+    @Published var contactsPermissionGranted = false
+
+    private let contactStore = CNContactStore()
+    private let apiService = APIService.shared
     private let webSocketService = WebSocketService.shared
-    
-    var verifiedContacts: [Contact] {
-        contacts.filter { $0.isVerified }.sorted { $0.name < $1.name }
-    }
-    
-    var unverifiedContacts: [Contact] {
-        contacts.filter { !$0.isVerified }.sorted { $0.name < $1.name }
-    }
-    
+    private let authKeychain = KeychainService.shared
+
     init() {
         webSocketService.$connectionStatus
             .receive(on: DispatchQueue.main)
             .assign(to: &$connectionStatus)
+
+        checkContactsPermission()
     }
-    
+
+    // MARK: - Contacts Permission
+
+    private func checkContactsPermission() {
+        let status = CNContactStore.authorizationStatus(for: .contacts)
+        contactsPermissionGranted = (status == .authorized)
+    }
+
+    func requestContactsPermission() {
+        contactStore.requestAccess(for: .contacts) { [weak self] granted, error in
+            Task { @MainActor in
+                self?.contactsPermissionGranted = granted
+                if granted {
+                    self?.loadContacts()
+                }
+            }
+        }
+    }
+
+    // MARK: - Load Contacts
+
     func loadContacts() {
+        guard contactsPermissionGranted else {
+            checkContactsPermission()
+            if contactsPermissionGranted {
+                loadContacts()
+            }
+            return
+        }
+
         isLoading = true
-        
-        // In a real app, fetch from API
-        // For now, using sample data
-        contacts = [
-            Contact(id: "1", name: "Alice Johnson", phoneNumber: "+1-555-0101", email: "alice@example.com", isVerified: true, avatarUrl: nil, lastContactedAt: Date().addingTimeInterval(-86400)),
-            Contact(id: "2", name: "Bob Smith", phoneNumber: "+1-555-0102", email: "bob@example.com", isVerified: true, avatarUrl: nil, lastContactedAt: Date().addingTimeInterval(-172800)),
-            Contact(id: "3", name: "Carol White", phoneNumber: "+1-555-0103", email: "carol@example.com", isVerified: false, avatarUrl: nil, lastContactedAt: nil),
-            Contact(id: "4", name: "David Brown", phoneNumber: "+1-555-0104", email: "david@example.com", isVerified: true, avatarUrl: nil, lastContactedAt: Date().addingTimeInterval(-259200)),
-            Contact(id: "5", name: "Eve Martinez", phoneNumber: "+1-555-0105", email: "eve@example.com", isVerified: false, avatarUrl: nil, lastContactedAt: nil)
-        ]
-        
-        isLoading = false
+
+        Task {
+            do {
+                // 1. Fetch device contacts
+                let deviceContacts = try fetchDeviceContacts()
+
+                // 2. Extract phone numbers and sync with backend
+                let phoneNumbers = deviceContacts.compactMap { $0.phoneNumber }
+                let veriCallPhoneNumbers = await syncWithBackend(phoneNumbers: phoneNumbers)
+
+                var updatedContacts = deviceContacts
+                for i in updatedContacts.indices {
+                    if let phone = updatedContacts[i].phoneNumber {
+                        updatedContacts[i].isVerified = veriCallPhoneNumbers.contains(normalizePhoneNumber(phone))
+                    }
+                }
+
+                contacts = updatedContacts
+                isLoading = false
+            } catch {
+                errorMessage = "Failed to load contacts: \(error.localizedDescription)"
+                showError = true
+                isLoading = false
+            }
+        }
     }
-    
+
+    private func fetchDeviceContacts() throws -> [Contact] {
+        let keysToFetch: [CNKeyDescriptor] = [
+            CNContactGivenNameKey as CNKeyDescriptor,
+            CNContactFamilyNameKey as CNKeyDescriptor,
+            CNContactPhoneNumbersKey as CNKeyDescriptor,
+            CNContactEmailAddressesKey as CNKeyDescriptor,
+            CNContactIdentifierKey as CNKeyDescriptor,
+            CNContactImageDataAvailableKey as CNKeyDescriptor
+        ]
+
+        let request = CNContactFetchRequest(keysToFetch: keysToFetch)
+        request.sortOrder = .givenName
+
+        var result: [Contact] = []
+
+        try contactStore.enumerateContacts(with: request) { cnContact, _ in
+            // Only include contacts that have at least one phone number
+            guard let primaryPhone = cnContact.phoneNumbers.first else { return }
+
+            let name = [cnContact.givenName, cnContact.familyName]
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+
+            guard !name.isEmpty else { return }
+
+            let email = cnContact.emailAddresses.first?.value as String?
+
+            let contact = Contact(
+                id: cnContact.identifier,
+                name: name,
+                phoneNumber: primaryPhone.value.stringValue,
+                email: email,
+                isVerified: false,
+                avatarUrl: nil,
+                lastContactedAt: nil
+            )
+
+            result.append(contact)
+        }
+
+        return result
+    }
+
+    private func syncWithBackend(phoneNumbers: [String]) async -> Set<String> {
+        guard let accessToken = try? await authKeychain.retrieveString(
+            service: "VeriCall",
+            account: Constants.KeychainKeys.accessToken
+        ) else {
+            return []
+        }
+
+        do {
+            let matchedNumbers = try await apiService.syncContacts(
+                phoneNumbers: phoneNumbers,
+                accessToken: accessToken
+            )
+            return Set(matchedNumbers.map { normalizePhoneNumber($0) })
+        } catch {
+            print("[ContactList] Failed to sync contacts: \(error)")
+            return []
+        }
+    }
+
+    private func normalizePhoneNumber(_ number: String) -> String {
+        let digits = number.filter { $0.isNumber || $0 == "+" }
+        // Normalize Australian numbers: 04xx → +614xx
+        if digits.hasPrefix("0") && digits.count == 10 {
+            return "+61" + digits.dropFirst()
+        }
+        return digits
+    }
+
     func refreshContacts() {
         loadContacts()
     }
-    
+
     func refreshContactsAsync() async {
         await MainActor.run {
             loadContacts()
-        }
-    }
-    
-    func makeCall(to contact: Contact) {
-        Task {
-            do {
-                try await callManager.initiateCall(to: contact)
-            } catch {
-                await MainActor.run {
-                    errorMessage = error.localizedDescription
-                    showError = true
-                }
-            }
         }
     }
 }
@@ -165,19 +307,19 @@ class ContactListViewModel: ObservableObject {
 // MARK: - Connection Status View
 struct ConnectionStatusView: View {
     let status: ConnectionStatus
-    
+
     var body: some View {
         HStack(spacing: 6) {
             Circle()
                 .fill(statusColor)
                 .frame(width: 8, height: 8)
-            
+
             Text(status.displayText)
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var statusColor: Color {
         switch status {
         case .disconnected:
@@ -197,7 +339,7 @@ struct ContactCallSheet: View {
     let contact: Contact
     let onCall: () -> Void
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 32) {
@@ -206,7 +348,7 @@ struct ContactCallSheet: View {
                     Circle()
                         .fill(contact.isVerified ? Color.green.opacity(0.2) : Color.gray.opacity(0.2))
                         .frame(width: 120, height: 120)
-                    
+
                     Text(contact.initials)
                         .font(.system(size: 48, weight: .medium))
                         .foregroundColor(contact.isVerified ? .green : .gray)
@@ -219,82 +361,60 @@ struct ContactCallSheet: View {
                             .background(Circle().fill(Color.white))
                     }
                 }
-                
+
                 // Name and verification
                 VStack(spacing: 8) {
                     Text(contact.displayName)
                         .font(.title2)
                         .fontWeight(.semibold)
-                    
+
                     if contact.isVerified {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.shield.fill")
                                 .foregroundColor(.green)
-                            Text("Device Verified")
+                            Text("VeriCall User")
                                 .font(.subheadline)
                                 .foregroundColor(.green)
                         }
                     }
-                    
+
                     if let phoneNumber = contact.phoneNumber {
                         Text(phoneNumber)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
-                    
-                    if let email = contact.email {
-                        Text(email)
+
+                    if contact.isVerified {
+                        Text("Voice verification will be active during this call")
                             .font(.caption)
                             .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 4)
                     }
                 }
-                
+
                 Spacer()
-                
-                // Call buttons
-                HStack(spacing: 40) {
-                    // Voice call
-                    Button(action: {
-                        dismiss()
-                        onCall()
-                    }) {
-                        VStack(spacing: 8) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.green)
-                                    .frame(width: 72, height: 72)
-                                Image(systemName: "phone.fill")
-                                    .font(.title)
-                                    .foregroundColor(.white)
-                            }
-                            Text("Voice Call")
-                                .font(.caption)
-                                .foregroundColor(.primary)
+
+                // Call button
+                Button(action: {
+                    dismiss()
+                    onCall()
+                }) {
+                    VStack(spacing: 8) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 72, height: 72)
+                            Image(systemName: "phone.fill")
+                                .font(.title)
+                                .foregroundColor(.white)
                         }
+                        Text("Call via Phone")
+                            .font(.caption)
+                            .foregroundColor(.primary)
                     }
-                    
-                    // Video call (placeholder)
-                    Button(action: {
-                        // Video call not implemented yet
-                    }) {
-                        VStack(spacing: 8) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.blue)
-                                    .frame(width: 72, height: 72)
-                                Image(systemName: "video.fill")
-                                    .font(.title)
-                                    .foregroundColor(.white)
-                            }
-                            Text("Video Call")
-                                .font(.caption)
-                                .foregroundColor(.primary)
-                        }
-                    }
-                    .disabled(true)
-                    .opacity(0.6)
                 }
-                
+
                 Spacer()
             }
             .padding()

@@ -124,29 +124,43 @@ actor APIService {
     }
     
     // MARK: - Sync Contacts
-    
-    func syncContacts(phoneNumbers: [String], accessToken: String) async throws -> [User] {
+
+    /// Syncs phone numbers with backend and returns which ones are VeriCall users.
+    /// Returns a list of matching phone numbers (normalized).
+    func syncContacts(phoneNumbers: [String], accessToken: String) async throws -> [String] {
         let endpoint = "\(baseURL)/contacts/sync"
-        
+
         struct SyncRequest: Codable {
             let contacts: [String]
         }
-        
-        struct SyncResponse: Codable {
-            let users: [User]
+
+        struct SyncedContact: Codable {
+            let phoneNumber: String
+            let name: String?
+            let publicKeyFingerprint: String
+
+            enum CodingKeys: String, CodingKey {
+                case phoneNumber = "phone_number"
+                case name
+                case publicKeyFingerprint = "public_key_fingerprint"
+            }
         }
-        
+
+        struct SyncResponse: Codable {
+            let contacts: [SyncedContact]
+        }
+
         let request = SyncRequest(contacts: phoneNumbers)
         let body = try JSONEncoder().encode(request)
-        
+
         let response: SyncResponse = try await makeRequest(
             endpoint: endpoint,
             method: "POST",
             body: body,
             accessToken: accessToken
         )
-        
-        return response.users
+
+        return response.contacts.map { $0.phoneNumber }
     }
     
     

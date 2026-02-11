@@ -117,25 +117,29 @@ class NativeCallObserver: NSObject, ObservableObject {
         receivedTheirHandshake = false
         verificationStatus = .sendingHandshake
         
-        // If we have the phone number (set via userInitiatedCall), send handshakes
+        // If we have the phone number (set via userInitiatedCall from VeriCall UI), send handshakes.
+        // If the call was made from the regular Phone app, we can't get the number (iOS privacy),
+        // but we still monitor for incoming handshakes in case the recipient sends one.
         if let phoneNumber = currentCallPhoneNumber {
             await sendHandshakesToRecipient(phoneNumber: phoneNumber)
         } else {
-            print("[NativeCallObserver] ⚠️ No phone number set - can't send handshakes")
-            verificationStatus = .idle
+            print("[NativeCallObserver] ⚠️ Call made outside VeriCall - monitoring for handshakes")
+            verificationStatus = .monitoring
         }
     }
     
     /// Send both handshake messages to the recipient's VeriCall account
     private func sendHandshakesToRecipient(phoneNumber: String) async {
-        print("[NativeCallObserver] 🤝 Sending handshakes to \(phoneNumber)")
+        print("[NativeCallObserver] 🤝 OUTGOING CALL - Sending handshake to \(phoneNumber)")
         
         // 1. Check if WE have enrolled our voice
         guard let mySignature = try? keychainService.loadSignature(for: "self") else {
-            print("[NativeCallObserver] ❌ We haven't enrolled our voice yet")
+            print("[NativeCallObserver] ❌ We haven't enrolled our voice yet - can't verify")
             verificationStatus = .notEnrolled
             return
         }
+        
+        print("[NativeCallObserver] ✅ Our voiceprint has \(mySignature.vector.count) values")
         
         // 2. Get access token
         guard let accessToken = try? await authKeychain.retrieveString(
@@ -147,7 +151,20 @@ class NativeCallObserver: NSObject, ObservableObject {
             return
         }
         
-        // 3. Look up if recipient has a VeriCall account
+        // 3. Make sure WebSocket is connected
+        if !webSocketService.connectionStatus.isConnected {
+            print("[NativeCallObserver] 📡 WebSocket not connected - connecting...")
+            webSocketService.connect()
+            try? await Task.sleep(nanoseconds: 1_000_000_000) // Wait 1s for connection
+        }
+        
+        guard webSocketService.connectionStatus.isConnected else {
+            print("[NativeCallObserver] ❌ WebSocket still not connected")
+            verificationStatus = .handshakeFailed
+            return
+        }
+        
+        // 4. Look up if recipient has a VeriCall account
         do {
             guard let recipientInfo = try await apiService.lookupVeriCallUser(
                 phoneNumber: phoneNumber,
@@ -167,8 +184,11 @@ class NativeCallObserver: NSObject, ObservableObject {
             let recipientUserId = recipientInfo.id
             remoteUserName = recipientInfo.displayName ?? phoneNumber
             
-            // 4. SEND HANDSHAKE 1: Our voice thumbprint
-            let handshake1: [String: Any] = [
+            print("[NativeCallObserver] ✅ Found recipient: \(recipientInfo.displayName ?? recipientUserId)")
+            
+            // 5. SEND OUR HANDSHAKE with our voiceprint
+            //    This lets the recipient verify OUR identity during the call
+            let handshake: [String: Any] = [
                 "type": "native_call:handshake",
                 "recipientId": recipientUserId,
                 "phoneNumber": phoneNumber,
@@ -177,25 +197,13 @@ class NativeCallObserver: NSObject, ObservableObject {
                 "callDirection": "outgoing"
             ]
             
-            try await webSocketService.sendRaw(message: handshake1)
-            print("[NativeCallObserver] ✅ Sent handshake 1 (our thumbprint)")
-            
-            // 5. SEND HANDSHAKE 2: Request their thumbprint
-            let handshake2: [String: Any] = [
-                "type": "native_call:request_thumbprint",
-                "recipientId": recipientUserId,
-                "phoneNumber": phoneNumber,
-                "timestamp": ISO8601DateFormatter().string(from: Date()),
-                "callDirection": "outgoing"
-            ]
-            
-            try await webSocketService.sendRaw(message: handshake2)
-            print("[NativeCallObserver] ✅ Sent handshake 2 (thumbprint request)")
+            try await webSocketService.sendRaw(message: handshake)
+            print("[NativeCallObserver] ✅ SENT our voiceprint to recipient")
             
             sentOurHandshake = true
             verificationStatus = .awaitingResponse
             
-            // Start timeout
+            // Start timeout - waiting for THEIR handshake back
             startHandshakeTimeout()
             
         } catch {
@@ -206,7 +214,7 @@ class NativeCallObserver: NSObject, ObservableObject {
     
     private func startHandshakeTimeout() {
         handshakeTimer?.invalidate()
-        handshakeTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
+        handshakeTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 guard let self = self else { return }
                 if self.verificationStatus == .awaitingResponse {
@@ -219,27 +227,32 @@ class NativeCallObserver: NSObject, ObservableObject {
     
     // MARK: - RECEIVING HANDSHAKES (Called from WebSocket handler)
     
-    /// Called when we receive a handshake from caller (they're calling us)
+    /// Called when we receive a handshake from the other party
+    /// This triggers us to:
+    /// 1. Store their voiceprint
+    /// 2. Send OUR voiceprint back (if not already sent)
+    /// 3. Start verifying their voice during the call
     func handleReceivedHandshake(
         fromUserId: String,
         displayName: String?,
         voiceThumbprint: [Float],
         phoneNumber: String
     ) async {
-        print("[NativeCallObserver] 📥 Received handshake from \(displayName ?? fromUserId)!")
+        print("[NativeCallObserver] 📥 RECEIVED HANDSHAKE from \(displayName ?? fromUserId)")
+        print("[NativeCallObserver] 📥 Voiceprint has \(voiceThumbprint.count) values")
         
         // Cancel unverified timer
         unverifiedTimer?.invalidate()
         
-        // Store their thumbprint
+        // Store their thumbprint for voice verification
         receivedThumbprint = voiceThumbprint
         receivedTheirHandshake = true
         remoteUserName = displayName ?? phoneNumber
         currentCallPhoneNumber = phoneNumber
         
-        // UPDATE TO VERIFIED!
+        // UPDATE STATUS TO VERIFIED!
         verificationStatus = .verified
-        print("[NativeCallObserver] ✅ VERIFIED! Caller has VeriCall")
+        print("[NativeCallObserver] ✅ VERIFIED! Other party has VeriCall")
         
         // Show VERIFIED notification
         await notificationService.showCallVerificationNotification(
@@ -249,13 +262,17 @@ class NativeCallObserver: NSObject, ObservableObject {
             hasVoiceThumbprint: true
         )
         
-        // Send our handshake back
+        // CRITICAL: Send OUR handshake back so they can verify us too!
         if !sentOurHandshake {
+            print("[NativeCallObserver] 🤝 Sending our handshake back...")
             await sendHandshakeResponse(to: fromUserId)
         }
         
-        // Start voice verification
-        startVoiceVerification(withThumbprint: voiceThumbprint)
+        // Start continuous voice verification against their voiceprint
+        // This runs during the call to verify they ARE who they say they are
+        if isInNativeCall {
+            startVoiceVerification(withThumbprint: voiceThumbprint)
+        }
     }
     
     /// Called when they request our thumbprint
@@ -270,16 +287,24 @@ class NativeCallObserver: NSObject, ObservableObject {
             return
         }
         
+        // Make sure WebSocket is connected
+        if !webSocketService.connectionStatus.isConnected {
+            print("[NativeCallObserver] 📡 WebSocket not connected - connecting...")
+            webSocketService.connect()
+            try? await Task.sleep(nanoseconds: 500_000_000) // Wait 0.5s for connection
+        }
+        
         do {
             let response: [String: Any] = [
                 "type": "native_call:handshake_response",
                 "recipientId": userId,
+                "phoneNumber": currentCallPhoneNumber ?? "",
                 "voiceThumbprint": mySignature.vector,
                 "timestamp": ISO8601DateFormatter().string(from: Date())
             ]
             
             try await webSocketService.sendRaw(message: response)
-            print("[NativeCallObserver] ✅ Sent our thumbprint response")
+            print("[NativeCallObserver] ✅ Sent OUR voiceprint to \(userId)")
             sentOurHandshake = true
         } catch {
             print("[NativeCallObserver] ❌ Failed to send response: \(error)")
@@ -288,8 +313,12 @@ class NativeCallObserver: NSObject, ObservableObject {
     
     // MARK: - Voice Verification
     
+    /// Starts continuous voice verification during the call
+    /// Compares the live audio from the call against the received voiceprint
     private func startVoiceVerification(withThumbprint thumbprint: [Float]) {
-        print("[NativeCallObserver] 🎤 Starting continuous voice verification")
+        print("[NativeCallObserver] 🎤 Starting LIVE voice verification")
+        print("[NativeCallObserver] 🎤 Comparing call audio against \\(thumbprint.count) value voiceprint")
+        
         verificationStatus = .verifyingVoice
         
         Task {
@@ -298,8 +327,9 @@ class NativeCallObserver: NSObject, ObservableObject {
                     withExternalThumbprint: thumbprint,
                     contactId: currentCallPhoneNumber
                 )
+                print("[NativeCallObserver] 🎤 Voice verification started successfully")
             } catch {
-                print("[NativeCallObserver] ❌ Voice verification failed: \(error)")
+                print("[NativeCallObserver] ❌ Voice verification failed to start: \\(error)")
             }
         }
     }
@@ -307,8 +337,10 @@ class NativeCallObserver: NSObject, ObservableObject {
     private func handleVoiceMatchResult(_ similarity: Float) async {
         guard isInNativeCall else { return }
         
-        let percentage = Double(similarity)
+        let percentage = Double(similarity) * 100.0
         voiceMatchPercentage = percentage
+        
+        print("[NativeCallObserver] 🎤 Voice match: \\(String(format: \"%.1f\", percentage))%")
         
         if let name = remoteUserName, let uuid = currentCallUUID {
             await notificationService.showVoiceMatchNotification(
@@ -397,28 +429,34 @@ extension NativeCallObserver: CXCallObserverDelegate {
 // MARK: - Verification Status
 enum NativeCallVerificationStatus: Equatable {
     case idle
+    case monitoring          // Call detected but no phone number (called from regular Phone app)
     case unverified          // Incoming call - no handshake yet
     case sendingHandshake    // Sending our handshakes
     case awaitingResponse    // Waiting for their response
-    case verified            // ✓ Both verified!
+    case verified            // Both verified!
     case verifyingVoice      // Checking voice matches thumbprint
     case handshakeTimeout    // No response in time
     case handshakeFailed     // Error
     case recipientNotOnVeriCall
     case notEnrolled
-    
+
     var displayText: String {
         switch self {
         case .idle: return ""
-        case .unverified: return "⚠️ Unverified Caller"
+        case .monitoring: return "Monitoring call..."
+        case .unverified: return "Unverified Caller"
         case .sendingHandshake: return "Verifying..."
-        case .awaitingResponse: return "Waiting..."
-        case .verified: return "✓ Verified"
-        case .verifyingVoice: return "🎤 Checking voice..."
-        case .handshakeTimeout: return "⚠️ Timeout"
-        case .handshakeFailed: return "❌ Failed"
+        case .awaitingResponse: return "Waiting for response..."
+        case .verified: return "Verified"
+        case .verifyingVoice: return "Checking voice..."
+        case .handshakeTimeout: return "Verification timeout"
+        case .handshakeFailed: return "Verification failed"
         case .recipientNotOnVeriCall: return "Not on VeriCall"
         case .notEnrolled: return "Voice not enrolled"
         }
+    }
+
+    var isActive: Bool {
+        self != .idle
     }
 }
