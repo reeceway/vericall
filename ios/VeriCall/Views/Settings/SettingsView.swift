@@ -96,20 +96,13 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showVoiceEnrollment) {
-                NavigationView {
-                    VoiceEnrollmentView(
-                        contactId: authService.currentUser?.id ?? "self",
-                        contactName: "Your Voice",
-                        onComplete: {
-                            showVoiceEnrollment = false
-                            showEnrollmentComplete = true
-                            hasVoiceSignature = true
-                        },
-                        onCancel: {
-                            showVoiceEnrollment = false
-                        }
-                    )
-                }
+                SelfVoiceEnrollmentView(onComplete: {
+                    showVoiceEnrollment = false
+                    hasVoiceSignature = true
+                    // Update UserDefaults to reflect enrollment completion
+                    UserDefaults.standard.set(true, forKey: Constants.UserDefaultsKeys.hasCompletedVoiceEnrollment)
+                })
+                .environmentObject(authService)
             }
             .sheet(isPresented: $showEnrollmentComplete) {
                 NavigationView {

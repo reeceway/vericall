@@ -69,3 +69,15 @@ struct OTPResponse: Codable {
         case phoneNumber = "phone_number"
     }
 }
+
+// MARK: - User Lookup Response
+struct UserLookupResponse: Codable {
+    let user: User?
+    let found: Bool
+}
+
+// MARK: - Contact Sync Response
+struct ContactSyncResponse: Codable {
+    let users: [User]
+}
+

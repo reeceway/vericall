@@ -147,14 +147,23 @@ class CallManager: ObservableObject {
             self.isInCall = true
         }
         
+        // Show verification notification (appears on lock screen)
+        await NotificationService.shared.showCallVerificationNotification(
+            callerName: call.callerName,
+            callerId: call.callerId,
+            isDeviceVerified: isVerified,
+            hasVoiceThumbprint: receivedVoiceThumbprint != nil
+        )
         // Report to CallKit for native UI
         await callKitManager.reportIncomingCall(call: call) { accepted in
             if accepted {
                 Task {
+                    NotificationService.shared.removeCallNotification(for: call.callerId)
                     try? await self.acceptCall(call)
                 }
             } else {
                 Task {
+                    NotificationService.shared.removeCallNotification(for: call.callerId)
                     try? await self.declineCall(call)
                 }
             }

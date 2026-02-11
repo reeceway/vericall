@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 from fastapi import FastAPI, Depends, HTTPException, WebSocket, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field

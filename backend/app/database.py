@@ -1,4 +1,5 @@
 import os
+import ssl
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import NullPool
@@ -15,12 +16,24 @@ if DATABASE_URL.startswith("postgres://"):
 elif DATABASE_URL.startswith("postgresql://") and "+asyncpg" not in DATABASE_URL:
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 
+# Remove ssl parameter from URL if present (we'll handle it in connect_args)
+if "?ssl=" in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.split("?ssl=")[0]
+
+# SSL context for Supabase
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
 # Create async engine
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
     poolclass=NullPool if os.getenv("ENVIRONMENT") == "testing" else None,
-    connect_args={"timeout": 10},
+    connect_args={
+        "timeout": 30,
+        "ssl": ssl_context,
+    },
     pool_pre_ping=True,
 )
 

@@ -2,17 +2,40 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject var authService: AuthService
+    @State private var hasCompletedVoiceEnrollment: Bool = UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.hasCompletedVoiceEnrollment)
     
     var body: some View {
         Group {
             if authService.isAuthenticated {
-                MainTabView()
+                // Check if user needs to complete voice enrollment
+                if hasCompletedVoiceEnrollment {
+                    MainTabView()
+                } else {
+                    SelfVoiceEnrollmentView(onComplete: {
+                        withAnimation {
+                            hasCompletedVoiceEnrollment = true
+                        }
+                    })
+                    .environmentObject(authService)
+                }
             } else {
                 OnboardingContainerView()
             }
         }
         .task {
             await authService.checkExistingAuth()
+            // Refresh the voice enrollment status when view appears
+            hasCompletedVoiceEnrollment = UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.hasCompletedVoiceEnrollment)
+        }
+        .onChange(of: authService.isAuthenticated) { isAuthenticated in
+            // When user logs out, check if voice signature still exists
+            if !isAuthenticated {
+                let keychainService = VoiceKeychainService()
+                if !keychainService.signatureExists(for: "self") {
+                    UserDefaults.standard.set(false, forKey: Constants.UserDefaultsKeys.hasCompletedVoiceEnrollment)
+                    hasCompletedVoiceEnrollment = false
+                }
+            }
         }
     }
 }

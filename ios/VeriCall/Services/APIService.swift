@@ -149,7 +149,26 @@ actor APIService {
         return response.users
     }
     
-    // MARK: - Generic Request
+    
+    // MARK: - Lookup VeriCall User by Phone Number
+    func lookupVeriCallUser(phoneNumber: String, accessToken: String) async throws -> User? {
+        let body = try JSONEncoder().encode(["phone_number": phoneNumber])
+        
+        do {
+            let response: UserLookupResponse = try await makeRequest(
+                endpoint: baseURL + "/users/lookup",
+                method: "POST",
+                body: body,
+                accessToken: accessToken
+            )
+            return response.user
+        } catch {
+            // User not found - not a VeriCall user
+            return nil
+        }
+    }
+    
+// MARK: - Generic Request
     
     private func makeRequest<T: Decodable>(
         endpoint: String,

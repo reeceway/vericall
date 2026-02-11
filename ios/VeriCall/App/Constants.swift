@@ -17,6 +17,11 @@ enum Constants {
         static let devicePrivateKey = "vericall.device_private_key"
     }
     
+    // UserDefaults keys
+    enum UserDefaultsKeys {
+        static let hasCompletedVoiceEnrollment = "hasCompletedVoiceEnrollment"
+    }
+    
     // Demo codes
     static let demoVerificationCode = "123456"
 
