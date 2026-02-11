@@ -46,6 +46,7 @@
 		AA000037 /* ContactRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000138 /* ContactRowView.swift */; };
 		AA000038 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000139 /* ProfileSetupView.swift */; };
 		AA000039 /* VoiceEnrollmentCompleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000140 /* VoiceEnrollmentCompleteView.swift */; };
+		AA000040 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000141 /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */

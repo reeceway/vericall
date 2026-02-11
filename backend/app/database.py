@@ -19,7 +19,9 @@ elif DATABASE_URL.startswith("postgresql://") and "+asyncpg" not in DATABASE_URL
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
-    poolclass=NullPool if os.getenv("ENVIRONMENT") == "testing" else None
+    poolclass=NullPool if os.getenv("ENVIRONMENT") == "testing" else None,
+    connect_args={"timeout": 10},
+    pool_pre_ping=True,
 )
 
 # Create async session factory

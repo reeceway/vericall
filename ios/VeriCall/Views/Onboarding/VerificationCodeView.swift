@@ -98,16 +98,6 @@ struct VerificationCodeView: View {
                             }
                         }
                     
-                    // Demo auto-fill button (for hackathon)
-                    if Constants.demoMode {
-                        Button("Auto-fill Demo Code (123456)") {
-                            code = Constants.demoVerificationCode
-                            verifyCode()
-                        }
-                        .font(.subheadline)
-                        .foregroundColor(.veriBlue)
-                        .padding(.top, 8)
-                    }
                     
                     if isLoading {
                         ProgressView()
@@ -145,14 +135,6 @@ struct VerificationCodeView: View {
         .onAppear {
             focusedField = 0
             startResendTimer()
-            
-            // Auto-fill for demo
-            if Constants.demoMode {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    code = Constants.demoVerificationCode
-                    verifyCode()
-                }
-            }
         }
     }
     

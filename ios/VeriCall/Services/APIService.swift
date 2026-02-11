@@ -44,7 +44,7 @@ actor APIService {
     // MARK: - Request OTP
     
     func requestOTP(phoneNumber: String) async throws -> OTPResponse {
-        let endpoint = "\(baseURL)/auth/otp/request"
+        let endpoint = "\(baseURL)/auth/request-otp"
         
         let request = OTPRequest(phoneNumber: phoneNumber)
         let body = try JSONEncoder().encode(request)
@@ -60,12 +60,12 @@ actor APIService {
     // MARK: - Verify OTP
     
     func verifyOTP(phoneNumber: String, code: String, devicePublicKey: String?) async throws -> AuthResponse {
-        let endpoint = "\(baseURL)/auth/otp/verify"
+        let endpoint = "\(baseURL)/auth/verify-otp"
         
         let request = OTPVerifyRequest(
             phoneNumber: phoneNumber,
-            code: code,
-            devicePublicKey: devicePublicKey
+            otp: code,
+            publicKey: devicePublicKey
         )
         let body = try JSONEncoder().encode(request)
         

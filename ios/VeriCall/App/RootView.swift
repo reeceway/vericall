@@ -17,23 +17,25 @@ struct RootView: View {
     }
 }
 
-// Placeholder for main app content
 struct MainTabView: View {
+    @EnvironmentObject var authService: AuthService
+
     var body: some View {
         TabView {
-            Text("Calls")
+            CallHistoryView()
                 .tabItem {
                     Image(systemName: "phone.fill")
                     Text("Calls")
                 }
-            
-            Text("Contacts")
+
+            ContactListView()
                 .tabItem {
                     Image(systemName: "person.2.fill")
                     Text("Contacts")
                 }
-            
-            Text("Settings")
+
+            SettingsView()
+                .environmentObject(authService)
                 .tabItem {
                     Image(systemName: "gear")
                     Text("Settings")

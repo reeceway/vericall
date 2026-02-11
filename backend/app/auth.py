@@ -1,14 +1,19 @@
 import os
 import hashlib
 import hmac
+import random
+import logging
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 from uuid import UUID
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from twilio.rest import Client as TwilioClient
 
 from app.logger import AuthLogger
+
+logger = logging.getLogger(__name__)
 
 # Configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
@@ -19,8 +24,18 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 # Password hashing context (for token hashes)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Mock OTP for hackathon
-MOCK_OTP = "123456"
+# Twilio configuration
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+TWILIO_VERIFY_SID = os.getenv("TWILIO_VERIFY_SID")
+
+# Initialize Twilio client
+twilio_client = None
+if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN:
+    twilio_client = TwilioClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+    logger.info("Twilio client initialized")
+else:
+    logger.warning("Twilio credentials not set - SMS will not be sent")
 
 
 def create_access_token(user_id: UUID, device_id: UUID) -> str:
@@ -38,13 +53,9 @@ def create_access_token(user_id: UUID, device_id: UUID) -> str:
 
 def create_refresh_token() -> Tuple[str, str]:
     """Create a new refresh token and its hash."""
-    # Generate random token
     token_bytes = os.urandom(32)
     token = token_bytes.hex()
-    
-    # Hash the token for storage
     token_hash = hashlib.sha256(token_bytes).hexdigest()
-    
     return token, token_hash
 
 
@@ -82,42 +93,60 @@ def get_device_id_from_token(token: str) -> Optional[UUID]:
     return None
 
 
-# Mock OTP storage (in-memory for hackathon)
-_pending_otps: dict[str, Tuple[str, datetime]] = {}
+def normalize_phone(phone_number: str) -> str:
+    """Normalize phone number to E.164 format (+1XXXXXXXXXX)."""
+    digits = ''.join(c for c in phone_number if c.isdigit())
+    if len(digits) == 10:
+        return f"+1{digits}"
+    if len(digits) == 11 and digits.startswith("1"):
+        return f"+{digits}"
+    if phone_number.startswith("+"):
+        return f"+{digits}"
+    return f"+{digits}"
 
 
 def generate_otp(phone_number: str) -> str:
-    """Generate and store OTP for phone number. Returns the OTP for logging."""
-    # For hackathon: always use mock OTP
-    otp = MOCK_OTP
-    
-    # Store with 5 minute expiry
-    expiry = datetime.utcnow() + timedelta(minutes=5)
-    _pending_otps[phone_number] = (otp, expiry)
-    
+    """Send OTP via Twilio Verify service."""
+    phone_number = normalize_phone(phone_number)
+    if twilio_client and TWILIO_VERIFY_SID:
+        try:
+            verification = twilio_client.verify \
+                .v2 \
+                .services(TWILIO_VERIFY_SID) \
+                .verifications \
+                .create(to=phone_number, channel="sms")
+            logger.info(f"Verify SMS sent to {phone_number}, status: {verification.status}")
+        except Exception as e:
+            logger.error(f"Failed to send Verify SMS to {phone_number}: {e}")
+            raise RuntimeError(f"Failed to send verification SMS: {e}")
+    else:
+        logger.warning(f"Twilio Verify not configured for {phone_number}")
+        raise RuntimeError("SMS service not configured")
+
     AuthLogger.log_otp_request(phone_number, success=True)
-    return otp
+    return "sent"
 
 
 def verify_otp(phone_number: str, otp: str) -> bool:
-    """Verify OTP for phone number."""
-    if phone_number not in _pending_otps:
-        AuthLogger.log_otp_verify(phone_number, success=False, error="No pending OTP")
+    """Verify OTP via Twilio Verify service."""
+    phone_number = normalize_phone(phone_number)
+    if twilio_client and TWILIO_VERIFY_SID:
+        try:
+            verification_check = twilio_client.verify \
+                .v2 \
+                .services(TWILIO_VERIFY_SID) \
+                .verification_checks \
+                .create(to=phone_number, code=otp)
+            if verification_check.status == "approved":
+                AuthLogger.log_otp_verify(phone_number, success=True)
+                return True
+            else:
+                AuthLogger.log_otp_verify(phone_number, success=False, error=f"Status: {verification_check.status}")
+                return False
+        except Exception as e:
+            logger.error(f"Verify check failed for {phone_number}: {e}")
+            AuthLogger.log_otp_verify(phone_number, success=False, error=str(e))
+            return False
+    else:
+        AuthLogger.log_otp_verify(phone_number, success=False, error="Twilio Verify not configured")
         return False
-    
-    stored_otp, expiry = _pending_otps[phone_number]
-    
-    # Check expiry
-    if datetime.utcnow() > expiry:
-        del _pending_otps[phone_number]
-        AuthLogger.log_otp_verify(phone_number, success=False, error="OTP expired")
-        return False
-    
-    # Verify OTP
-    if stored_otp == otp:
-        del _pending_otps[phone_number]
-        AuthLogger.log_otp_verify(phone_number, success=True)
-        return True
-    
-    AuthLogger.log_otp_verify(phone_number, success=False, error="Invalid OTP")
-    return False

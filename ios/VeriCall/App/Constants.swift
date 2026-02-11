@@ -2,12 +2,12 @@ import Foundation
 import SwiftUI
 
 enum Constants {
-    static let apiBaseURL = "https://vericall-api.fly.dev/api/v1"
+    static let apiBaseURL = "https://vericall-api.fly.dev"
     static let wsBaseURL = "wss://vericall-api.fly.dev"
     
     // Feature flags
     static let enableBiometricAuth = false
-    static let demoMode = true
+    static let demoMode = false
     
     // Keychain keys
     enum KeychainKeys {

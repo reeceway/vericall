@@ -129,13 +129,16 @@ class CallEndRequest(BaseModel):
 @app.post("/auth/request-otp", response_model=RequestOTPResponse)
 async def request_otp(request: RequestOTPRequest):
     """Request an OTP for phone number verification."""
-    otp = generate_otp(request.phone_number)
-    
-    # Log OTP for hackathon demo (in production, send SMS)
-    logger.info(f"🔐 OTP for {request.phone_number}: {otp}")
-    
+    try:
+        otp = generate_otp(request.phone_number)
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
     return RequestOTPResponse(
-        message="OTP sent successfully (check server logs for hackathon)",
+        message="Verification code sent via SMS",
         phone_number=request.phone_number
     )
 
