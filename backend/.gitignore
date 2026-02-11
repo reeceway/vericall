@@ -1,0 +1,18 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+.env
+*.log
+
+# macOS
+.DS_Store
+
+# iOS
+*.xcuserstate
+DerivedData/
+*.backup
+*.bak*
+
+# Scripts
+*.py
