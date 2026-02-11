@@ -59,11 +59,51 @@ class WebSocketManager:
         if user_id in active_connections:
             websocket = active_connections[user_id]
             await websocket.send_json(message)
+            return True
+        return False
     
     @staticmethod
     def is_user_online(user_id: UUID) -> bool:
         """Check if a user is currently connected."""
         return user_id in active_connections
+
+
+async def get_user_by_phone(phone_number: str) -> Optional[User]:
+    """Look up a user by their phone number."""
+    # Normalize phone number (remove spaces, dashes, etc.)
+    normalized = ''.join(c for c in phone_number if c.isdigit() or c == '+')
+    
+    async with AsyncSessionLocal() as session:
+        # Try exact match first
+        result = await session.execute(
+            select(User).where(User.phone_number == normalized)
+        )
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            # Try without country code prefix variations
+            if normalized.startswith('+'):
+                # Try without the +
+                result = await session.execute(
+                    select(User).where(User.phone_number == normalized[1:])
+                )
+                user = result.scalar_one_or_none()
+            
+            if not user and normalized.startswith('+61'):
+                # Australian number - try with 0 prefix instead
+                result = await session.execute(
+                    select(User).where(User.phone_number == '0' + normalized[3:])
+                )
+                user = result.scalar_one_or_none()
+            
+            if not user and normalized.startswith('0'):
+                # Try with +61 prefix (Australian)
+                result = await session.execute(
+                    select(User).where(User.phone_number == '+61' + normalized[1:])
+                )
+                user = result.scalar_one_or_none()
+        
+        return user
 
 
 async def handle_websocket(websocket: WebSocket):
@@ -117,11 +157,89 @@ async def process_message(sender_id: UUID, message: dict, websocket: WebSocket):
         await handle_call_end(sender_id, message, websocket)
     elif msg_type == "ping":
         await websocket.send_json({"type": "pong"})
+    elif msg_type and msg_type.startswith("native_call:"):
+        await handle_native_call(sender_id, message, websocket)
     else:
         await websocket.send_json({
             "type": "error",
             "message": f"Unknown message type: {msg_type}"
         })
+
+
+async def handle_native_call(sender_id: UUID, message: dict, websocket: WebSocket):
+    """
+    Handle native call handshake messages.
+    These are used for verifying real phone calls via the carrier network.
+    
+    Message types:
+    - native_call:handshake - Initial handshake with voice thumbprint
+    - native_call:request_thumbprint - Request for voice thumbprint verification
+    - native_call:handshake_response - Response to handshake with verification result
+    """
+    msg_type = message.get("type")
+    to_phone = message.get("to_phone")
+    to_user_id = message.get("to_user_id")
+    
+    print(f"[Native Call] Processing {msg_type} from {sender_id}")
+    print(f"[Native Call] to_phone: {to_phone}, to_user_id: {to_user_id}")
+    
+    recipient_id = None
+    
+    # First try to_user_id if provided
+    if to_user_id:
+        try:
+            recipient_id = UUID(to_user_id)
+        except (ValueError, TypeError):
+            pass
+    
+    # Fall back to phone number lookup
+    if not recipient_id and to_phone:
+        recipient_user = await get_user_by_phone(to_phone)
+        if recipient_user:
+            recipient_id = recipient_user.id
+            print(f"[Native Call] Found user {recipient_id} for phone {to_phone}")
+        else:
+            print(f"[Native Call] No user found for phone {to_phone}")
+    
+    if not recipient_id:
+        await websocket.send_json({
+            "type": "native_call:error",
+            "original_type": msg_type,
+            "message": "Could not find recipient user"
+        })
+        return
+    
+    # Forward the message to the recipient
+    # Add sender info to the message
+    forwarded_message = {
+        **message,
+        "from_user_id": str(sender_id),
+    }
+    
+    if WebSocketManager.is_user_online(recipient_id):
+        sent = await WebSocketManager.send_to_user(recipient_id, forwarded_message)
+        if sent:
+            print(f"[Native Call] Forwarded {msg_type} to user {recipient_id}")
+            await websocket.send_json({
+                "type": "native_call:delivered",
+                "original_type": msg_type,
+                "to_user_id": str(recipient_id)
+            })
+        else:
+            await websocket.send_json({
+                "type": "native_call:error",
+                "original_type": msg_type,
+                "message": "Failed to send to recipient"
+            })
+    else:
+        print(f"[Native Call] Recipient {recipient_id} is offline")
+        await websocket.send_json({
+            "type": "native_call:offline",
+            "original_type": msg_type,
+            "to_user_id": str(recipient_id),
+            "message": "Recipient is offline"
+        })
+        # TODO: Queue for push notification to wake the app
 
 
 async def handle_call_initiate(sender_id: UUID, message: dict, websocket: WebSocket):

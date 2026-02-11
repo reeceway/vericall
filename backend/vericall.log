@@ -1,0 +1,19 @@
+2026-02-10 23:13:47,451 | DEBUG    | passlib.registry     | registered 'bcrypt' handler: <class 'passlib.handlers.bcrypt.bcrypt'>
+2026-02-10 23:13:47,451 | WARNING  | app.auth             | Twilio credentials not set - SMS will not be sent
+2026-02-10 23:21:07,899 | DEBUG    | passlib.registry     | registered 'bcrypt' handler: <class 'passlib.handlers.bcrypt.bcrypt'>
+2026-02-10 23:21:07,900 | WARNING  | app.auth             | Twilio credentials not set - SMS will not be sent
+2026-02-10 23:21:29,489 | DEBUG    | passlib.registry     | registered 'bcrypt' handler: <class 'passlib.handlers.bcrypt.bcrypt'>
+2026-02-10 23:21:29,489 | WARNING  | app.auth             | Twilio credentials not set - SMS will not be sent
+2026-02-10 23:21:48,538 | DEBUG    | passlib.registry     | registered 'bcrypt' handler: <class 'passlib.handlers.bcrypt.bcrypt'>
+2026-02-10 23:21:48,538 | WARNING  | app.auth             | Twilio credentials not set - SMS will not be sent
+2026-02-10 23:23:03,398 | DEBUG    | passlib.registry     | registered 'bcrypt' handler: <class 'passlib.handlers.bcrypt.bcrypt'>
+2026-02-10 23:23:03,399 | WARNING  | app.auth             | Twilio credentials not set - SMS will not be sent
+2026-02-10 23:25:31,994 | DEBUG    | passlib.registry     | registered 'bcrypt' handler: <class 'passlib.handlers.bcrypt.bcrypt'>
+2026-02-10 23:25:31,994 | WARNING  | app.auth             | Twilio credentials not set - SMS will not be sent
+2026-02-10 23:25:32,646 | INFO     | app.main             | Database initialized
+2026-02-10 23:25:49,906 | DEBUG    | passlib.registry     | registered 'bcrypt' handler: <class 'passlib.handlers.bcrypt.bcrypt'>
+2026-02-10 23:25:49,906 | WARNING  | app.auth             | Twilio credentials not set - SMS will not be sent
+2026-02-10 23:25:51,006 | INFO     | app.main             | Database initialized
+2026-02-11 00:09:44,986 | DEBUG    | passlib.registry     | registered 'bcrypt' handler: <class 'passlib.handlers.bcrypt.bcrypt'>
+2026-02-11 00:09:44,986 | WARNING  | app.auth             | Twilio credentials not set - SMS will not be sent
+2026-02-11 00:09:45,742 | INFO     | app.main             | Database initialized
