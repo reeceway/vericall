@@ -166,14 +166,10 @@ struct VoIPActiveCallView: View {
                 .frame(height: 6)
                 .frame(maxWidth: 220)
                 
-                if match >= 85 {
+                if match >= 50 {
                     Text("✅ Voice Verified")
                         .font(.caption)
                         .foregroundColor(.green)
-                } else if match >= 72 {
-                    Text("⚠️ Partial Match")
-                        .font(.caption)
-                        .foregroundColor(.orange)
                 } else if match > 0 {
                     Text("❌ Voice Mismatch")
                         .font(.caption)
@@ -248,8 +244,7 @@ struct VoIPActiveCallView: View {
     }
     
     private func voiceMatchColor(_ pct: Double) -> Color {
-        if pct >= 85 { return .green }
-        if pct >= 72 { return .orange }
+        if pct >= 50 { return .green }
         return .red
     }
 }
