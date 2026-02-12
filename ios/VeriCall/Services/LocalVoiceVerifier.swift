@@ -178,40 +178,6 @@ public final class LocalVoiceVerifier {
         return features
     }
     
-    /// Computes correlation of MFCCs 1...12, excluding diagonal (variances).
-    /// Input: [Frame][MFCC] (0...12) -> we use indices 1...12
-    /// Output: Flattened upper triangle (row 0..11, col > row)
-    private func computeOffDiagonalCovariance(_ data: [[Float]]) -> [Float] {
-        guard !data.isEmpty else { return [] }
-        let numFrames = data.count
-        // Data has 13 dims (0..12). We want 1..12 (12 dims).
-        let dim = 12
-        
-        // 1. Compute means for indices 1...12
-        var means = [Float](repeating: 0, count: dim)
-        for i in 0..<numFrames {
-            for j in 0..<dim {
-                means[j] += data[i][j+1] // data index j+1 maps to 0-based mean index j
-            }
-        }
-        for j in 0..<dim { means[j] /= Float(numFrames) }
-
-        // 2. Compute covariance (upper triangle, NO DIAGONAL)
-        // Rows 0..11 of our 12x12 matrix.
-        var result: [Float] = []
-        for r in 0..<dim { // row
-            for c in (r+1)..<dim { // col > row (no diagonal)
-                var sum: Float = 0
-                for i in 0..<numFrames {
-                     let valR = data[i][r+1] - means[r]
-                     let valC = data[i][c+1] - means[c]
-                     sum += valR * valC
-                }
-                result.append(sum / Float(numFrames - 1))
-            }
-        }
-        return result
-    }
 
 
     // MARK: - Per-Group Cosine Similarity
