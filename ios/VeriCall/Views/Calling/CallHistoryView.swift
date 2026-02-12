@@ -171,11 +171,6 @@ struct CallHistoryRow: View {
                             .foregroundColor(.secondary)
                     }
                     
-                    if let voiceMatch = entry.call.voiceMatchPercentage {
-                        Text("• Voice: \(Int(voiceMatch))%")
-                            .font(.caption)
-                            .foregroundColor(voiceMatchColor(voiceMatch))
-                    }
                 }
             }
             
@@ -242,13 +237,6 @@ struct CallHistoryRow: View {
         default:
             return Color.gray.opacity(0.15)
         }
-    }
-    
-    private func voiceMatchColor(_ percentage: Double) -> Color {
-        if percentage >= 90 { return .green }
-        if percentage >= 70 { return .yellow }
-        if percentage >= 50 { return .orange }
-        return .red
     }
     
     private func formatTime(_ date: Date) -> String {
@@ -372,8 +360,7 @@ class CallHistoryViewModel: ObservableObject {
                 state: .ended,
                 startedAt: Date().addingTimeInterval(-3600),
                 endedAt: Date().addingTimeInterval(-3300),
-                isVerified: true,
-                voiceMatchPercentage: 92.5
+                isVerified: true
             ),
             Call(
                 id: "2",
@@ -385,8 +372,7 @@ class CallHistoryViewModel: ObservableObject {
                 state: .missed,
                 startedAt: nil,
                 endedAt: nil,
-                isVerified: false,
-                voiceMatchPercentage: nil
+                isVerified: false
             ),
             Call(
                 id: "3",
@@ -398,8 +384,7 @@ class CallHistoryViewModel: ObservableObject {
                 state: .ended,
                 startedAt: Date().addingTimeInterval(-86400),
                 endedAt: Date().addingTimeInterval(-86100),
-                isVerified: true,
-                voiceMatchPercentage: 87.0
+                isVerified: true
             ),
             Call(
                 id: "4",
@@ -411,8 +396,7 @@ class CallHistoryViewModel: ObservableObject {
                 state: .declined,
                 startedAt: nil,
                 endedAt: nil,
-                isVerified: false,
-                voiceMatchPercentage: nil
+                isVerified: false
             ),
             Call(
                 id: "5",
@@ -424,8 +408,7 @@ class CallHistoryViewModel: ObservableObject {
                 state: .ended,
                 startedAt: Date().addingTimeInterval(-172800),
                 endedAt: Date().addingTimeInterval(-171600),
-                isVerified: true,
-                voiceMatchPercentage: 95.0
+                isVerified: true
             )
         ]
         

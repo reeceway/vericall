@@ -2,40 +2,17 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject var authService: AuthService
-    @State private var hasCompletedVoiceEnrollment: Bool = UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.hasCompletedVoiceEnrollment)
-    
+
     var body: some View {
         Group {
             if authService.isAuthenticated {
-                // Check if user needs to complete voice enrollment
-                if hasCompletedVoiceEnrollment {
-                    MainTabView()
-                } else {
-                    SelfVoiceEnrollmentView(onComplete: {
-                        withAnimation {
-                            hasCompletedVoiceEnrollment = true
-                        }
-                    })
-                    .environmentObject(authService)
-                }
+                MainTabView()
             } else {
                 OnboardingContainerView()
             }
         }
         .task {
             await authService.checkExistingAuth()
-            // Refresh the voice enrollment status when view appears
-            hasCompletedVoiceEnrollment = UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.hasCompletedVoiceEnrollment)
-        }
-        .onChange(of: authService.isAuthenticated) {
-            // When user logs out, check if voice signature still exists
-            if !authService.isAuthenticated {
-                let keychainService = VoiceKeychainService()
-                if !keychainService.signatureExists(for: "self") {
-                    UserDefaults.standard.set(false, forKey: Constants.UserDefaultsKeys.hasCompletedVoiceEnrollment)
-                    hasCompletedVoiceEnrollment = false
-                }
-            }
         }
     }
 }
@@ -49,12 +26,11 @@ struct MainTabView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Call verification banner - shown during active calls
+            // Call verification banner - shown during active native calls
             if callObserver.verificationStatus.isActive {
                 CallVerificationBanner(
                     status: callObserver.verificationStatus,
-                    remoteName: callObserver.remoteUserName,
-                    voiceMatch: callObserver.voiceMatchPercentage
+                    remoteName: callObserver.remoteUserName
                 )
             }
 
@@ -99,7 +75,6 @@ struct MainTabView: View {
                 showVoIPIncoming = false
                 showVoIPActive = true
             case .ended, .failed:
-                // Keep active view visible briefly for "Call Ended" display
                 showVoIPIncoming = false
             case .idle:
                 showVoIPIncoming = false
@@ -113,7 +88,6 @@ struct MainTabView: View {
 struct CallVerificationBanner: View {
     let status: NativeCallVerificationStatus
     let remoteName: String?
-    let voiceMatch: Double?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -124,16 +98,10 @@ struct CallVerificationBanner: View {
                 Text(status.displayText)
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundColor(textColor)
+                    .foregroundColor(.white)
 
                 if let name = remoteName {
                     Text(name)
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
-                }
-
-                if let match = voiceMatch {
-                    Text("Voice match: \(Int(match))%")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.8))
                 }
@@ -141,7 +109,7 @@ struct CallVerificationBanner: View {
 
             Spacer()
 
-            if status == .verifyingVoice || status == .sendingHandshake || status == .awaitingResponse || status == .monitoring {
+            if status == .sendingHandshake || status == .awaitingResponse || status == .monitoring {
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     .scaleEffect(0.8)
@@ -156,7 +124,7 @@ struct CallVerificationBanner: View {
     @ViewBuilder
     private var statusIcon: some View {
         switch status {
-        case .verified, .verifyingVoice:
+        case .verified:
             Image(systemName: "checkmark.shield.fill")
                 .foregroundColor(.white)
         case .unverified:
@@ -165,7 +133,7 @@ struct CallVerificationBanner: View {
         case .monitoring, .sendingHandshake, .awaitingResponse:
             Image(systemName: "shield.lefthalf.filled")
                 .foregroundColor(.white)
-        case .handshakeTimeout, .handshakeFailed, .recipientNotOnVeriCall, .notEnrolled:
+        case .handshakeTimeout, .handshakeFailed, .recipientNotOnVeriCall:
             Image(systemName: "shield.slash")
                 .foregroundColor(.white)
         case .idle:
@@ -175,20 +143,16 @@ struct CallVerificationBanner: View {
 
     private var backgroundColor: Color {
         switch status {
-        case .verified, .verifyingVoice:
+        case .verified:
             return .green
         case .unverified:
             return .red
         case .monitoring, .sendingHandshake, .awaitingResponse:
             return .orange
-        case .handshakeTimeout, .handshakeFailed, .recipientNotOnVeriCall, .notEnrolled:
+        case .handshakeTimeout, .handshakeFailed, .recipientNotOnVeriCall:
             return .gray
         case .idle:
             return .clear
         }
-    }
-
-    private var textColor: Color {
-        .white
     }
 }

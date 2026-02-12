@@ -4,12 +4,12 @@ import Accelerate
 import Combine
 
 /// Manages the full lifecycle of a VoIP call:
-/// initiate -> ring -> answer -> connected (with voice verification) -> end.
+/// initiate -> ring -> answer -> connected (with AI deepfake detection) -> end.
 ///
 /// Integrates:
 ///  - AudioStreamService - mic capture & playback via WebSocket relay
 ///  - WebSocketService - signaling relay
-///  - LocalVoiceVerifier - voice verification against thumbprint
+///  - DeepfakeDetectionService - real-time AI detection on incoming audio
 @MainActor
 final class VoIPCallService: ObservableObject {
 
@@ -18,8 +18,7 @@ final class VoIPCallService: ObservableObject {
     // MARK: - Published state
     @Published var callState: VoIPCallState = .idle
     @Published var currentCall: VoIPCall?
-    @Published var voiceMatchPercentage: Double?
-    @Published var isDeviceVerified: Bool = false
+    @Published var deepfakeResult: DeepfakeDetectionResult?
     @Published var isMuted: Bool = false
     @Published var isSpeakerOn: Bool = false
     @Published var callDuration: TimeInterval = 0
@@ -27,19 +26,22 @@ final class VoIPCallService: ObservableObject {
     // MARK: - Services
     private let audioStream = AudioStreamService.shared
     private let ws = WebSocketService.shared
-    private let verifier = LocalVoiceVerifier()
-    private let keychainService = VoiceKeychainService()
-
-    // MARK: - Voice verification
-    private var receivedThumbprint: [Float]?
-    private var verificationTimer: Timer?
-    private var recentScores: [Float] = []
+    private let deepfakeDetection = DeepfakeDetectionService.shared
 
     // MARK: - Call timer
     private var durationTimer: Timer?
 
+    // MARK: - Observation
+    private var deepfakeCancellable: AnyCancellable?
+
     private init() {
         setupCallbacks()
+        // Observe deepfake detection results
+        deepfakeCancellable = deepfakeDetection.$detectionResult
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] result in
+                self?.deepfakeResult = result
+            }
     }
 
     // MARK: - Outgoing call
@@ -62,24 +64,18 @@ final class VoIPCallService: ObservableObject {
 
         currentCall = call
         callState = .calling
-        isDeviceVerified = contact.isVerified
-        voiceMatchPercentage = nil
-        receivedThumbprint = nil
-
-        // Load our own voice thumbprint to send
-        let ourThumbprint = loadOurThumbprint()
+        deepfakeResult = nil
 
         // Setup audio but don't start streaming yet (wait for answer)
         audioStream.setup()
 
         do {
-            // Send call initiation via WebSocket
+            // Send call initiation via WebSocket (no voiceprint)
             try await ws.sendRaw(message: [
                 "type": "voip:initiate",
                 "callId": callId,
                 "toPhone": contact.phoneNumber ?? "",
                 "toUserId": contact.id,
-                "voiceThumbprint": ourThumbprint ?? [] as [Float],
                 "callerName": UserDefaults.standard.string(forKey: "userName") ?? "Unknown"
             ])
 
@@ -99,8 +95,7 @@ final class VoIPCallService: ObservableObject {
     func handleIncomingCall(
         callId: String,
         fromUserId: String,
-        callerName: String,
-        voiceThumbprint: [Float]?
+        callerName: String
     ) {
         guard callState == .idle else {
             print("[VoIPCall] Busy - rejecting incoming call")
@@ -125,8 +120,6 @@ final class VoIPCallService: ObservableObject {
 
         currentCall = call
         callState = .ringing
-        receivedThumbprint = voiceThumbprint
-        isDeviceVerified = voiceThumbprint != nil
 
         print("[VoIPCall] Incoming call from \(callerName)")
     }
@@ -142,19 +135,15 @@ final class VoIPCallService: ObservableObject {
 
         callState = .connecting
 
-        // Load our own thumbprint to send back
-        let ourThumbprint = loadOurThumbprint()
-
         // Setup and start audio streaming
         audioStream.setup()
 
         do {
-            // Send answer back
+            // Send answer back (no voiceprint)
             try await ws.sendRaw(message: [
                 "type": "voip:answer",
                 "callId": call.id,
-                "toUserId": call.remoteUserId,
-                "voiceThumbprint": ourThumbprint ?? [] as [Float]
+                "toUserId": call.remoteUserId
             ])
 
             // Start streaming audio immediately
@@ -203,7 +192,7 @@ final class VoIPCallService: ObservableObject {
         }
 
         callState = .ended
-        stopVerification()
+        deepfakeDetection.stopDetection()
         audioStream.tearDown()
         stopDurationTimer()
 
@@ -221,17 +210,10 @@ final class VoIPCallService: ObservableObject {
             let callId = json["callId"] as? String ?? UUID().uuidString
             let fromUserId = json["fromUserId"] as? String ?? "unknown"
             let callerName = json["callerName"] as? String ?? "Unknown"
-            var thumbprint: [Float]? = nil
-            if let arr = json["voiceThumbprint"] as? [Double], !arr.isEmpty {
-                thumbprint = arr.map { Float($0) }
-            } else if let arr = json["voiceThumbprint"] as? [NSNumber], !arr.isEmpty {
-                thumbprint = arr.map { Float(truncating: $0) }
-            }
             handleIncomingCall(
                 callId: callId,
                 fromUserId: fromUserId,
-                callerName: callerName,
-                voiceThumbprint: thumbprint
+                callerName: callerName
             )
 
         case "voip:answer":
@@ -255,7 +237,7 @@ final class VoIPCallService: ObservableObject {
         case "voip:end":
             print("[VoIPCall] Remote ended call")
             callState = .ended
-            stopVerification()
+            deepfakeDetection.stopDetection()
             audioStream.tearDown()
             stopDurationTimer()
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
@@ -283,25 +265,10 @@ final class VoIPCallService: ObservableObject {
 
     private func handleRemoteAnswer(_ json: [String: Any]) {
         // Update remoteUserId to the REAL backend user ID.
-        // When initiating, we set remoteUserId = contact.id (CNContact
-        // identifier), which is a local address-book UUID - not a backend
-        // user ID.  The backend attaches its own fromUserId (the real
-        // backend UUID of the answering user) to every forwarded message.
         if let realUserId = json["fromUserId"] as? String {
             currentCall?.remoteUserId = realUserId
-            // CRITICAL: Also update the cached ID in AudioStreamService
-            // so audio packets are sent to the correct backend user ID
             audioStream.updateRemoteUserId(realUserId)
             print("[VoIPCall] Updated remoteUserId to backend ID: \(realUserId)")
-        }
-
-        // Capture their thumbprint if sent with the answer
-        if let arr = json["voiceThumbprint"] as? [Double], !arr.isEmpty {
-            receivedThumbprint = arr.map { Float($0) }
-            isDeviceVerified = true
-        } else if let arr = json["voiceThumbprint"] as? [NSNumber], !arr.isEmpty {
-            receivedThumbprint = arr.map { Float(truncating: $0) }
-            isDeviceVerified = true
         }
 
         // The other side answered - start streaming audio
@@ -326,107 +293,10 @@ final class VoIPCallService: ObservableObject {
         callState = .connected
         startDurationTimer()
 
-        // Start verification after a short delay to accumulate audio
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
-            self?.startVerification()
-        }
+        // Start AI deepfake detection on the incoming audio
+        deepfakeDetection.startDetection()
 
-        print("[VoIPCall] Audio connected - call is live!")
-    }
-
-    // MARK: - Voice Verification
-
-    private func startVerification() {
-        guard receivedThumbprint != nil else {
-            print("[VoIPCall] No thumbprint - skipping voice verification")
-            return
-        }
-
-        // Verify every 4 seconds using REMOTE audio
-        verificationTimer?.invalidate()
-        verificationTimer = Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { [weak self] _ in
-            self?.performVerification()
-        }
-
-        print("[VoIPCall] Voice verification started - will check every 4s")
-    }
-
-    /// Dedicated background queue for heavy voice feature extraction
-    /// (LPC formants + covariance computation takes ~1.7s)
-    private let verificationQueue = DispatchQueue(label: "com.vericall.verification", qos: .userInitiated)
-
-    private func performVerification() {
-        guard let thumbprint = receivedThumbprint else { return }
-
-        // Thread-safe copy of remote audio buffer
-        let remoteAudio: [Float] = audioStream.remoteQueue.sync {
-            return audioStream.remoteBuffer
-        }
-
-        let minSamples = Int(5.0 * AudioConfiguration.sampleRate)
-        guard remoteAudio.count >= minSamples else {
-            print("[VoIPCall] Waiting for remote audio (\(remoteAudio.count)/\(minSamples) samples)")
-            return
-        }
-
-        // Use most recent 7 seconds for best accuracy
-        let targetSamples = Int(7.0 * AudioConfiguration.sampleRate)
-        let chunk = Array(remoteAudio.suffix(min(targetSamples, remoteAudio.count)))
-
-        // Pre-check: ensure the chunk has enough energy (not silence)
-        var rms: Float = 0
-        vDSP_measqv(chunk, 1, &rms, vDSP_Length(chunk.count))
-        rms = sqrt(rms)
-        guard rms > 0.003 else {
-            print("[VoIPCall] Remote audio too quiet (RMS: \(String(format: "%.4f", rms))) - skipping")
-            return
-        }
-
-        let signature = VoiceSignature(
-            vector: thumbprint,
-            contactId: "remote",
-            phraseCount: 5
-        )
-
-        // Run heavy computation on background thread to avoid blocking UI
-        verificationQueue.async { [weak self] in
-            guard let self else { return }
-            let result = self.verifier.verify(audioData: chunk, against: signature)
-            let score = result.similarity
-
-            // Discard garbage scores from silence or noise
-            // Threshold lowered from 0.15 to 0.05: per-group scoring produces
-            // lower scores for different speakers (can be as low as 1.8%)
-            guard score > 0.05 else {
-                print("[VoIPCall] Score too low (\(Int(score * 100))%) - likely silence, skipping")
-                return
-            }
-
-            // Update UI on main thread
-            Task { @MainActor in
-                // Weighted moving average - newer scores count more
-                self.recentScores.append(score)
-                if self.recentScores.count > 8 { self.recentScores.removeFirst() }
-
-                var weightedSum: Float = 0
-                var weightTotal: Float = 0
-                for (i, s) in self.recentScores.enumerated() {
-                    let w = Float(i + 1)
-                    weightedSum += s * w
-                    weightTotal += w
-                }
-                let smoothed = weightedSum / weightTotal
-
-                self.voiceMatchPercentage = Double(smoothed * 100)
-                print("[VoIPCall] Voice match: \(Int(smoothed * 100))% (raw: \(Int(score * 100))%, rms: \(String(format: "%.4f", rms)), n=\(self.recentScores.count))")
-            }
-        }
-    }
-
-    private func stopVerification() {
-        verificationTimer?.invalidate()
-        verificationTimer = nil
-        recentScores.removeAll()
+        print("[VoIPCall] Audio connected - AI deepfake detection active!")
     }
 
     // MARK: - Duration timer
@@ -451,27 +321,18 @@ final class VoIPCallService: ObservableObject {
     private func resetCall() {
         callState = .idle
         currentCall = nil
-        voiceMatchPercentage = nil
-        isDeviceVerified = false
+        deepfakeResult = nil
         isMuted = false
         isSpeakerOn = false
         callDuration = 0
-        receivedThumbprint = nil
-        stopVerification()
+        deepfakeDetection.stopDetection()
         stopDurationTimer()
     }
 
-    // MARK: - Helpers
-
-    private var currentUserId: String {
-        UserDefaults.standard.string(forKey: "userId") ?? "unknown"
-    }
-
-    private func loadOurThumbprint() -> [Float]? {
-        guard let sig = try? keychainService.loadSignature(for: "self") else {
-            return nil
-        }
-        return sig.vector
+    /// VoIP calls through VeriCall are inherently device-verified
+    /// (both parties are using the app via WebSocket signaling).
+    var isDeviceVerified: Bool {
+        currentCall != nil && callState != .idle
     }
 
     var formattedDuration: String {

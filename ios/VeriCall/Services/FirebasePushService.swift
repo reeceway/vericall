@@ -137,38 +137,23 @@ class FirebasePushService: NSObject, ObservableObject {
         let callerName = data["caller_name"] as? String ?? userInfo["caller_name"] as? String ?? callerPhone
         let callerId = data["caller_id"] as? String ?? userInfo["caller_id"] as? String ?? callerPhone
         let isVerified = parseBool(data["is_verified"] ?? userInfo["is_verified"]) ?? false
-        let hasVoice = parseBool(data["has_voice_thumbprint"] ?? userInfo["has_voice_thumbprint"]) ?? false
-        
-        // Parse thumbprint
-        var voiceThumbprint: [Float]? = nil
-        if let thumbprintString = data["voice_thumbprint"] as? String ?? userInfo["voice_thumbprint"] as? String,
-           let thumbprintData = thumbprintString.data(using: .utf8),
-           let array = try? JSONDecoder().decode([Float].self, from: thumbprintData) {
-            voiceThumbprint = array
-        } else if let thumbprintArray = data["voice_thumbprint"] as? [Double] ?? userInfo["voice_thumbprint"] as? [Double] {
-            voiceThumbprint = thumbprintArray.map { Float($0) }
-        }
-        
         // Show notification
         Task { @MainActor in
             await NotificationService.shared.showCallVerificationNotification(
                 callerName: callerName,
                 callerId: callerPhone,
                 isDeviceVerified: isVerified,
-                hasVoiceThumbprint: hasVoice
+                hasVoiceThumbprint: false
             )
         }
-        
-        // Wake NativeCallObserver to process handshake
-        if let thumbprint = voiceThumbprint {
-            Task { @MainActor in
-                await NativeCallObserver.shared.handleReceivedHandshake(
-                    fromUserId: callerId,
-                    displayName: callerName,
-                    voiceThumbprint: thumbprint,
-                    phoneNumber: callerPhone
-                )
-            }
+
+        // Wake NativeCallObserver to process device handshake
+        Task { @MainActor in
+            await NativeCallObserver.shared.handleReceivedHandshake(
+                fromUserId: callerId,
+                displayName: callerName,
+                phoneNumber: callerPhone
+            )
         }
     }
     

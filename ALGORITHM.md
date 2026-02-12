@@ -1,57 +1,43 @@
-# Voice Verification Algorithm (v2.0)
+# AI Deepfake Detection Algorithm: WavLM (v4.0)
 
 ## Overview
-The VeriCall voice verification system uses a **24-dimensional feature vector** derived from **Mean Voiced MFCCs** (Mel Frequency Cepstral Coefficients) with **Cepstral Mean Subtraction (CMS)**.
+VeriCall uses a **WavLM-based** Transformer model (CoreML, FP16) to perform **real-time deepfake detection** on incoming VoIP audio. The model classifies audio segments as either **Human ("real")** or **AI-Generated ("fake")** based on raw waveform analysis, leveraging self-supervised learning representations that are highly effective at detecting vocoder artifacts and synthetic speech patterns.
 
-This approach was selected after extensive batch testing on the FSDD dataset, outperforming covariance-based, hybrid, and dynamic (delta) feature sets. It achieves an accuracy of **85.7%** on the test set with a **33% discrimination gap** between same-speaker and cross-speaker scores.
+## Detection Pipeline
 
-## Feature Extraction Pipeline
+1. **Audio Sampling**
+   - **Source**: Remote audio from `AudioStreamService` ring buffer.
+   - **Format**: 16kHz mono PCM (Float32).
+   - **Context Window**: 3 seconds (48,000 samples).
+   - **Buffer Strategy**: Waits for buffer to fill at start, then samples every 4 seconds.
+   - **Energy Check**: Skips silence (RMS < 0.003).
 
-1.  **VAD (Voice Activity Detection)**:
-    *   Frames are analyzed for RMS amplitude.
-    *   Only frames with RMS > 0.010 are considered "voiced".
-    *   This removes silence and low-level background noise.
+2. **Preprocessing**
+   - **None**: The model accepts raw audio waveforms directly.
+   - **Input Shape**: `(1, 48000)` tensor.
+   - **Normalization**: Implicitly handled by the model (expected input range approx [-1.0, 1.0]).
 
-2.  **MFCC Extraction**:
-    *   FFT Size: 512 (assuming 16kHz audio)
-    *   Mel Bands: 32
-    *   MFCC Coefficients: 25 (0-24) applied to the Mel filterbank log-energies.
+3. **CoreML Inference**
+   - **Model**: `WavLMDeepfake.mlpackage` (Converted from `DavidCombei/wavLM-base-Deepfake_V2`).
+   - **Precision**: FP16 (Half-Precision).
+   - **Architecture**: WavLM Base (Transformer encoder).
+   - **Output**: Class probabilities `{"fake": Float, "real": Float}`.
 
-3.  **Channel Normalization (CMS)**:
-    *   The mean of each MFCC coefficient (0-24) is computed across the *entire* utterance.
-    *   This global mean is subtracted from every frame. This removes stationary channel effects (microphone frequency response, transmission path).
+4. **Scoring & Classification**
+   - **Deepfake Threshold**: **0.70** (70%).
+   - The model must be at least 70% confident that audio is `fake` to trigger an alert.
+   - Otherwise, it defaults to `human`.
+   - **Recall Strategy**: Prioritizes avoiding false positives (flags real users as fake).
 
-4.  **Feature Computation (Mean Voiced CMS)**:
-    *   We discard MFCC 0 (Energy) as it varies with distance/volume.
-    *   We use MFCCs **1 through 24**.
-    *   We compute the **Mean** of these 24 coefficients *only over the Voiced frames*.
-    *   **Result**: A 24-element vector representing the average spectral shape of the speaker's voice, relative to the channel average.
+5. **Result Smoothing**
+   - A rolling majority vote window (last 5 results) is used to stabilize the verify/alert UI.
 
-## Scoring Mechanism
+## Performance
+| Model | Accuracy | False Positive Rate | Inference Time (iPhone) |
+|-------|----------|---------------------|-------------------------|
+| WavLM | ~84% | ~6.7% | ~50ms |
+| ConvNeXt (Old) | ~76% | ~26% | ~240ms |
 
-*   **Metric**: **Cosine Similarity**.
-*   **Formula**: `dot(A, B) / (norm(A) * norm(B))`
-*   **Range**: -1.0 to 1.0 (approximated as percentage -100% to 100%).
-*   **Threshold**: **50.0%**.
-    *   Scores > 50% are considered a **MATCH**.
-    *   Scores <= 50% are considered a **NO MATCH**.
-
-## Performance Logic
-
-*   **Low Frequencies (MFCCs 1-12)**: Provide robust speaker matching. They capture the core formant structure and are stable across different recordings.
-*   **High Frequencies (MFCCs 13-24)**: Provide critical discrimination against impostors. While slightly less stable, they capture finer spectral details (breathiness, roughness) that differentiate similar-sounding voices.
-*   **Why Mean?**: Covariance (texture/dynamics) proved to be too similar across speakers for short utterances. The *static timbre* (average shape) is the most distinctive feature for this specific use case.
-
-## Enrollment
-
-Users must enroll by providing 3-5 short phrases.
-*   The system extracts the 24-dim vector for each phrase.
-*   The **enrollment signature** is the average vector of these samples.
-
-## Verification
-
-When a user speaks:
-1.  Audio is captured.
-2.  24-dim vector is extracted.
-3.  Cosine similarity is computed against the stored enrollment signature.
-4.  If Score > Threshold, access is granted.
+## Requirements
+- **iOS 17.0+**: Required for `WavLM` CoreML support.
+- **Hardware**: Runs on Neural Engine (ANE) or CPU depending on device.

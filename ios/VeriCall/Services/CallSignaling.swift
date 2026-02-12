@@ -20,17 +20,14 @@ class CallSignaling {
         toUserId: String,
         isVerified: Bool
     ) async throws -> CallSignal {
-        // Get voice thumbprint from Keychain
-        let voiceThumbprint = await getVoiceThumbprint()
-        
         // Generate nonce for replay protection
         let nonce = UUID().uuidString
-        
+
         let payload = CallSignalPayload(
             nonce: nonce,
             deviceSignature: nil  // Will be set after signing
         )
-        
+
         // Create signal data for signing
         let signalData = SignalData(
             type: CallSignalType.initiate.rawValue,
@@ -38,13 +35,12 @@ class CallSignaling {
             fromUserId: "current_user_id",
             toUserId: toUserId,
             timestamp: Date().iso8601String,
-            payloadHash: contentHash(of: payload),
-            voiceThumbprintHash: voiceThumbprint.map { "\($0.hashValue)" }
+            payloadHash: contentHash(of: payload)
         )
 
         // Sign with device private key
         let signature = try await signSignalData(signalData)
-        
+
         return CallSignal(
             type: .initiate,
             callId: callId,
@@ -56,20 +52,8 @@ class CallSignaling {
                 deviceSignature: signature
             ),
             signature: signature,
-            voiceThumbprint: voiceThumbprint
+            voiceThumbprint: nil
         )
-    }
-    
-    /// Retrieve the current user's voice thumbprint from Keychain
-    private func getVoiceThumbprint() async -> [Float]? {
-        let keychainService = VoiceKeychainService()
-        
-        // Try to load "self" signature first
-        if let signature = try? keychainService.loadSignature(for: "self") {
-            return signature.vector
-        }
-        
-        return nil
     }
     
     func createOfferSignal(
@@ -265,8 +249,7 @@ class CallSignaling {
                 fromUserId: signal.fromUserId,
                 toUserId: signal.toUserId,
                 timestamp: signal.timestamp.iso8601String,
-                payloadHash: contentHash(of: signal.payload),
-                voiceThumbprintHash: signal.voiceThumbprint.map { "\($0.hashValue)" }
+                payloadHash: contentHash(of: signal.payload)
             )
             
             let encoder = JSONEncoder()
@@ -353,17 +336,6 @@ private struct SignalData: Codable {
     let toUserId: String
     let timestamp: String
     let payloadHash: String
-    let voiceThumbprintHash: String?
-
-    init(type: String, callId: String, fromUserId: String, toUserId: String, timestamp: String, payloadHash: String, voiceThumbprintHash: String? = nil) {
-        self.type = type
-        self.callId = callId
-        self.fromUserId = fromUserId
-        self.toUserId = toUserId
-        self.timestamp = timestamp
-        self.payloadHash = payloadHash
-        self.voiceThumbprintHash = voiceThumbprintHash
-    }
 }
 
 // MARK: - Date Extension

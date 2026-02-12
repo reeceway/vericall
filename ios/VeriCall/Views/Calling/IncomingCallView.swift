@@ -268,10 +268,9 @@ struct IncomingCallView_Previews: PreviewProvider {
                 state: .ringing,
                 startedAt: nil,
                 endedAt: nil,
-                isVerified: true,
-                voiceMatchPercentage: nil
+                isVerified: true
             ))
-            
+
             // Unverified caller
             IncomingCallView(call: Call(
                 id: "2",
@@ -283,8 +282,7 @@ struct IncomingCallView_Previews: PreviewProvider {
                 state: .ringing,
                 startedAt: nil,
                 endedAt: nil,
-                isVerified: false,
-                voiceMatchPercentage: nil
+                isVerified: false
             ))
         }
     }

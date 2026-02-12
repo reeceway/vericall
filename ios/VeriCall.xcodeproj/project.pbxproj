@@ -11,7 +11,6 @@
 		922A9FC1C44741E4B6BCCBBA /* NativeCallObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7FF01B4311944159CE6F57F /* NativeCallObserver.swift */; };
 		520B93C5072545BEBC0D6AC9 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38711FD7CDD24875B2627F4E /* NotificationService.swift */; };
 				FCC8334E5F4C4E4445B6ADC2 /* FirebasePushService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBDDF7A76D1B57460BA3FC82 /* FirebasePushService.swift */; };
-		48CD292584F748D1AFD18091 /* SelfVoiceEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 889046B3DBDC40EE8F42622F /* SelfVoiceEnrollmentView.swift */; };
 		AA000001 /* VeriCallApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101 /* VeriCallApp.swift */; };
 		AA000002 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000102 /* RootView.swift */; };
 		AA000003 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000103 /* Constants.swift */; };
@@ -25,11 +24,10 @@
 		AA000011 /* CallKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000111 /* CallKitManager.swift */; };
 		AA000012 /* CallWebSocketService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000112 /* CallWebSocketService.swift */; };
 		AA000013 /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000113 /* AudioRecorder.swift */; };
-		AA000014 /* VoiceCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000114 /* VoiceCaptureService.swift */; };
+
 		AA000015 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000115 /* WelcomeView.swift */; };
 		AA000016 /* PhoneInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000116 /* PhoneInputView.swift */; };
 		AA000017 /* VerificationCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000117 /* VerificationCodeView.swift */; };
-		AA000018 /* VoiceEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000118 /* VoiceEnrollmentView.swift */; };
 		AA000019 /* OnboardingContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000119 /* OnboardingContainerView.swift */; };
 		AA000020 /* ContactListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000120 /* ContactListView.swift */; };
 		AA000021 /* IncomingCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000121 /* IncomingCallView.swift */; };
@@ -39,23 +37,19 @@
 		AA000025 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000126 /* AuthService.swift */; };
 		AA000026 /* WebSocketService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000127 /* WebSocketService.swift */; };
 		AA000027 /* CallSignaling.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000128 /* CallSignaling.swift */; };
-		AA000028 /* VoiceEnrollmentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000129 /* VoiceEnrollmentService.swift */; };
-		AA000029 /* VoiceVerificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000130 /* VoiceVerificationService.swift */; };
-		AA000030 /* LocalVoiceVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000131 /* LocalVoiceVerifier.swift */; };
-		AA000031 /* AudioCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000132 /* AudioCaptureService.swift */; };
 		AA000032 /* VoiceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000133 /* VoiceModels.swift */; };
-		AA000033 /* VoiceMatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000134 /* VoiceMatch.swift */; };
 		AA000034 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000135 /* Logger.swift */; };
 		AA000035 /* AudioVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000136 /* AudioVisualizerView.swift */; };
 		AA000036 /* VoiceMatchIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000137 /* VoiceMatchIndicatorView.swift */; };
 		AA000037 /* ContactRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000138 /* ContactRowView.swift */; };
 		AA000038 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000139 /* ProfileSetupView.swift */; };
-		AA000039 /* VoiceEnrollmentCompleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000140 /* VoiceEnrollmentCompleteView.swift */; };
 		AA000040 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000141 /* SettingsView.swift */; };
 		BB000001 /* WebRTCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000101 /* WebRTCService.swift */; };
 		BB000002 /* VoIPCallService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000102 /* VoIPCallService.swift */; };
 		BB000003 /* VoIPActiveCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000103 /* VoIPActiveCallView.swift */; };
 		BB000004 /* VoIPIncomingCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000104 /* VoIPIncomingCallView.swift */; };
+		CC000001 /* DeepfakeDetectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000101 /* DeepfakeDetectionService.swift */; };
+		CC000002 /* WavLMDeepfake.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = CC000102 /* WavLMDeepfake.mlpackage */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -63,7 +57,6 @@
 		E7FF01B4311944159CE6F57F /* NativeCallObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeCallObserver.swift; sourceTree = "<group>"; };
 		38711FD7CDD24875B2627F4E /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 				FBDDF7A76D1B57460BA3FC82 /* FirebasePushService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebasePushService.swift; sourceTree = "<group>"; };
-		889046B3DBDC40EE8F42622F /* SelfVoiceEnrollmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfVoiceEnrollmentView.swift; sourceTree = "<group>"; };
 		AA000100 /* VeriCall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VeriCall.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA000101 /* VeriCallApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VeriCallApp.swift; sourceTree = "<group>"; };
 		AA000102 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -78,11 +71,10 @@
 		AA000111 /* CallKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallKitManager.swift; sourceTree = "<group>"; };
 		AA000112 /* CallWebSocketService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallWebSocketService.swift; sourceTree = "<group>"; };
 		AA000113 /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
-		AA000114 /* VoiceCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCaptureService.swift; sourceTree = "<group>"; };
+
 		AA000115 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		AA000116 /* PhoneInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneInputView.swift; sourceTree = "<group>"; };
 		AA000117 /* VerificationCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationCodeView.swift; sourceTree = "<group>"; };
-		AA000118 /* VoiceEnrollmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceEnrollmentView.swift; sourceTree = "<group>"; };
 		AA000119 /* OnboardingContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingContainerView.swift; sourceTree = "<group>"; };
 		AA000120 /* ContactListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactListView.swift; sourceTree = "<group>"; };
 		AA000121 /* IncomingCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingCallView.swift; sourceTree = "<group>"; };
@@ -93,23 +85,19 @@
 		AA000126 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		AA000127 /* WebSocketService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketService.swift; sourceTree = "<group>"; };
 		AA000128 /* CallSignaling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignaling.swift; sourceTree = "<group>"; };
-		AA000129 /* VoiceEnrollmentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceEnrollmentService.swift; sourceTree = "<group>"; };
-		AA000130 /* VoiceVerificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceVerificationService.swift; sourceTree = "<group>"; };
-		AA000131 /* LocalVoiceVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalVoiceVerifier.swift; sourceTree = "<group>"; };
-		AA000132 /* AudioCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCaptureService.swift; sourceTree = "<group>"; };
 		AA000133 /* VoiceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceModels.swift; sourceTree = "<group>"; };
-		AA000134 /* VoiceMatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceMatch.swift; sourceTree = "<group>"; };
 		AA000135 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		AA000136 /* AudioVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioVisualizerView.swift; sourceTree = "<group>"; };
 		AA000137 /* VoiceMatchIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceMatchIndicatorView.swift; sourceTree = "<group>"; };
 		AA000138 /* ContactRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactRowView.swift; sourceTree = "<group>"; };
 		AA000139 /* ProfileSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSetupView.swift; sourceTree = "<group>"; };
-		AA000140 /* VoiceEnrollmentCompleteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceEnrollmentCompleteView.swift; sourceTree = "<group>"; };
 		AA000141 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		BB000101 /* WebRTCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCService.swift; sourceTree = "<group>"; };
 		BB000102 /* VoIPCallService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoIPCallService.swift; sourceTree = "<group>"; };
 		BB000103 /* VoIPActiveCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoIPActiveCallView.swift; sourceTree = "<group>"; };
 		BB000104 /* VoIPIncomingCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoIPIncomingCallView.swift; sourceTree = "<group>"; };
+		CC000101 /* DeepfakeDetectionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepfakeDetectionService.swift; sourceTree = "<group>"; };
+		CC000102 /* WavLMDeepfake.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = WavLMDeepfake.mlpackage; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -161,7 +149,7 @@
 				AA000105 /* CallModels.swift */,
 				AA000106 /* Call.swift */,
 				AA000133 /* VoiceModels.swift */,
-				AA000134 /* VoiceMatch.swift */,
+				CC000102 /* WavLMDeepfake.mlpackage */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -182,13 +170,10 @@
 				AA000112 /* CallWebSocketService.swift */,
 				AA000127 /* WebSocketService.swift */,
 				AA000113 /* AudioRecorder.swift */,
-				AA000132 /* AudioCaptureService.swift */,
-				AA000114 /* VoiceCaptureService.swift */,
-				AA000129 /* VoiceEnrollmentService.swift */,
-				AA000130 /* VoiceVerificationService.swift */,
-				AA000131 /* LocalVoiceVerifier.swift */,
+
 				BB000101 /* WebRTCService.swift */,
 				BB000102 /* VoIPCallService.swift */,
+				CC000101 /* DeepfakeDetectionService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -218,13 +203,10 @@
 			isa = PBXGroup;
 			children = (
 				AA000115 /* WelcomeView.swift */,
-				889046B3DBDC40EE8F42622F /* SelfVoiceEnrollmentView.swift */,
 				AA000116 /* PhoneInputView.swift */,
 				AA000117 /* VerificationCodeView.swift */,
-				AA000118 /* VoiceEnrollmentView.swift */,
 				AA000119 /* OnboardingContainerView.swift */,
 				AA000139 /* ProfileSetupView.swift */,
-				AA000140 /* VoiceEnrollmentCompleteView.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -347,7 +329,6 @@
 				922A9FC1C44741E4B6BCCBBA /* NativeCallObserver.swift in Sources */,
 				520B93C5072545BEBC0D6AC9 /* NotificationService.swift in Sources */,
 						FCC8334E5F4C4E4445B6ADC2 /* FirebasePushService.swift in Sources */,
-				48CD292584F748D1AFD18091 /* SelfVoiceEnrollmentView.swift in Sources */,
 				AA000001 /* VeriCallApp.swift in Sources */,
 				AA000002 /* RootView.swift in Sources */,
 				AA000003 /* Constants.swift in Sources */,
@@ -361,11 +342,10 @@
 				AA000011 /* CallKitManager.swift in Sources */,
 				AA000012 /* CallWebSocketService.swift in Sources */,
 				AA000013 /* AudioRecorder.swift in Sources */,
-				AA000014 /* VoiceCaptureService.swift in Sources */,
+
 				AA000015 /* WelcomeView.swift in Sources */,
 				AA000016 /* PhoneInputView.swift in Sources */,
 				AA000017 /* VerificationCodeView.swift in Sources */,
-				AA000018 /* VoiceEnrollmentView.swift in Sources */,
 				AA000019 /* OnboardingContainerView.swift in Sources */,
 				AA000020 /* ContactListView.swift in Sources */,
 				AA000021 /* IncomingCallView.swift in Sources */,
@@ -375,23 +355,19 @@
 				AA000025 /* AuthService.swift in Sources */,
 				AA000026 /* WebSocketService.swift in Sources */,
 				AA000027 /* CallSignaling.swift in Sources */,
-				AA000028 /* VoiceEnrollmentService.swift in Sources */,
-				AA000029 /* VoiceVerificationService.swift in Sources */,
-				AA000030 /* LocalVoiceVerifier.swift in Sources */,
-				AA000031 /* AudioCaptureService.swift in Sources */,
 				AA000032 /* VoiceModels.swift in Sources */,
-				AA000033 /* VoiceMatch.swift in Sources */,
 				AA000034 /* Logger.swift in Sources */,
 				AA000035 /* AudioVisualizerView.swift in Sources */,
 				AA000036 /* VoiceMatchIndicatorView.swift in Sources */,
 				AA000037 /* ContactRowView.swift in Sources */,
 				AA000038 /* ProfileSetupView.swift in Sources */,
-				AA000039 /* VoiceEnrollmentCompleteView.swift in Sources */,
                                 AA000040 /* SettingsView.swift in Sources */,
 				BB000001 /* WebRTCService.swift in Sources */,
 				BB000002 /* VoIPCallService.swift in Sources */,
 				BB000003 /* VoIPActiveCallView.swift in Sources */,
 				BB000004 /* VoIPIncomingCallView.swift in Sources */,
+				CC000001 /* DeepfakeDetectionService.swift in Sources */,
+				CC000002 /* WavLMDeepfake.mlpackage in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

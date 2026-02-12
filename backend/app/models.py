@@ -46,7 +46,6 @@ class Call(Base):
     caller_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=False, index=True)
     recipient_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=False, index=True)
     device_verified = Column(Boolean, default=False)
-    voice_thumbprint = Column(JSON, nullable=True)  # Array of 192 floats for voice verification
     started_at = Column(DateTime(timezone=True), nullable=True)
     ended_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

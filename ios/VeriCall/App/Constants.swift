@@ -4,11 +4,11 @@ import SwiftUI
 enum Constants {
     static let apiBaseURL = "https://vericall-api.fly.dev"
     static let wsBaseURL = "wss://vericall-api.fly.dev"
-    
+
     // Feature flags
     static let enableBiometricAuth = false
     static let demoMode = false
-    
+
     // Keychain keys
     enum KeychainKeys {
         static let accessToken = "vericall.access_token"
@@ -16,18 +16,9 @@ enum Constants {
         static let userData = "vericall.user_data"
         static let devicePrivateKey = "vericall.device_private_key"
     }
-    
-    // UserDefaults keys
-    enum UserDefaultsKeys {
-        static let hasCompletedVoiceEnrollment = "hasCompletedVoiceEnrollment"
-    }
-    
+
     // Demo codes
     static let demoVerificationCode = "123456"
-
-    // Voice verification thresholds (from TECH_SPEC.md)
-    static let voiceMatchThreshold: Float = 0.75
-    static let voiceWarningThreshold: Float = 0.55
 
     // Colors
     enum Colors {

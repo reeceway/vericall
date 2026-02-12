@@ -9,7 +9,6 @@ import authRoutes from './routes/auth.routes';
 import usersRoutes from './routes/users.routes';
 import contactsRoutes from './routes/contacts.routes';
 import callsRoutes from './routes/calls.routes';
-import voiceRoutes from './routes/voice.routes';
 
 // Services & Middleware
 import { setupWebSocket } from './services/websocket.service';
@@ -58,7 +57,6 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/contacts', contactsRoutes);
 app.use('/api/v1/calls', callsRoutes);
-app.use('/api/v1/voice', voiceRoutes);
 
 // WebSocket setup
 setupWebSocket(wss);

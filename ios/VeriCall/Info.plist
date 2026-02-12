@@ -4,11 +4,15 @@
 <dict>
     <!-- App Identity -->
     <key>CFBundleDisplayName</key>
-    <string>VeriCall</string>
+    <string>VeriCall vDEBUG</string>
     <key>CFBundleName</key>
     <string>VeriCall</string>
     <key>CFBundleIdentifier</key>
     <string>com.vericall.app</string>
+    <key>CFBundleVersion</key>
+    <string>999</string>
+    <key>CFBundleShortVersionString</key>
+    <string>9.9.9</string>
     
     <!-- Required Permissions -->
     <key>NSMicrophoneUsageDescription</key>

@@ -34,22 +34,16 @@ class NotificationService: NSObject, ObservableObject {
         callerName: String,
         callerId: String,
         isDeviceVerified: Bool,
-        hasVoiceThumbprint: Bool
+        hasVoiceThumbprint: Bool = false
     ) async {
         let content = UNMutableNotificationContent()
-        
-        if isDeviceVerified && hasVoiceThumbprint {
-            // Fully verified caller
-            content.title = "✓ Verified Caller"
-            content.body = "\(callerName) is calling - Device & Voice verified"
+
+        if isDeviceVerified {
+            // Device verified - caller has VeriCall
+            content.title = "✓ Device Verified"
+            content.body = "\(callerName) is calling - VeriCall user verified"
             content.sound = .default
             content.categoryIdentifier = "VERIFIED_CALL"
-        } else if isDeviceVerified {
-            // Device verified only
-            content.title = "✓ Device Verified"
-            content.body = "\(callerName) is calling - Device verified, voice pending"
-            content.sound = .default
-            content.categoryIdentifier = "PARTIAL_VERIFIED_CALL"
         } else {
             // Unverified caller
             content.title = "⚠️ Unverified Caller"
@@ -58,14 +52,13 @@ class NotificationService: NSObject, ObservableObject {
             content.categoryIdentifier = "UNVERIFIED_CALL"
             content.interruptionLevel = .critical
         }
-        
+
         // Add caller info to userInfo for handling taps
         content.userInfo = [
             "type": "call_verification",
             "callerId": callerId,
             "callerName": callerName,
-            "isVerified": isDeviceVerified,
-            "hasVoiceThumbprint": hasVoiceThumbprint
+            "isVerified": isDeviceVerified
         ]
         
         // Create request with immediate delivery
@@ -83,56 +76,6 @@ class NotificationService: NSObject, ObservableObject {
         }
     }
     
-    /// Show real-time voice match update notification during a call
-    func showVoiceMatchNotification(
-        callerName: String,
-        matchPercentage: Double,
-        callId: String
-    ) async {
-        let content = UNMutableNotificationContent()
-        
-        // matchPercentage comes in as 0-100 from NativeCallObserver
-        let pct = Int(matchPercentage)
-
-        if matchPercentage >= 75 {
-            // Good voice match
-            content.title = "Voice Verified"
-            content.body = "\(callerName)'s voice matches - \(pct)% confidence"
-            content.categoryIdentifier = "VOICE_VERIFIED"
-        } else if matchPercentage >= 55 {
-            // Uncertain match
-            content.title = "Voice Uncertain"
-            content.body = "\(callerName)'s voice partially matches - \(pct)%"
-            content.categoryIdentifier = "VOICE_UNCERTAIN"
-        } else {
-            // Voice mismatch - WARNING
-            content.title = "VOICE MISMATCH"
-            content.body = "Voice does NOT match \(callerName)'s profile - \(pct)%"
-            content.sound = UNNotificationSound.defaultCritical
-            content.categoryIdentifier = "VOICE_MISMATCH"
-            content.interruptionLevel = .critical
-        }
-        
-        content.userInfo = [
-            "type": "voice_match",
-            "callId": callId,
-            "callerName": callerName,
-            "matchPercentage": matchPercentage
-        ]
-        
-        let request = UNNotificationRequest(
-            identifier: "voice_match_\(callId)",
-            content: content,
-            trigger: nil
-        )
-        
-        do {
-            try await notificationCenter.add(request)
-        } catch {
-            print("[NotificationService] Failed to show voice match notification: \(error)")
-        }
-    }
-    
     /// Remove call verification notification (when call is answered/declined)
     func removeCallNotification(for callerId: String) {
         notificationCenter.removeDeliveredNotifications(
@@ -140,13 +83,6 @@ class NotificationService: NSObject, ObservableObject {
         )
         notificationCenter.removePendingNotificationRequests(
             withIdentifiers: ["call_verification_\(callerId)"]
-        )
-    }
-    
-    /// Remove voice match notification
-    func removeVoiceMatchNotification(for callId: String) {
-        notificationCenter.removeDeliveredNotifications(
-            withIdentifiers: ["voice_match_\(callId)"]
         )
     }
     

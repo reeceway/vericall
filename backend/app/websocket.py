@@ -16,7 +16,7 @@ from app.push import send_call_handshake_push
 active_connections: Dict[UUID, WebSocket] = {}
 
 # Call matching pool: users who are in a call and waiting to be matched
-# user_id -> { "timestamp": float, "voiceThumbprint": [...], "direction": "outgoing"|"incoming" }
+# user_id -> { "timestamp": float, "direction": "outgoing"|"incoming" }
 import time
 pending_callers: Dict[UUID, dict] = {}
 
@@ -220,7 +220,6 @@ async def handle_in_call(sender_id: UUID, message: dict, websocket: WebSocket):
     Handle 'I'm in a call' broadcast. No phone number needed.
     The backend matches two VeriCall users who enter calls around the same time.
     """
-    voice_thumbprint = message.get("voiceThumbprint")
     direction = message.get("direction", "unknown")
     now = time.time()
 
@@ -269,25 +268,22 @@ async def handle_in_call(sender_id: UUID, message: dict, websocket: WebSocket):
 
         print(f"[CallMatch] MATCHED {sender_display_name} <-> {match_display_name}")
 
-        # Send match_info's voiceprint to sender
-        if match_info.get("voiceThumbprint"):
-            await WebSocketManager.send_to_user(sender_id, {
-                "type": "native_call:handshake",
-                "fromUserId": str(match_id),
-                "displayName": match_display_name,
-                "phoneNumber": match_phone or "",
-                "voiceThumbprint": match_info["voiceThumbprint"],
-                "timestamp": message.get("timestamp"),
-            })
+        # Send handshake to sender
+        await WebSocketManager.send_to_user(sender_id, {
+            "type": "native_call:handshake",
+            "fromUserId": str(match_id),
+            "displayName": match_display_name,
+            "phoneNumber": match_phone or "",
+            "timestamp": message.get("timestamp"),
+        })
 
-        # Send sender's voiceprint to match
-        if voice_thumbprint and WebSocketManager.is_user_online(match_id):
+        # Send handshake to match
+        if WebSocketManager.is_user_online(match_id):
             await WebSocketManager.send_to_user(match_id, {
                 "type": "native_call:handshake",
                 "fromUserId": str(sender_id),
                 "displayName": sender_display_name,
                 "phoneNumber": sender_phone or "",
-                "voiceThumbprint": voice_thumbprint,
                 "timestamp": message.get("timestamp"),
             })
 
@@ -302,7 +298,6 @@ async def handle_in_call(sender_id: UUID, message: dict, websocket: WebSocket):
         # No match yet - add to pool and wait
         pending_callers[sender_id] = {
             "timestamp": now,
-            "voiceThumbprint": voice_thumbprint,
             "direction": direction,
             "displayName": sender_display_name,
             "phoneNumber": sender_phone,
@@ -328,8 +323,8 @@ async def handle_native_call(sender_id: UUID, message: dict, websocket: WebSocke
     These are used for verifying real phone calls via the carrier network.
     
     Message types:
-    - native_call:handshake - Initial handshake with voice thumbprint
-    - native_call:request_thumbprint - Request for voice thumbprint verification
+    - native_call:handshake - Initial device handshake
+    - native_call:request_thumbprint - Request for device verification
     - native_call:handshake_response - Response to handshake with verification result
     """
     msg_type = message.get("type")
@@ -385,7 +380,6 @@ async def handle_native_call(sender_id: UUID, message: dict, websocket: WebSocke
         "fromUserId": str(sender_id),
         "displayName": sender_display_name,
         "phoneNumber": sender_phone or phone_number,
-        "voiceThumbprint": message.get("voiceThumbprint"),
         "timestamp": message.get("timestamp"),
     }
     
@@ -412,13 +406,11 @@ async def handle_native_call(sender_id: UUID, message: dict, websocket: WebSocke
         
         if voip_token:
             # Send VoIP push with handshake data
-            voice_thumbprint = message.get("voiceThumbprint")
             push_sent = await send_call_handshake_push(
                 voip_token=voip_token,
                 caller_phone=sender_phone or phone_number or "Unknown",
                 caller_name=sender_display_name,
                 caller_id=str(sender_id),
-                voice_thumbprint=voice_thumbprint
             )
             
             if push_sent:
@@ -452,7 +444,6 @@ async def handle_call_initiate(sender_id: UUID, message: dict, websocket: WebSoc
     recipient_id_str = message.get("recipient_id")
     call_id = message.get("call_id")
     offer = message.get("offer")  # WebRTC offer
-    voice_thumbprint = message.get("voice_thumbprint")  # Voice thumbprint for verification
     
     if not recipient_id_str or not call_id:
         await websocket.send_json({
@@ -477,10 +468,6 @@ async def handle_call_initiate(sender_id: UUID, message: dict, websocket: WebSoc
         "caller_id": str(sender_id),
         "offer": offer
     }
-    
-    # Include voice thumbprint if provided
-    if voice_thumbprint is not None:
-        notification["voice_thumbprint"] = voice_thumbprint
     
     # Forward to recipient if online
     if WebSocketManager.is_user_online(recipient_id):
@@ -560,8 +547,8 @@ async def handle_voip_signaling(sender_id: UUID, message: dict, websocket: WebSo
     Handle VoIP call signaling and audio relay messages.
     
     Message types:
-    - voip:initiate  - Caller sends voiceThumbprint to callee
-    - voip:answer    - Callee sends voiceThumbprint back
+    - voip:initiate  - Caller initiates VoIP call
+    - voip:answer    - Callee answers VoIP call
     - voip:audio     - Audio data relay (base64 PCM, high frequency)
     - voip:reject    - Callee rejects the call
     - voip:end       - Either party ends the call

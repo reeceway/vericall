@@ -1,0 +1,199 @@
+Building for debugging...
+[0/3] Write swift-version--58304C5D6DBC2206.txt
+Build of product 'VoiceTest' complete! (0.07s)
+
+╔═══════════════════════════════════════════════════════════╗
+║  BATCH SPEAKER VERIFICATION TEST (FSDD Dataset)        ║
+╚═══════════════════════════════════════════════════════════╝
+
+  Loading george: 50 files (A) + 50 files (B)
+    Group A: 24.8s, Group B: 26.7s
+  Loading jackson: 50 files (A) + 50 files (B)
+    Group A: 25.1s, Group B: 25.7s
+  Loading lucas: 50 files (A) + 50 files (B)
+    Group A: 28.3s, Group B: 30.1s
+  Loading nicolas: 50 files (A) + 50 files (B)
+    Group A: 17.0s, Group B: 17.4s
+  Loading theo: 50 files (A) + 50 files (B)
+    Group A: 14.0s, Group B: 18.8s
+  Loading yweweler: 50 files (A) + 50 files (B)
+    Group A: 15.9s, Group B: 17.5s
+
+┌─────────────────────────────────────────────────────────────┐
+│  SAME-SPEAKER (A vs B) — Should be MATCH (>72%)           │
+├───────────────┬──────────┬──────────────────────────────────┤
+│ Speaker       │ Score    │ Result                           │
+├───────────────┼──────────┼──────────────────────────────────┤
+│ george        │  59.5%   │ ❌ REJECT                         │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Reject (george) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   59.5%  L2=399.0484  ███████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ jackson       │  58.2%   │ ❌ REJECT                         │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Reject (jackson) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   58.2%  L2=325.1567  ███████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ lucas         │  45.7%   │ ❌ REJECT                         │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Reject (lucas) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   45.7%  L2=492.6901  █████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ nicolas       │  47.5%   │ ❌ REJECT                         │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Reject (nicolas) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   47.5%  L2=286.7383  █████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ theo          │  72.2%   │ ✅ MATCH                          │
+│ yweweler      │  73.3%   │ ✅ MATCH                          │
+├───────────────┼──────────┼──────────────────────────────────┤
+│ AVERAGE       │  59.4%   │ 2/6 correct accepts                │
+└───────────────┴──────────┴──────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  CROSS-SPEAKER (A vs A) — Should be NO MATCH (<72%)       │
+├──────────────────────────┬──────────┬───────────────────────┤
+│ Pair                     │ Score    │ Result                │
+├──────────────────────────┼──────────┼───────────────────────┤
+│ george vs jackson        │  78.8%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (george vs jackson) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   78.8%  L2=306.1229  ███████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ george vs lucas          │  70.2%   │ ✅ REJECT              │
+│ george vs nicolas        │  75.2%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (george vs nicolas) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   75.2%  L2=332.5589  ███████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ george vs theo           │  69.6%   │ ✅ REJECT              │
+│ george vs yweweler       │  86.0%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (george vs yweweler) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   86.0%  L2=254.1376  █████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ jackson vs lucas         │  89.7%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (jackson vs lucas) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   89.7%  L2=234.5911  █████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ jackson vs nicolas       │  81.9%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (jackson vs nicolas) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   81.9%  L2=229.4265  ████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ jackson vs theo          │  77.3%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (jackson vs theo) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   77.3%  L2=330.7789  ███████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ jackson vs yweweler      │  88.5%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (jackson vs yweweler) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   88.5%  L2=208.0911  █████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ lucas vs nicolas         │  80.0%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (lucas vs nicolas) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   80.0%  L2=322.4748  ███████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ lucas vs theo            │  73.5%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (lucas vs theo) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   73.5%  L2=376.6157  ██████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ lucas vs yweweler        │  90.1%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (lucas vs yweweler) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   90.1%  L2=223.4000  ██████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ nicolas vs theo          │  64.9%   │ ✅ REJECT              │
+│ nicolas vs yweweler      │  83.1%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (nicolas vs yweweler) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   83.1%  L2=255.4124  ████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ theo vs yweweler         │  76.1%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (theo vs yweweler) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-65] :   76.1%  L2=342.0413  ███████████████
+
+┌─────────────────────────────────────────────────────────────┐
+├──────────────────────────┼──────────┼───────────────────────┤
+│ AVERAGE                  │  79.0%   │ 3/15 correct rejects    │
+└──────────────────────────┴──────────┴───────────────────────┘
+
+  ═══════════════════════════════════════
+  SUMMARY
+  ═══════════════════════════════════════
+  Same-speaker avg:  59.4%
+  Cross-speaker avg: 79.0%
+  Gap:               -19.6 percentage points
+  Threshold:         72.0%
+  Correct accepts:   2/6
+  Correct rejects:   3/15
+  Overall accuracy:  5/21 (23.8%)
+

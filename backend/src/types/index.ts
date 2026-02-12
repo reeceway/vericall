@@ -52,26 +52,6 @@ export interface ContactInfo {
   userId: string;
   displayName?: string;
   publicKeyFingerprint: string;
-  voiceEnrolled: boolean;
-}
-
-// Voice types
-export interface VoiceEnrollBody {
-  embedding: number[];  // 192 floats
-  sampleCount: number;
-}
-
-export interface VoiceVerifyBody {
-  embedding: number[];  // 192 floats
-  callId?: string;
-  targetUserId?: string;
-}
-
-export interface VoiceVerifyResponse {
-  match_score: number;
-  is_match: boolean;
-  confidence: 'very_high' | 'high' | 'medium' | 'low' | 'very_low';
-  threshold: number;
 }
 
 // Call types

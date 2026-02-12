@@ -32,16 +32,6 @@ export interface PublicKey {
   created_at: string;
 }
 
-export interface Voiceprint {
-  id: string;
-  user_id: string;
-  embedding: number[]; // Array of 192 floats
-  sample_count: number;
-  quality?: number;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface CallRecord {
   id: string;
   caller_id: string;

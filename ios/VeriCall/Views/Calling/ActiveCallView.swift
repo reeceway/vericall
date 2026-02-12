@@ -79,43 +79,12 @@ struct ActiveCallView: View {
                         .foregroundColor(.white.opacity(0.9))
                         .monospacedDigit()
                     
-                    // Voice match percentage
-                    if let voiceMatch = viewModel.call.voiceMatchPercentage {
-                        VStack(spacing: 8) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "waveform")
-                                    .font(.title3)
-                                Text("Voice Match: \(Int(voiceMatch))%")
-                                    .font(.title3)
-                                    .fontWeight(.semibold)
-                            }
-                            .foregroundColor(voiceMatchColor(voiceMatch))
-                            
-                            // Progress bar
-                            GeometryReader { geometry in
-                                ZStack(alignment: .leading) {
-                                    Rectangle()
-                                        .fill(Color.white.opacity(0.2))
-                                        .frame(height: 6)
-                                        .cornerRadius(3)
-                                    
-                                    Rectangle()
-                                        .fill(voiceMatchColor(voiceMatch))
-                                        .frame(width: geometry.size.width * CGFloat(voiceMatch / 100), height: 6)
-                                        .cornerRadius(3)
-                                        .animation(.easeInOut(duration: 0.3), value: voiceMatch)
-                                }
-                            }
-                            .frame(height: 6)
-                            .frame(maxWidth: 200)
-                        }
-                        .padding(.top, 8)
-                    } else {
-                        // Analyzing voice placeholder
+                    // Deepfake detection status
+                    if viewModel.call.state == .connected {
                         HStack(spacing: 8) {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            Text("Analyzing voice...")
+                            Text("AI protection active...")
                                 .font(.subheadline)
                                 .foregroundColor(.white.opacity(0.7))
                         }
@@ -212,13 +181,6 @@ struct ActiveCallView: View {
         }
     }
     
-    private func voiceMatchColor(_ percentage: Double) -> Color {
-        if percentage >= 50 {
-            return .green
-        } else {
-            return .red
-        }
-    }
 }
 
 // MARK: - Call Control Button
@@ -445,7 +407,7 @@ class ActiveCallViewModel: ObservableObject {
 struct ActiveCallView_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            // Active call with voice match
+            // Active call
             ActiveCallView(call: Call(
                 id: "1",
                 callerId: "user123",
@@ -456,8 +418,7 @@ struct ActiveCallView_Previews: PreviewProvider {
                 state: .connected,
                 startedAt: Date().addingTimeInterval(-125),
                 endedAt: nil,
-                isVerified: true,
-                voiceMatchPercentage: 87.5
+                isVerified: true
             ))
         }
     }

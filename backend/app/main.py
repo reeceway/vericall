@@ -115,7 +115,6 @@ class CallInitiateRequest(BaseModel):
     timestamp: int
     nonce: str
     signature: str
-    voice_thumbprint: Optional[List[float]] = None  # Array of 192 floats for voice verification
 
 
 class CallInitiateResponse(BaseModel):
@@ -466,7 +465,6 @@ async def initiate_call(
         caller_id=request.recipient_id,  # Placeholder - should be from auth
         recipient_id=request.recipient_id,
         device_verified=False,  # Will be updated after verification
-        voice_thumbprint=request.voice_thumbprint,  # Store voice thumbprint for verification
         started_at=None
     )
     db.add(call)
@@ -509,7 +507,6 @@ async def initiate_call(
             "type": "call:incoming",
             "call_id": str(call.id),
             "caller_id": str(call.caller_id),
-            "voice_thumbprint": call.voice_thumbprint  # Include caller's voice thumbprint
         })
     
     return CallInitiateResponse(
@@ -542,7 +539,6 @@ async def answer_call(
         "call_id": call_id,
         "status": "answered",
         "caller_id": str(call.caller_id),
-        "voice_thumbprint": call.voice_thumbprint  # Include caller's voice thumbprint for verification
     }
 
 

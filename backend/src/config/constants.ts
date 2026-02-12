@@ -3,24 +3,18 @@ export const CONSTANTS = {
   // API
   API_BASE_URL: 'https://vericall-api.fly.dev/api/v1',
   WS_BASE_URL: 'wss://vericall-api.fly.dev',
-  
-  // Voice - EXACT values
-  VOICE_SAMPLE_RATE: 16000,
-  VOICE_EMBEDDING_DIMENSION: 192,
-  VOICE_MATCH_THRESHOLD: 0.75,
-  VOICE_WARNING_THRESHOLD: 0.55,
-  
+
   // Crypto
   SIGNATURE_ALGORITHM: 'ECDSA-P256-SHA256',
-  
+
   // JWT
   JWT_EXPIRES_IN: '7d',
   JWT_REFRESH_EXPIRES_IN: '30d',
-  
+
   // Rate limits
   OTP_RATE_LIMIT: 5,      // per minute
   CALL_RATE_LIMIT: 60,    // per minute
-  
+
   // OTP
   OTP_EXPIRES_IN: 300,    // 5 minutes in seconds
   OTP_LENGTH: 6,

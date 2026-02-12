@@ -180,97 +180,62 @@ class WebSocketService: NSObject, ObservableObject {
     private func handleNativeCallMessage(json: [String: Any], type: String) async {
         let observer = NativeCallObserver.shared
         let notificationService = NotificationService.shared
-        
+
         switch type {
         case "native_call:handshake":
-            // Someone is calling us and sent THEIR voiceprint
-            // We can now verify THEIR voice during the call
-            print("[WebSocketService] ✅ Received HANDSHAKE (caller's voiceprint)")
+            // Someone is calling us - device handshake (proves they have VeriCall)
+            print("[WebSocketService] Received device HANDSHAKE")
             if let fromUserId = json["fromUserId"] as? String,
                let phoneNumber = json["phoneNumber"] as? String {
-                
-                var floatThumbprint: [Float]? = nil
-                if let thumbprint = json["voiceThumbprint"] as? [Double] {
-                    floatThumbprint = thumbprint.map { Float($0) }
-                } else if let thumbprint = json["voiceThumbprint"] as? [NSNumber] {
-                    floatThumbprint = thumbprint.map { Float(truncating: $0) }
-                }
-                
+
                 let displayName = json["displayName"] as? String
-                
-                print("[WebSocketService] 📞 Call from: \\(displayName ?? phoneNumber)")
-                
+
                 // Show notification immediately
                 await notificationService.showCallVerificationNotification(
                     callerName: displayName ?? phoneNumber,
                     callerId: fromUserId,
                     isDeviceVerified: true,
-                    hasVoiceThumbprint: floatThumbprint != nil
+                    hasVoiceThumbprint: false
                 )
-                
-                if let thumbprint = floatThumbprint {
-                    print("[WebSocketService] ✅ Got \\(thumbprint.count) value voiceprint")
-                    await observer.handleReceivedHandshake(
-                        fromUserId: fromUserId,
-                        displayName: displayName,
-                        voiceThumbprint: thumbprint,
-                        phoneNumber: phoneNumber
-                    )
-                } else {
-                    print("[WebSocketService] ⚠️ Handshake had no voiceprint")
-                }
+
+                await observer.handleReceivedHandshake(
+                    fromUserId: fromUserId,
+                    displayName: displayName,
+                    phoneNumber: phoneNumber
+                )
             }
-            
+
         case "native_call:request_thumbprint":
-            print("[WebSocketService] Received thumbprint request")
+            print("[WebSocketService] Received handshake request")
             if let fromUserId = json["fromUserId"] as? String,
                let phoneNumber = json["phoneNumber"] as? String {
-                await observer.handleThumbprintRequest(fromUserId: fromUserId, phoneNumber: phoneNumber)
+                await observer.handleHandshakeRequest(fromUserId: fromUserId, phoneNumber: phoneNumber)
             }
-            
+
         case "native_call:handshake_response":
-            // This is when the other party sends THEIR voiceprint back to us
-            // Now we can verify THEIR voice during the call
-            print("[WebSocketService] ✅ Received handshake RESPONSE (their voiceprint)")
+            // The other party confirmed they have VeriCall
+            print("[WebSocketService] Received handshake RESPONSE")
             if let fromUserId = json["fromUserId"] as? String {
-                
-                var floatThumbprint: [Float]? = nil
-                if let thumbprint = json["voiceThumbprint"] as? [Double] {
-                    floatThumbprint = thumbprint.map { Float($0) }
-                } else if let thumbprint = json["voiceThumbprint"] as? [NSNumber] {
-                    floatThumbprint = thumbprint.map { Float(truncating: $0) }
-                }
-                
                 let displayName = json["displayName"] as? String
                 let phoneNumber = json["phoneNumber"] as? String ?? "Unknown"
-                
-                if let thumbprint = floatThumbprint {
-                    print("[WebSocketService] ✅ Got \\(thumbprint.count) value voiceprint from \\(displayName ?? fromUserId)")
-                    // Process as incoming handshake - this will start voice verification
-                    await observer.handleReceivedHandshake(
-                        fromUserId: fromUserId,
-                        displayName: displayName,
-                        voiceThumbprint: thumbprint,
-                        phoneNumber: phoneNumber
-                    )
-                } else {
-                    print("[WebSocketService] ⚠️ Handshake response had no voiceprint")
-                }
+
+                await observer.handleReceivedHandshake(
+                    fromUserId: fromUserId,
+                    displayName: displayName,
+                    phoneNumber: phoneNumber
+                )
             }
-            
+
         case "native_call:matched":
-            // Matching pool found our call partner - handshakes will be sent separately
             let matchedName = json["matched_name"] as? String ?? "Unknown"
             print("[WebSocketService] Matching pool matched us with \(matchedName)")
-            
+
         case "native_call:waiting":
-            // We're in the matching pool waiting for the other party
             print("[WebSocketService] Added to matching pool - waiting for other VeriCall user...")
-            
+
         case "native_call:call_ended":
-            // Other party ended the call
             print("[WebSocketService] Other party ended the call")
-            
+
         default:
             print("[WebSocketService] Unknown native call message type: \(type)")
         }

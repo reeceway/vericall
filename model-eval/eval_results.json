@@ -1,0 +1,26 @@
+{
+  "ConvNeXt-Tiny (current)": {
+    "accuracy": 76.0,
+    "total": 25,
+    "correct": 19,
+    "false_positives": 4,
+    "false_negatives": 2,
+    "avg_inference_ms": 238.80882263183594
+  },
+  "Wav2Vec2-Deepfake": {
+    "accuracy": 80.0,
+    "total": 25,
+    "correct": 20,
+    "false_positives": 5,
+    "false_negatives": 0,
+    "avg_inference_ms": 111.98966026306152
+  },
+  "WavLM-AASIST": {
+    "accuracy": 84.0,
+    "total": 25,
+    "correct": 21,
+    "false_positives": 1,
+    "false_negatives": 3,
+    "avg_inference_ms": 52.8317928314209
+  }
+}

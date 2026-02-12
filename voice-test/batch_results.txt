@@ -1,0 +1,226 @@
+Building for debugging...
+[0/3] Write swift-version--58304C5D6DBC2206.txt
+Build of product 'VoiceTest' complete! (0.07s)
+
+╔═══════════════════════════════════════════════════════════╗
+║  BATCH SPEAKER VERIFICATION TEST (FSDD Dataset)        ║
+╚═══════════════════════════════════════════════════════════╝
+
+  Loading george: 50 files (A) + 50 files (B)
+    Group A: 24.8s, Group B: 26.7s
+[VoiceVerifier] Signature (COV): 1858.2ms, voiced 588/1550 frames
+[VoiceVerifier] Signature (COV): 1845.3ms, voiced 588/1666 frames
+  Loading jackson: 50 files (A) + 50 files (B)
+    Group A: 25.1s, Group B: 25.7s
+[VoiceVerifier] Signature (COV): 1585.7ms, voiced 499/1565 frames
+[VoiceVerifier] Signature (COV): 1262.0ms, voiced 388/1602 frames
+  Loading lucas: 50 files (A) + 50 files (B)
+    Group A: 28.3s, Group B: 30.1s
+[VoiceVerifier] Signature (COV): 5158.9ms, voiced 262/1769 frames
+[VoiceVerifier] Signature (COV): 5516.4ms, voiced 275/1882 frames
+  Loading nicolas: 50 files (A) + 50 files (B)
+    Group A: 17.0s, Group B: 17.4s
+[VoiceVerifier] Signature (COV): 770.7ms, voiced 229/1061 frames
+[VoiceVerifier] Signature (COV): 961.9ms, voiced 292/1083 frames
+  Loading theo: 50 files (A) + 50 files (B)
+    Group A: 14.0s, Group B: 18.8s
+[VoiceVerifier] Signature (COV): 1132.6ms, voiced 356/875 frames
+[VoiceVerifier] Signature (COV): 1545.6ms, voiced 484/1172 frames
+  Loading yweweler: 50 files (A) + 50 files (B)
+    Group A: 15.9s, Group B: 17.5s
+[VoiceVerifier] Signature (COV): 1108.9ms, voiced 338/995 frames
+[VoiceVerifier] Signature (COV): 851.7ms, voiced 250/1094 frames
+
+┌─────────────────────────────────────────────────────────────┐
+│  SAME-SPEAKER (A vs B) — Should be MATCH (>72%)           │
+├───────────────┬──────────┬──────────────────────────────────┤
+│ Speaker       │ Score    │ Result                           │
+├───────────────┼──────────┼──────────────────────────────────┤
+│ george        │  78.8%   │ ✅ MATCH                          │
+│ jackson       │  87.3%   │ ✅ MATCH                          │
+│ lucas         │  69.4%   │ ❌ REJECT                         │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Reject (lucas) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-90] :   87.7%  L2=0.0040  █████████████████
+  Mean Delta      [91-103]:  -10.3%  L2=0.0000  
+  Mean DeltaDelta[104-116]:   32.5%  L2=0.0000  ██████
+  Formants       [117-137]:    0.0%  L2=0.9841  
+  Pitch-MFCC Corr[138-167]:   99.5%  L2=0.1630  ███████████████████
+  Pitch+Jitter   [168-191]:   97.5%  L2=0.8113  ███████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ nicolas       │  81.9%   │ ✅ MATCH                          │
+│ theo          │  82.9%   │ ✅ MATCH                          │
+│ yweweler      │  86.1%   │ ✅ MATCH                          │
+├───────────────┼──────────┼──────────────────────────────────┤
+│ AVERAGE       │  81.1%   │ 5/6 correct accepts                │
+└───────────────┴──────────┴──────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  CROSS-SPEAKER (A vs A) — Should be NO MATCH (<72%)       │
+├──────────────────────────┬──────────┬───────────────────────┤
+│ Pair                     │ Score    │ Result                │
+├──────────────────────────┼──────────┼───────────────────────┤
+│ george vs jackson        │  85.9%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (george vs jackson) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-90] :   82.1%  L2=0.0030  ████████████████
+  Mean Delta      [91-103]:   47.7%  L2=0.0019  █████████
+  Mean DeltaDelta[104-116]:   98.7%  L2=0.0019  ███████████████████
+  Formants       [117-137]:    0.0%  L2=0.0000  
+  Pitch-MFCC Corr[138-167]:   99.1%  L2=0.0435  ███████████████████
+  Pitch+Jitter   [168-191]:   95.9%  L2=0.2709  ███████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ george vs lucas          │  56.7%   │ ✅ REJECT              │
+│ george vs nicolas        │  85.8%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (george vs nicolas) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-90] :   77.9%  L2=0.0034  ███████████████
+  Mean Delta      [91-103]:   76.5%  L2=0.0011  ███████████████
+  Mean DeltaDelta[104-116]:   91.0%  L2=0.0017  ██████████████████
+  Formants       [117-137]:    0.0%  L2=0.0000  
+  Pitch-MFCC Corr[138-167]:   99.3%  L2=0.0400  ███████████████████
+  Pitch+Jitter   [168-191]:   97.5%  L2=0.2136  ███████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ george vs theo           │  88.5%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (george vs theo) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-90] :   82.4%  L2=0.0029  ████████████████
+  Mean Delta      [91-103]:   66.4%  L2=0.0020  █████████████
+  Mean DeltaDelta[104-116]:   99.2%  L2=0.0005  ███████████████████
+  Formants       [117-137]:    0.0%  L2=0.0000  
+  Pitch-MFCC Corr[138-167]:   99.5%  L2=0.0315  ███████████████████
+  Pitch+Jitter   [168-191]:   98.1%  L2=0.1880  ███████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ george vs yweweler       │  91.3%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (george vs yweweler) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-90] :   84.8%  L2=0.0029  ████████████████
+  Mean Delta      [91-103]:   84.5%  L2=0.0029  ████████████████
+  Mean DeltaDelta[104-116]:   99.0%  L2=0.0053  ███████████████████
+  Formants       [117-137]:    0.0%  L2=0.0000  
+  Pitch-MFCC Corr[138-167]:   99.6%  L2=0.0352  ███████████████████
+  Pitch+Jitter   [168-191]:   97.8%  L2=0.2002  ███████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ jackson vs lucas         │  55.7%   │ ✅ REJECT              │
+│ jackson vs nicolas       │  88.1%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (jackson vs nicolas) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-90] :   79.8%  L2=0.0030  ███████████████
+  Mean Delta      [91-103]:   84.3%  L2=0.0012  ████████████████
+  Mean DeltaDelta[104-116]:   94.4%  L2=0.0021  ██████████████████
+  Formants       [117-137]:    0.0%  L2=0.0000  
+  Pitch-MFCC Corr[138-167]:   99.9%  L2=0.0321  ███████████████████
+  Pitch+Jitter   [168-191]:   96.7%  L2=0.2445  ███████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ jackson vs theo          │  89.1%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (jackson vs theo) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-90] :   86.1%  L2=0.0022  █████████████████
+  Mean Delta      [91-103]:   63.7%  L2=0.0021  ████████████
+  Mean DeltaDelta[104-116]:   98.1%  L2=0.0020  ███████████████████
+  Formants       [117-137]:    0.0%  L2=0.0000  
+  Pitch-MFCC Corr[138-167]:   98.0%  L2=0.0659  ███████████████████
+  Pitch+Jitter   [168-191]:   96.2%  L2=0.2607  ███████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ jackson vs yweweler      │  90.8%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (jackson vs yweweler) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-90] :   88.0%  L2=0.0025  █████████████████
+  Mean Delta      [91-103]:   68.3%  L2=0.0028  █████████████
+  Mean DeltaDelta[104-116]:   98.7%  L2=0.0072  ███████████████████
+  Formants       [117-137]:    0.0%  L2=0.0000  
+  Pitch-MFCC Corr[138-167]:   99.8%  L2=0.0408  ███████████████████
+  Pitch+Jitter   [168-191]:   96.5%  L2=0.2519  ███████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ lucas vs nicolas         │  62.5%   │ ✅ REJECT              │
+│ lucas vs theo            │  59.2%   │ ✅ REJECT              │
+│ lucas vs yweweler        │  56.0%   │ ✅ REJECT              │
+│ nicolas vs theo          │  84.7%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (nicolas vs theo) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-90] :   77.8%  L2=0.0031  ███████████████
+  Mean Delta      [91-103]:   69.5%  L2=0.0019  █████████████
+  Mean DeltaDelta[104-116]:   90.0%  L2=0.0018  ██████████████████
+  Formants       [117-137]:    0.0%  L2=0.0000  
+  Pitch-MFCC Corr[138-167]:   97.9%  L2=0.0598  ███████████████████
+  Pitch+Jitter   [168-191]:   98.0%  L2=0.1905  ███████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ nicolas vs yweweler      │  88.4%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (nicolas vs yweweler) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-90] :   81.6%  L2=0.0031  ████████████████
+  Mean Delta      [91-103]:   79.2%  L2=0.0026  ███████████████
+  Mean DeltaDelta[104-116]:   93.4%  L2=0.0057  ██████████████████
+  Formants       [117-137]:    0.0%  L2=0.0000  
+  Pitch-MFCC Corr[138-167]:   99.8%  L2=0.0212  ███████████████████
+  Pitch+Jitter   [168-191]:   98.6%  L2=0.1586  ███████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ theo vs yweweler         │  92.9%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (theo vs yweweler) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  MFCC Covariance  [0-90] :   89.3%  L2=0.0024  █████████████████
+  Mean Delta      [91-103]:   85.2%  L2=0.0021  █████████████████
+  Mean DeltaDelta[104-116]:   97.9%  L2=0.0054  ███████████████████
+  Formants       [117-137]:    0.0%  L2=0.0000  
+  Pitch-MFCC Corr[138-167]:   99.0%  L2=0.0437  ███████████████████
+  Pitch+Jitter   [168-191]:   96.5%  L2=0.2534  ███████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+├──────────────────────────┼──────────┼───────────────────────┤
+│ AVERAGE                  │  78.4%   │ 5/15 correct rejects    │
+└──────────────────────────┴──────────┴───────────────────────┘
+
+  ═══════════════════════════════════════
+  SUMMARY
+  ═══════════════════════════════════════
+  Same-speaker avg:  81.1%
+  Cross-speaker avg: 78.4%
+  Gap:               2.7 percentage points
+  Threshold:         72.0%
+  Correct accepts:   5/6
+  Correct rejects:   5/15
+  Overall accuracy:  10/21 (47.6%)
+

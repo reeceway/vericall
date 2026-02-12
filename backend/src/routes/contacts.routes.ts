@@ -17,7 +17,7 @@ router.post(
   asyncHandler(async (req: AuthenticatedRequest, res) => {
     const currentUser = req.user!;
     const { phoneNumbers } = req.body as ContactSyncBody;
-    
+
     if (!phoneNumbers || !Array.isArray(phoneNumbers) || phoneNumbers.length === 0) {
       res.status(400).json({
         success: false,
@@ -25,33 +25,31 @@ router.post(
       } as APIResponse);
       return;
     }
-    
+
     // Find users with matching phone numbers (excluding self)
     const { data: users } = await supabase
       .from('users')
-      .select('*, public_keys(*), voiceprints(id)')
+      .select('*, public_keys(*)')
       .in('phone_number', phoneNumbers)
       .neq('id', currentUser.id);
-    
+
     const contacts: ContactInfo[] = [];
-    
+
     if (users) {
       for (const user of users) {
         const publicKey = user.public_keys?.[0];
-        const voiceprint = user.voiceprints?.[0];
-        
+
         contacts.push({
           phoneNumber: user.phone_number,
           userId: user.id,
           displayName: user.display_name || undefined,
-          publicKeyFingerprint: publicKey 
+          publicKeyFingerprint: publicKey
             ? getKeyFingerprint(publicKey.public_key_data)
             : '',
-          voiceEnrolled: !!voiceprint,
         });
       }
     }
-    
+
     res.json({
       success: true,
       contacts,

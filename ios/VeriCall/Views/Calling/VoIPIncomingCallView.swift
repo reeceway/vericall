@@ -102,7 +102,7 @@ struct VoIPIncomingCallView: View {
                     .foregroundColor(.white.opacity(0.6))
                 
                 if callService.isDeviceVerified {
-                    Text("Voice verification will begin when answered")
+                    Text("AI deepfake detection will begin when answered")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.5))
                         .padding(.top, 8)

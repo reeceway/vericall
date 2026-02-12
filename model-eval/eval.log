@@ -1,0 +1,153 @@
+============================================================
+  DEEPFAKE DETECTION MODEL COMPARISON
+============================================================
+
+[1/4] Preparing test data...
+
+  Real samples: 30
+  Fake samples: 10
+
+[2/4] Loading models...
+
+--- ConvNeXt-Tiny ---
+  Loading kubinooo/convnext-tiny-224-audio-deepfake-classification...
+  Labels: {0: 'fake', 1: 'real'}
+
+--- Wav2Vec2-Deepfake ---
+  Loading MelodyMachine/Deepfake-audio-detection-V2...
+  Labels: {0: 'fake', 1: 'real'}
+  ! PATCH: Overriding label mapping due to observed inversion
+
+--- WavLM-AASIST ---
+  Loading DavidCombei/wavLM-base-Deepfake_V2...
+  Labels: {0: 'LABEL_0', 1: 'LABEL_1'}
+
+[3/4] Running evaluations on 40 files...
+
+  Evaluating: ConvNeXt-Tiny (current)
+    ✅ fsdd_george_1.wav: expected=REAL predicted=real conf=0.872 (465ms)
+    ✅ fsdd_george_2.wav: expected=REAL predicted=real conf=0.858 (221ms)
+    ✅ fsdd_george_3.wav: expected=REAL predicted=real conf=0.901 (224ms)
+    ❌ fsdd_george_4.wav: expected=REAL predicted=fake conf=0.621 (224ms)
+    ✅ fsdd_jackson_0.wav: expected=REAL predicted=real conf=0.656 (251ms)
+    ❌ fsdd_jackson_1.wav: expected=REAL predicted=fake conf=0.883 (240ms)
+    ❌ fsdd_jackson_2.wav: expected=REAL predicted=fake conf=0.861 (234ms)
+    ❌ fsdd_jackson_3.wav: expected=REAL predicted=fake conf=0.600 (229ms)
+    ✅ fsdd_jackson_4.wav: expected=REAL predicted=real conf=0.514 (236ms)
+    ✅ fsdd_lucas_0.wav: expected=REAL predicted=real conf=0.936 (229ms)
+    ✅ fsdd_lucas_1.wav: expected=REAL predicted=real conf=0.964 (229ms)
+    ✅ fsdd_lucas_2.wav: expected=REAL predicted=real conf=0.786 (226ms)
+    ✅ fsdd_lucas_3.wav: expected=REAL predicted=real conf=0.920 (246ms)
+    ✅ fsdd_lucas_4.wav: expected=REAL predicted=real conf=0.949 (233ms)
+    ✅ fsdd_nicolas_3.wav: expected=REAL predicted=real conf=0.959 (226ms)
+    ✅ tts_0.wav: expected=FAKE predicted=fake conf=0.667 (223ms)
+    ✅ tts_1.wav: expected=FAKE predicted=fake conf=0.561 (234ms)
+    ✅ tts_2.wav: expected=FAKE predicted=fake conf=0.724 (229ms)
+    ✅ tts_3.wav: expected=FAKE predicted=fake conf=0.653 (226ms)
+    ✅ tts_4.wav: expected=FAKE predicted=fake conf=0.779 (229ms)
+    ❌ tts_5.wav: expected=FAKE predicted=real conf=0.930 (229ms)
+    ❌ tts_6.wav: expected=FAKE predicted=real conf=0.593 (224ms)
+    ✅ tts_7.wav: expected=FAKE predicted=fake conf=0.737 (224ms)
+    ✅ tts_8.wav: expected=FAKE predicted=fake conf=0.591 (219ms)
+    ✅ tts_9.wav: expected=FAKE predicted=fake conf=0.672 (220ms)
+
+  Evaluating: Wav2Vec2-Deepfake
+    ✅ fsdd_george_1.wav: expected=REAL predicted=real conf=1.000 (785ms)
+    ✅ fsdd_george_2.wav: expected=REAL predicted=real conf=1.000 (79ms)
+    ✅ fsdd_george_3.wav: expected=REAL predicted=real conf=1.000 (80ms)
+    ✅ fsdd_george_4.wav: expected=REAL predicted=real conf=1.000 (88ms)
+    ✅ fsdd_jackson_0.wav: expected=REAL predicted=real conf=1.000 (83ms)
+    ✅ fsdd_jackson_1.wav: expected=REAL predicted=real conf=1.000 (84ms)
+    ✅ fsdd_jackson_2.wav: expected=REAL predicted=real conf=1.000 (80ms)
+    ✅ fsdd_jackson_3.wav: expected=REAL predicted=real conf=1.000 (82ms)
+    ✅ fsdd_jackson_4.wav: expected=REAL predicted=real conf=1.000 (83ms)
+    ❌ fsdd_lucas_0.wav: expected=REAL predicted=fake conf=1.000 (82ms)
+    ❌ fsdd_lucas_1.wav: expected=REAL predicted=fake conf=1.000 (82ms)
+    ✅ fsdd_lucas_2.wav: expected=REAL predicted=real conf=1.000 (83ms)
+    ❌ fsdd_lucas_3.wav: expected=REAL predicted=fake conf=1.000 (82ms)
+    ❌ fsdd_lucas_4.wav: expected=REAL predicted=fake conf=1.000 (84ms)
+    ❌ fsdd_nicolas_3.wav: expected=REAL predicted=fake conf=0.985 (82ms)
+    ✅ tts_0.wav: expected=FAKE predicted=fake conf=1.000 (83ms)
+    ✅ tts_1.wav: expected=FAKE predicted=fake conf=1.000 (110ms)
+    ✅ tts_2.wav: expected=FAKE predicted=fake conf=1.000 (86ms)
+    ✅ tts_3.wav: expected=FAKE predicted=fake conf=1.000 (82ms)
+    ✅ tts_4.wav: expected=FAKE predicted=fake conf=0.998 (94ms)
+    ✅ tts_5.wav: expected=FAKE predicted=fake conf=1.000 (83ms)
+    ✅ tts_6.wav: expected=FAKE predicted=fake conf=1.000 (80ms)
+    ✅ tts_7.wav: expected=FAKE predicted=fake conf=1.000 (82ms)
+    ✅ tts_8.wav: expected=FAKE predicted=fake conf=1.000 (81ms)
+    ✅ tts_9.wav: expected=FAKE predicted=fake conf=1.000 (80ms)
+
+  Evaluating: WavLM-AASIST
+    ✅ fsdd_george_1.wav: expected=REAL predicted=real conf=1.000 (74ms)
+    ✅ fsdd_george_2.wav: expected=REAL predicted=real conf=0.999 (41ms)
+    ✅ fsdd_george_3.wav: expected=REAL predicted=real conf=0.999 (37ms)
+    ❌ fsdd_george_4.wav: expected=REAL predicted=fake conf=0.997 (36ms)
+    ✅ fsdd_jackson_0.wav: expected=REAL predicted=real conf=1.000 (38ms)
+    ✅ fsdd_jackson_1.wav: expected=REAL predicted=real conf=1.000 (36ms)
+    ✅ fsdd_jackson_2.wav: expected=REAL predicted=real conf=1.000 (36ms)
+    ✅ fsdd_jackson_3.wav: expected=REAL predicted=real conf=1.000 (37ms)
+    ✅ fsdd_jackson_4.wav: expected=REAL predicted=real conf=1.000 (37ms)
+    ✅ fsdd_lucas_0.wav: expected=REAL predicted=real conf=1.000 (37ms)
+    ✅ fsdd_lucas_1.wav: expected=REAL predicted=real conf=1.000 (41ms)
+    ✅ fsdd_lucas_2.wav: expected=REAL predicted=real conf=0.990 (42ms)
+    ✅ fsdd_lucas_3.wav: expected=REAL predicted=real conf=0.999 (36ms)
+    ✅ fsdd_lucas_4.wav: expected=REAL predicted=real conf=0.999 (37ms)
+    ✅ fsdd_nicolas_3.wav: expected=REAL predicted=real conf=0.999 (36ms)
+    ❌ tts_0.wav: expected=FAKE predicted=real conf=0.798 (72ms)
+    ✅ tts_1.wav: expected=FAKE predicted=fake conf=0.992 (70ms)
+    ✅ tts_2.wav: expected=FAKE predicted=fake conf=0.999 (76ms)
+    ✅ tts_3.wav: expected=FAKE predicted=fake conf=0.992 (71ms)
+    ❌ tts_4.wav: expected=FAKE predicted=real conf=0.999 (60ms)
+    ✅ tts_5.wav: expected=FAKE predicted=fake conf=1.000 (72ms)
+    ❌ tts_6.wav: expected=FAKE predicted=real conf=0.974 (68ms)
+    ✅ tts_7.wav: expected=FAKE predicted=fake conf=0.995 (69ms)
+    ✅ tts_8.wav: expected=FAKE predicted=fake conf=1.000 (87ms)
+    ✅ tts_9.wav: expected=FAKE predicted=fake conf=1.000 (76ms)
+
+[4/4] Results
+
+
+============================================================
+  ConvNeXt-Tiny (current)
+============================================================
+  Accuracy:       76.0% (19/25)
+  Precision:      66.7%
+  Recall:         80.0%
+  F1 Score:       72.7%
+  False Pos Rate: 26.7% (real flagged as fake)
+  Avg Inference:  239ms
+  TP=8 TN=11 FP=4 FN=2
+
+============================================================
+  Wav2Vec2-Deepfake
+============================================================
+  Accuracy:       80.0% (20/25)
+  Precision:      66.7%
+  Recall:         100.0%
+  F1 Score:       80.0%
+  False Pos Rate: 33.3% (real flagged as fake)
+  Avg Inference:  112ms
+  TP=10 TN=10 FP=5 FN=0
+
+============================================================
+  WavLM-AASIST
+============================================================
+  Accuracy:       84.0% (21/25)
+  Precision:      87.5%
+  Recall:         70.0%
+  F1 Score:       77.8%
+  False Pos Rate: 6.7% (real flagged as fake)
+  Avg Inference:  53ms
+  TP=7 TN=14 FP=1 FN=3
+
+============================================================
+  COMPARISON TABLE
+============================================================
+Model                          Accuracy    FPR     F1    Speed
+------------------------------ -------- ------ ------ --------
+ConvNeXt-Tiny (current)           76.0%  26.7%  72.7%    239ms
+Wav2Vec2-Deepfake                 80.0%  33.3%  80.0%    112ms
+WavLM-AASIST                      84.0%   6.7%  77.8%     53ms
+
+Detailed results saved to: /Users/reeceway/vericall/model-eval/eval_results.json

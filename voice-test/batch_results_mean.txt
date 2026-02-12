@@ -1,0 +1,119 @@
+Building for debugging...
+[0/3] Write swift-version--58304C5D6DBC2206.txt
+Build of product 'VoiceTest' complete! (0.06s)
+
+╔═══════════════════════════════════════════════════════════╗
+║  BATCH SPEAKER VERIFICATION TEST (FSDD Dataset)        ║
+╚═══════════════════════════════════════════════════════════╝
+
+  Loading george: 50 files (A) + 50 files (B)
+    Group A: 24.8s, Group B: 26.7s
+  Loading jackson: 50 files (A) + 50 files (B)
+    Group A: 25.1s, Group B: 25.7s
+  Loading lucas: 50 files (A) + 50 files (B)
+    Group A: 28.3s, Group B: 30.1s
+  Loading nicolas: 50 files (A) + 50 files (B)
+    Group A: 17.0s, Group B: 17.4s
+  Loading theo: 50 files (A) + 50 files (B)
+    Group A: 14.0s, Group B: 18.8s
+  Loading yweweler: 50 files (A) + 50 files (B)
+    Group A: 15.9s, Group B: 17.5s
+
+┌─────────────────────────────────────────────────────────────┐
+│  SAME-SPEAKER (A vs B) — Should be MATCH (>72%)           │
+├───────────────┬──────────┬──────────────────────────────────┤
+│ Speaker       │ Score    │ Result                           │
+├───────────────┼──────────┼──────────────────────────────────┤
+│ george        │  93.2%   │ ✅ MATCH                          │
+│ jackson       │  73.3%   │ ✅ MATCH                          │
+│ lucas         │  85.6%   │ ✅ MATCH                          │
+│ nicolas       │  76.7%   │ ✅ MATCH                          │
+│ theo          │  67.1%   │ ❌ REJECT                         │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Reject (theo) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  Mean MFCC        [0-11] :   67.1%  L2=19.9049  █████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ yweweler      │  84.7%   │ ✅ MATCH                          │
+├───────────────┼──────────┼──────────────────────────────────┤
+│ AVERAGE       │  80.1%   │ 5/6 correct accepts                │
+└───────────────┴──────────┴──────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  CROSS-SPEAKER (A vs A) — Should be NO MATCH (<72%)       │
+├──────────────────────────┬──────────┬───────────────────────┤
+│ Pair                     │ Score    │ Result                │
+├──────────────────────────┼──────────┼───────────────────────┤
+│ george vs jackson        │  40.5%   │ ✅ REJECT              │
+│ george vs lucas          │  39.1%   │ ✅ REJECT              │
+│ george vs nicolas        │  65.7%   │ ✅ REJECT              │
+│ george vs theo           │  82.7%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (george vs theo) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  Mean MFCC        [0-11] :   82.7%  L2=31.8287  ████████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ george vs yweweler       │  75.9%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (george vs yweweler) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  Mean MFCC        [0-11] :   75.9%  L2=32.1212  ███████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ jackson vs lucas         │  72.8%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (jackson vs lucas) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  Mean MFCC        [0-11] :   72.8%  L2=25.9401  ██████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ jackson vs nicolas       │  73.5%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (jackson vs nicolas) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  Mean MFCC        [0-11] :   73.5%  L2=22.8600  ██████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ jackson vs theo          │  45.7%   │ ✅ REJECT              │
+│ jackson vs yweweler      │  68.4%   │ ✅ REJECT              │
+│ lucas vs nicolas         │  36.6%   │ ✅ REJECT              │
+│ lucas vs theo            │  36.6%   │ ✅ REJECT              │
+│ lucas vs yweweler        │  79.3%   │ ❌ FALSE ACCEPT        │
+└─────────────────────────────────────────────────────────────┘
+  >>> DIAGNOSTIC: False Accept (lucas vs yweweler) <<<
+
+  Feature Group Breakdown (unweighted cosine per group):
+  ─────────────────────────────────────────────────────
+  Mean MFCC        [0-11] :   79.3%  L2=22.3979  ███████████████
+
+┌─────────────────────────────────────────────────────────────┐
+│ nicolas vs theo          │  68.1%   │ ✅ REJECT              │
+│ nicolas vs yweweler      │  65.9%   │ ✅ REJECT              │
+│ theo vs yweweler         │  53.1%   │ ✅ REJECT              │
+├──────────────────────────┼──────────┼───────────────────────┤
+│ AVERAGE                  │  60.3%   │ 10/15 correct rejects    │
+└──────────────────────────┴──────────┴───────────────────────┘
+
+  ═══════════════════════════════════════
+  SUMMARY
+  ═══════════════════════════════════════
+  Same-speaker avg:  80.1%
+  Cross-speaker avg: 60.3%
+  Gap:               19.8 percentage points
+  Threshold:         72.0%
+  Correct accepts:   5/6
+  Correct rejects:   10/15
+  Overall accuracy:  15/21 (71.4%)
+

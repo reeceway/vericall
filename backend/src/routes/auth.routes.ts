@@ -24,7 +24,7 @@ router.post(
   otpRateLimiter,
   asyncHandler(async (req, res) => {
     const { phoneNumber } = req.body as RequestOTPBody;
-    
+
     // Validate phone number format
     const phoneRegex = /^\+[1-9]\d{1,14}$/;
     if (!phoneRegex.test(phoneNumber)) {
@@ -34,10 +34,10 @@ router.post(
       } as APIResponse);
       return;
     }
-    
+
     // Create and send OTP
     await createOTP(phoneNumber);
-    
+
     res.json({
       success: true,
       expiresIn: 300,
@@ -53,7 +53,7 @@ router.post(
   '/verify-otp',
   asyncHandler(async (req, res) => {
     const { phoneNumber, code, publicKey, deviceId, deviceName } = req.body as VerifyOTPBody;
-    
+
     // Validate inputs
     if (!phoneNumber || !code || !publicKey || !deviceId) {
       res.status(400).json({
@@ -62,7 +62,7 @@ router.post(
       } as APIResponse);
       return;
     }
-    
+
     // Verify OTP
     const isValid = await verifyOTP(phoneNumber, code);
     if (!isValid) {
@@ -72,14 +72,14 @@ router.post(
       } as APIResponse);
       return;
     }
-    
+
     // Find or create user
     let { data: user } = await supabase
       .from('users')
       .select('*')
       .eq('phone_number', phoneNumber)
       .single();
-    
+
     if (!user) {
       // Create new user
       const { data: newUser, error } = await supabase
@@ -87,7 +87,7 @@ router.post(
         .insert({ phone_number: phoneNumber })
         .select()
         .single();
-      
+
       if (error || !newUser) {
         res.status(500).json({
           success: false,
@@ -95,10 +95,10 @@ router.post(
         } as APIResponse);
         return;
       }
-      
+
       user = newUser;
     }
-    
+
     // Store/update public key
     const keyFingerprint = getKeyFingerprint(publicKey);
     const { data: existingKey } = await supabase
@@ -107,7 +107,7 @@ router.post(
       .eq('user_id', user.id)
       .eq('key_fingerprint', keyFingerprint)
       .single();
-    
+
     if (existingKey) {
       // Update existing key
       await supabase
@@ -130,19 +130,12 @@ router.post(
           device_name: deviceName,
         });
     }
-    
-    // Check voice enrollment
-    const { data: voiceprint } = await supabase
-      .from('voiceprints')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
-    
+
     // Generate tokens
     const accessToken = createAccessToken(user.id, user.phone_number);
     const refreshTokenValue = createRefreshToken();
     const refreshTokenHash = hashToken(refreshTokenValue);
-    
+
     // Store refresh token
     await supabase
       .from('refresh_tokens')
@@ -151,7 +144,7 @@ router.post(
         token_hash: refreshTokenHash,
         expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       });
-    
+
     // Cache session in Redis
     if (redis) {
       await redis.set(
@@ -164,7 +157,7 @@ router.post(
         { ex: 7 * 24 * 60 * 60 } // 7 days
       );
     }
-    
+
     res.json({
       success: true,
       accessToken,
@@ -173,7 +166,6 @@ router.post(
         id: user.id,
         phoneNumber: user.phone_number,
         displayName: user.display_name,
-        voiceEnrolled: !!voiceprint,
       },
     });
   })
@@ -187,7 +179,7 @@ router.post(
   '/refresh',
   asyncHandler(async (req, res) => {
     const { refreshToken } = req.body as RefreshTokenBody;
-    
+
     if (!refreshToken) {
       res.status(400).json({
         success: false,
@@ -195,7 +187,7 @@ router.post(
       } as APIResponse);
       return;
     }
-    
+
     // Hash and find refresh token
     const tokenHash = hashToken(refreshToken);
     const { data: tokenRecord } = await supabase
@@ -204,7 +196,7 @@ router.post(
       .eq('token_hash', tokenHash)
       .gt('expires_at', new Date().toISOString())
       .single();
-    
+
     if (!tokenRecord) {
       res.status(401).json({
         success: false,
@@ -212,18 +204,18 @@ router.post(
       } as APIResponse);
       return;
     }
-    
+
     // Revoke old token
     await supabase
       .from('refresh_tokens')
       .delete()
       .eq('id', tokenRecord.id);
-    
+
     // Generate new tokens
     const accessToken = createAccessToken(tokenRecord.users.id, tokenRecord.users.phone_number);
     const newRefreshToken = createRefreshToken();
     const newRefreshHash = hashToken(newRefreshToken);
-    
+
     // Store new refresh token
     await supabase
       .from('refresh_tokens')
@@ -232,7 +224,7 @@ router.post(
         token_hash: newRefreshHash,
         expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       });
-    
+
     res.json({
       success: true,
       accessToken,

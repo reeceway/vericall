@@ -2,9 +2,6 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var authService: AuthService
-    @State private var showVoiceEnrollment = false
-    @State private var showEnrollmentComplete = false
-    @State private var hasVoiceSignature = false
 
     var body: some View {
         NavigationView {
@@ -33,38 +30,30 @@ struct SettingsView: View {
                     .padding(.vertical, 8)
                 }
 
-                // Voice enrollment section
-                Section(header: Text("Voice Verification")) {
-                    Button(action: { showVoiceEnrollment = true }) {
-                        HStack {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(hasVoiceSignature ? Color.green.opacity(0.15) : Color.veriBlue.opacity(0.15))
-                                    .frame(width: 36, height: 36)
-                                Image(systemName: hasVoiceSignature ? "checkmark.seal.fill" : "waveform.circle.fill")
-                                    .foregroundColor(hasVoiceSignature ? .green : .veriBlue)
-                                    .font(.system(size: 18))
-                            }
+                // AI Protection section
+                Section(header: Text("AI Protection")) {
+                    HStack {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.green.opacity(0.15))
+                                .frame(width: 36, height: 36)
+                            Image(systemName: "shield.checkered")
+                                .foregroundColor(.green)
+                                .font(.system(size: 18))
+                        }
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(hasVoiceSignature ? "Re-record Voice Thumbprint" : "Record Voice Thumbprint")
-                                    .foregroundColor(.primary)
-                                Text(hasVoiceSignature ? "Your voice signature is enrolled" : "Set up voice verification for calls")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Spacer()
-
-                            if hasVoiceSignature {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                            }
-
-                            Image(systemName: "chevron.right")
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("AI Deepfake Detection")
+                                .foregroundColor(.primary)
+                            Text("Automatically detects AI-generated voices during VoIP calls")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
+
+                        Spacer()
+
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
                     }
                 }
 
@@ -95,31 +84,6 @@ struct SettingsView: View {
             .listStyle(InsetGroupedListStyle())
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
-            .sheet(isPresented: $showVoiceEnrollment) {
-                SelfVoiceEnrollmentView(onComplete: {
-                    showVoiceEnrollment = false
-                    hasVoiceSignature = true
-                    // Update UserDefaults to reflect enrollment completion
-                    UserDefaults.standard.set(true, forKey: Constants.UserDefaultsKeys.hasCompletedVoiceEnrollment)
-                })
-                .environmentObject(authService)
-            }
-            .sheet(isPresented: $showEnrollmentComplete) {
-                NavigationView {
-                    VoiceEnrollmentCompleteView(
-                        contactName: "Your Voice",
-                        onDone: {
-                            showEnrollmentComplete = false
-                        },
-                        onAddAnother: {
-                            showEnrollmentComplete = false
-                        }
-                    )
-                }
-            }
-            .onAppear {
-                checkVoiceSignature()
-            }
         }
     }
 
@@ -128,12 +92,5 @@ struct SettingsView: View {
             return String(name.prefix(2)).uppercased()
         }
         return "VC"
-    }
-
-    private func checkVoiceSignature() {
-        let keychainService = VoiceKeychainService()
-        if let _ = try? keychainService.loadSignature(for: "self") {
-            hasVoiceSignature = true
-        }
     }
 }
