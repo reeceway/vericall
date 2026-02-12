@@ -9,7 +9,7 @@ This approach was selected after extensive batch testing on the FSDD dataset, ou
 
 1.  **VAD (Voice Activity Detection)**:
     *   Frames are analyzed for RMS amplitude.
-    *   Only frames with RMS > 0.015 are considered "voiced".
+    *   Only frames with RMS > 0.010 are considered "voiced".
     *   This removes silence and low-level background noise.
 
 2.  **MFCC Extraction**:
@@ -32,9 +32,9 @@ This approach was selected after extensive batch testing on the FSDD dataset, ou
 *   **Metric**: **Cosine Similarity**.
 *   **Formula**: `dot(A, B) / (norm(A) * norm(B))`
 *   **Range**: -1.0 to 1.0 (approximated as percentage -100% to 100%).
-*   **Threshold**: **72.0%**.
-    *   Scores > 72% are considered a **MATCH**.
-    *   Scores <= 72% are considered a **NO MATCH**.
+*   **Threshold**: **50.0%**.
+    *   Scores > 50% are considered a **MATCH**.
+    *   Scores <= 50% are considered a **NO MATCH**.
 
 ## Performance Logic
 

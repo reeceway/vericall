@@ -101,13 +101,13 @@ public struct VoiceVerificationThresholds {
     public static let highConfidence: Float = 0.85
     
     /// Threshold for medium confidence (yellow badge)
-    /// 0.72-0.85 is plausible same speaker under noisy/degraded conditions
-    /// Voice clones score ~0.70 — will show as orange warning
-    public static let mediumConfidence: Float = 0.72
+    /// 0.50-0.85 is plausible same speaker under noisy/degraded conditions
+    /// Voice clones score ~0.50 — will show as orange warning
+    public static let mediumConfidence: Float = 0.50
     
     /// Minimum threshold for any match consideration
-    /// Per-group scoring: clones score ~0.698, different speakers ~0.545
-    public static let matchThreshold: Float = 0.72
+    /// Per-group scoring: clones score ~0.50, different speakers ~0.45
+    public static let matchThreshold: Float = 0.50
     
     /// Threshold for enrollment quality check
     /// Per-group scoring between different phrases of same speaker may be lower
