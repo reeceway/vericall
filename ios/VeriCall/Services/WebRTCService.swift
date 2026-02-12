@@ -39,7 +39,7 @@ final class AudioStreamService: ObservableObject {
     private var captureConverter: AVAudioConverter?
 
     // Audio capture buffer (local mic) for voice verification
-    private let captureQueue = DispatchQueue(label: "com.vericall.audioStream.cap")
+    let captureQueue = DispatchQueue(label: "com.vericall.audioStream.cap")
     private(set) var captureBuffer: [Float] = []
     private let maxCaptureDuration: Double = 10.0
 
@@ -57,8 +57,9 @@ final class AudioStreamService: ObservableObject {
 
     // Audio gain: keep moderate to avoid overwhelming iOS AEC
     // Earpiece mode + voiceChat provides built-in echo cancellation
-    private let captureGain: Float = 2.0    // moderate boost for outgoing mic
-    private let playbackGain: Float = 2.5   // moderate boost for incoming audio
+    // v3.0: Boost to 3.0 linear to match WavLM training levels (RMS ~0.1), clamped at 1.0
+    private let captureGain: Float = 3.0
+    private let playbackGain: Float = 3.0
 
     private var hasNotifiedAudioConnected = false
 
@@ -69,6 +70,19 @@ final class AudioStreamService: ObservableObject {
 
     // WebSocket ref
     private let ws = WebSocketService.shared
+
+    // New RTP / Opus components
+    private var rtpReceiver: RTPReceiver?
+    private var opusDecoder: OpusDecoder?
+    @Published var useRTP: Bool = false {
+        didSet {
+            if useRTP {
+                startRTP()
+            } else {
+                stopRTP()
+            }
+        }
+    }
 
     private init() {
         transmitFormat = AVAudioFormat(
@@ -98,6 +112,7 @@ final class AudioStreamService: ObservableObject {
 
     func tearDown() {
         stopStreaming()
+        stopRTP()
         hasNotifiedAudioConnected = false
         captureBuffer.removeAll()
         remoteBuffer.removeAll()
@@ -130,6 +145,20 @@ final class AudioStreamService: ObservableObject {
         print("[AudioStream] Streaming started")
     }
 
+    func startLocalCapture() {
+        guard !isStreaming else { return }
+        print("[AudioStream] Starting local capture (Lab Mode)")
+        
+        // No call info needed for local lab
+        cachedCallId = nil
+        cachedRemoteUserId = nil
+        
+        configureAudioSession()
+        startEngine()
+        
+        isStreaming = true
+    }
+
     func stopStreaming() {
         guard isStreaming else { return }
         isStreaming = false
@@ -137,6 +166,7 @@ final class AudioStreamService: ObservableObject {
         engine?.inputNode.removeTap(onBus: 0)
         playerNode?.stop()
         engine?.stop()
+        stopRTP()
 
         engine = nil
         playerNode = nil
@@ -399,24 +429,25 @@ final class AudioStreamService: ObservableObject {
         return Data(bytes: channelData, count: count * MemoryLayout<Float>.size)
     }
 
-    /// Convert PCM buffer to Data with gain applied (for louder transmission)
+    /// Convert PCM buffer to Data with gain applied
     private func pcmBufferToDataWithGain(_ buffer: AVAudioPCMBuffer, gain: Float) -> Data {
         guard let channelData = buffer.floatChannelData?[0] else { return Data() }
         let count = Int(buffer.frameLength)
         var amplified = [Float](repeating: 0, count: count)
         var g = gain
         vDSP_vsmul(channelData, 1, &g, &amplified, 1, vDSP_Length(count))
-        // Soft-limit using tanh to avoid hard clipping distortion
-        // tanh preserves the signal shape while keeping values in (-1, 1)
+        
+        // No tanh compression - keep linear for AI model accuracy
+        // Just hard clamp to prevent massive blowouts if gain > 1
         for i in 0..<count {
-            if abs(amplified[i]) > 0.8 {
-                amplified[i] = tanh(amplified[i])
-            }
+            if amplified[i] > 1.0 { amplified[i] = 1.0 }
+            else if amplified[i] < -1.0 { amplified[i] = -1.0 }
         }
+        
         return amplified.withUnsafeBytes { Data($0) }
     }
 
-    /// Apply gain to raw Float32 audio data (for louder playback)
+    /// Apply gain to raw Float32 audio data
     private func applyGainToData(_ data: Data, gain: Float) -> Data {
         let count = data.count / MemoryLayout<Float>.size
         guard count > 0 else { return data }
@@ -426,12 +457,62 @@ final class AudioStreamService: ObservableObject {
         }
         var g = gain
         vDSP_vsmul(samples, 1, &g, &samples, 1, vDSP_Length(count))
-        // Soft-limit using tanh to avoid hard clipping distortion
+        
+        // No tanh - AI model needs linear audio
         for i in 0..<count {
-            if abs(samples[i]) > 0.8 {
-                samples[i] = tanh(samples[i])
+             if samples[i] > 1.0 { samples[i] = 1.0 }
+             else if samples[i] < -1.0 { samples[i] = -1.0 }
+        }
+        
+        return samples.withUnsafeBytes { Data($0) }
+    }
+
+    // MARK: - RTP Mode Logic
+
+    private func startRTP() {
+        print("[AudioStream] Enabling RTP Mode (UDP 5004)...")
+        rtpReceiver = RTPReceiver()
+        opusDecoder = OpusDecoder(outputFormat: playbackInputFormat)
+        
+        rtpReceiver?.onOpusPacketReceived = { [weak self] packet in
+            guard let self = self, let decoded = self.opusDecoder?.decode(packet: packet) else { return }
+            self.handleDecodedRTPAudio(decoded)
+        }
+        rtpReceiver?.start()
+    }
+    
+    private func stopRTP() {
+        if rtpReceiver != nil {
+            print("[AudioStream] Disabling RTP Mode")
+        }
+        rtpReceiver?.stop()
+        rtpReceiver = nil
+        opusDecoder = nil
+    }
+
+    private func handleDecodedRTPAudio(_ buffer: AVAudioPCMBuffer) {
+        // Decoded buffer is already 16kHz mono Float32 (from playbackInputFormat)
+        let data = pcmBufferToData(buffer)
+        
+        // 1. Playback
+        playbackQueue.async { [weak self] in
+            self?.enqueueForPlayback(data)
+        }
+        
+        // 2. Push to remoteBuffer for Verification
+        remoteQueue.async { [weak self] in
+            guard let self = self else { return }
+            let count = Int(buffer.frameLength)
+            if let ptr = buffer.floatChannelData?[0] {
+                let samples = Array(UnsafeBufferPointer(start: ptr, count: count))
+                self.remoteBuffer.append(contentsOf: samples)
+                
+                // Keep buffer within limits
+                let maxSamples = Int(self.maxCaptureDuration * self.targetSampleRate)
+                if self.remoteBuffer.count > maxSamples {
+                    self.remoteBuffer.removeFirst(self.remoteBuffer.count - maxSamples)
+                }
             }
         }
-        return samples.withUnsafeBytes { Data($0) }
     }
 }

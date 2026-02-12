@@ -7,12 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		12AF4F17B16F937FF9FFC7E8 /* DeepfakeLabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75E84BBD74D5B78DDD7CE6AC /* DeepfakeLabView.swift */; };
 		51BE11E960584E8F8B4E97E7 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8DC5DE8EEA48EC95B89342 /* HomeView.swift */; };
-		9C12D55DDCE94811B6281481 /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A75B8120B0F49E8BD549550 /* StorageService.swift */; };
-		F3F1498750604DA89CF7CEF5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DE526AC80224DE480E8D062 /* AppDelegate.swift */; };
-		922A9FC1C44741E4B6BCCBBA /* NativeCallObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7FF01B4311944159CE6F57F /* NativeCallObserver.swift */; };
 		520B93C5072545BEBC0D6AC9 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38711FD7CDD24875B2627F4E /* NotificationService.swift */; };
-				FCC8334E5F4C4E4445B6ADC2 /* FirebasePushService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBDDF7A76D1B57460BA3FC82 /* FirebasePushService.swift */; };
+		58CE7C5A81703712C5BE85E5 /* HemggDeepfake.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = CC000102 /* HemggDeepfake.mlpackage */; };
+		80F9BF8EABFB42FFB1DFDC2A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2C1B317B561B414BBDB60D1F /* Assets.xcassets */; };
+		922A9FC1C44741E4B6BCCBBA /* NativeCallObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7FF01B4311944159CE6F57F /* NativeCallObserver.swift */; };
+		9C12D55DDCE94811B6281481 /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A75B8120B0F49E8BD549550 /* StorageService.swift */; };
 		AA000001 /* VeriCallApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101 /* VeriCallApp.swift */; };
 		AA000002 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000102 /* RootView.swift */; };
 		AA000003 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000103 /* Constants.swift */; };
@@ -26,7 +27,6 @@
 		AA000011 /* CallKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000111 /* CallKitManager.swift */; };
 		AA000012 /* CallWebSocketService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000112 /* CallWebSocketService.swift */; };
 		AA000013 /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000113 /* AudioRecorder.swift */; };
-
 		AA000015 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000115 /* WelcomeView.swift */; };
 		AA000016 /* PhoneInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000116 /* PhoneInputView.swift */; };
 		AA000017 /* VerificationCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000117 /* VerificationCodeView.swift */; };
@@ -51,16 +51,37 @@
 		BB000003 /* VoIPActiveCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000103 /* VoIPActiveCallView.swift */; };
 		BB000004 /* VoIPIncomingCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000104 /* VoIPIncomingCallView.swift */; };
 		CC000001 /* DeepfakeDetectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000101 /* DeepfakeDetectionService.swift */; };
-		CC000002 /* WavLMDeepfake.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = CC000102 /* WavLMDeepfake.mlpackage */; };
+		CC000104 /* RTPReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000103 /* RTPReceiver.swift */; };
+		CC000106 /* OpusDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000105 /* OpusDecoder.swift */; };
+		DD000010 /* onnxruntime.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DD000020 /* onnxruntime.xcframework */; };
+		DD000011 /* onnxruntime.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DD000020 /* onnxruntime.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DD000012 /* WavLMDeepfake.onnx in Resources */ = {isa = PBXBuildFile; fileRef = DD000021 /* WavLMDeepfake.onnx */; };
+		DD000013 /* ONNXRunner.mm in Sources */ = {isa = PBXBuildFile; fileRef = DD000023 /* ONNXRunner.mm */; };
+		EE000001 /* UITestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000101 /* UITestView.swift */; };
+		F3F1498750604DA89CF7CEF5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DE526AC80224DE480E8D062 /* AppDelegate.swift */; };
+		FCC8334E5F4C4E4445B6ADC2 /* FirebasePushService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBDDF7A76D1B57460BA3FC82 /* FirebasePushService.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		DD000800 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				DD000011 /* onnxruntime.xcframework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
-		DC8DC5DE8EEA48EC95B89342 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
-		3A75B8120B0F49E8BD549550 /* StorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageService.swift; sourceTree = "<group>"; };
-		7DE526AC80224DE480E8D062 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		E7FF01B4311944159CE6F57F /* NativeCallObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeCallObserver.swift; sourceTree = "<group>"; };
+		2C1B317B561B414BBDB60D1F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		38711FD7CDD24875B2627F4E /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
-				FBDDF7A76D1B57460BA3FC82 /* FirebasePushService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebasePushService.swift; sourceTree = "<group>"; };
+		3A75B8120B0F49E8BD549550 /* StorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageService.swift; sourceTree = "<group>"; };
+		75E84BBD74D5B78DDD7CE6AC /* DeepfakeLabView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeepfakeLabView.swift; sourceTree = "<group>"; };
+		7DE526AC80224DE480E8D062 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		AA000100 /* VeriCall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VeriCall.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA000101 /* VeriCallApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VeriCallApp.swift; sourceTree = "<group>"; };
 		AA000102 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -75,7 +96,6 @@
 		AA000111 /* CallKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallKitManager.swift; sourceTree = "<group>"; };
 		AA000112 /* CallWebSocketService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallWebSocketService.swift; sourceTree = "<group>"; };
 		AA000113 /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
-
 		AA000115 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		AA000116 /* PhoneInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneInputView.swift; sourceTree = "<group>"; };
 		AA000117 /* VerificationCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationCodeView.swift; sourceTree = "<group>"; };
@@ -101,7 +121,17 @@
 		BB000103 /* VoIPActiveCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoIPActiveCallView.swift; sourceTree = "<group>"; };
 		BB000104 /* VoIPIncomingCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoIPIncomingCallView.swift; sourceTree = "<group>"; };
 		CC000101 /* DeepfakeDetectionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepfakeDetectionService.swift; sourceTree = "<group>"; };
-		CC000102 /* WavLMDeepfake.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = WavLMDeepfake.mlpackage; sourceTree = "<group>"; };
+		CC000103 /* RTPReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RTPReceiver.swift; sourceTree = "<group>"; };
+		CC000105 /* OpusDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpusDecoder.swift; sourceTree = "<group>"; };
+		DD000020 /* onnxruntime.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = onnxruntime.xcframework; path = Frameworks/onnxruntime.xcframework; sourceTree = "<group>"; };
+		CC000102 /* HemggDeepfake.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = HemggDeepfake.mlpackage; sourceTree = "<group>"; };
+		DC8DC5DE8EEA48EC95B89342 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		DD000022 /* VeriCall-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "VeriCall-Bridging-Header.h"; sourceTree = "<group>"; };
+		DD000023 /* ONNXRunner.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ONNXRunner.mm; sourceTree = "<group>"; };
+		DD000024 /* ONNXRunner.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ONNXRunner.h; sourceTree = "<group>"; };
+		E7FF01B4311944159CE6F57F /* NativeCallObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeCallObserver.swift; sourceTree = "<group>"; };
+		EE000101 /* UITestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestView.swift; sourceTree = "<group>"; };
+		FBDDF7A76D1B57460BA3FC82 /* FirebasePushService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebasePushService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,6 +139,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DD000010 /* onnxruntime.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,6 +149,7 @@
 		AA000300 = {
 			isa = PBXGroup;
 			children = (
+				DD000020 /* onnxruntime.xcframework */,
 				AA000301 /* VeriCall */,
 			);
 			sourceTree = "<group>";
@@ -125,11 +157,14 @@
 		AA000301 /* VeriCall */ = {
 			isa = PBXGroup;
 			children = (
+				2C1B317B561B414BBDB60D1F /* Assets.xcassets */,
 				AA000302 /* App */,
 				AA000303 /* Models */,
 				AA000304 /* Services */,
 				AA000305 /* Views */,
 				AA000306 /* Utils */,
+				DD000030 /* ORT */,
+				DD000022 /* VeriCall-Bridging-Header.h */,
 				AA000125 /* Info.plist */,
 			);
 			path = VeriCall;
@@ -142,6 +177,7 @@
 				7DE526AC80224DE480E8D062 /* AppDelegate.swift */,
 				AA000102 /* RootView.swift */,
 				AA000103 /* Constants.swift */,
+				EE000101 /* UITestView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -153,7 +189,7 @@
 				AA000105 /* CallModels.swift */,
 				AA000106 /* Call.swift */,
 				AA000133 /* VoiceModels.swift */,
-				CC000102 /* WavLMDeepfake.mlpackage */,
+				CC000102 /* HemggDeepfake.mlpackage */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -165,7 +201,7 @@
 				AA000107 /* APIService.swift */,
 				E7FF01B4311944159CE6F57F /* NativeCallObserver.swift */,
 				38711FD7CDD24875B2627F4E /* NotificationService.swift */,
-						FBDDF7A76D1B57460BA3FC82 /* FirebasePushService.swift */,
+				FBDDF7A76D1B57460BA3FC82 /* FirebasePushService.swift */,
 				AA000126 /* AuthService.swift */,
 				AA000108 /* DeviceCrypto.swift */,
 				AA000109 /* KeychainService.swift */,
@@ -175,10 +211,11 @@
 				AA000112 /* CallWebSocketService.swift */,
 				AA000127 /* WebSocketService.swift */,
 				AA000113 /* AudioRecorder.swift */,
-
 				BB000101 /* WebRTCService.swift */,
 				BB000102 /* VoIPCallService.swift */,
 				CC000101 /* DeepfakeDetectionService.swift */,
+				CC000103 /* RTPReceiver.swift */,
+				CC000105 /* OpusDecoder.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -191,6 +228,7 @@
 				AA000309 /* Contacts */,
 				AA000310 /* Components */,
 				AA000311 /* Settings */,
+				75E84BBD74D5B78DDD7CE6AC /* DeepfakeLabView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -263,6 +301,15 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		DD000030 /* ORT */ = {
+			isa = PBXGroup;
+			children = (
+				DD000024 /* ONNXRunner.h */,
+				DD000023 /* ONNXRunner.mm */,
+			);
+			path = ORT;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -273,6 +320,7 @@
 				AA000502 /* Sources */,
 				AA000200 /* Frameworks */,
 				AA000503 /* Resources */,
+				DD000800 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -291,7 +339,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1500;
-				LastUpgradeCheck = 1500;
+				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					AA000500 = {
 						CreatedOnToolsVersion = 15.0;
@@ -321,6 +369,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				80F9BF8EABFB42FFB1DFDC2A /* Assets.xcassets in Resources */,
+				DD000012 /* WavLMDeepfake.onnx in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -336,7 +386,7 @@
 				F3F1498750604DA89CF7CEF5 /* AppDelegate.swift in Sources */,
 				922A9FC1C44741E4B6BCCBBA /* NativeCallObserver.swift in Sources */,
 				520B93C5072545BEBC0D6AC9 /* NotificationService.swift in Sources */,
-						FCC8334E5F4C4E4445B6ADC2 /* FirebasePushService.swift in Sources */,
+				FCC8334E5F4C4E4445B6ADC2 /* FirebasePushService.swift in Sources */,
 				AA000001 /* VeriCallApp.swift in Sources */,
 				AA000002 /* RootView.swift in Sources */,
 				AA000003 /* Constants.swift in Sources */,
@@ -350,7 +400,6 @@
 				AA000011 /* CallKitManager.swift in Sources */,
 				AA000012 /* CallWebSocketService.swift in Sources */,
 				AA000013 /* AudioRecorder.swift in Sources */,
-
 				AA000015 /* WelcomeView.swift in Sources */,
 				AA000016 /* PhoneInputView.swift in Sources */,
 				AA000017 /* VerificationCodeView.swift in Sources */,
@@ -369,13 +418,18 @@
 				AA000036 /* VoiceMatchIndicatorView.swift in Sources */,
 				AA000037 /* ContactRowView.swift in Sources */,
 				AA000038 /* ProfileSetupView.swift in Sources */,
-                                AA000040 /* SettingsView.swift in Sources */,
+				AA000040 /* SettingsView.swift in Sources */,
 				BB000001 /* WebRTCService.swift in Sources */,
 				BB000002 /* VoIPCallService.swift in Sources */,
 				BB000003 /* VoIPActiveCallView.swift in Sources */,
 				BB000004 /* VoIPIncomingCallView.swift in Sources */,
 				CC000001 /* DeepfakeDetectionService.swift in Sources */,
-				CC000002 /* WavLMDeepfake.mlpackage in Sources */,
+				CC000104 /* RTPReceiver.swift in Sources */,
+				CC000106 /* OpusDecoder.swift in Sources */,
+				DD000013 /* ONNXRunner.mm in Sources */,
+				EE000001 /* UITestView.swift in Sources */,
+				58CE7C5A81703712C5BE85E5 /* HemggDeepfake.mlpackage in Sources */,
+				12AF4F17B16F937FF9FFC7E8 /* DeepfakeLabView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -390,15 +444,22 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
-				DEVELOPMENT_TEAM = 96294C9WZU;
 				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/Frameworks/Headers",
+					"$(PROJECT_DIR)/VeriCall/ORT",
+				);
 				INFOPLIST_FILE = VeriCall/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -408,6 +469,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.vericall.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "VeriCall/VeriCall-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -421,15 +483,22 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
-				DEVELOPMENT_TEAM = 96294C9WZU;
 				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/Frameworks/Headers",
+					"$(PROJECT_DIR)/VeriCall/ORT",
+				);
 				INFOPLIST_FILE = VeriCall/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -439,6 +508,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.vericall.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "VeriCall/VeriCall-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -479,6 +549,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 96294C9WZU;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -502,6 +573,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -542,6 +614,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 96294C9WZU;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -558,6 +631,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -586,6 +660,5 @@
 		};
 /* End XCConfigurationList section */
 	};
-
 	rootObject = AA000600 /* Project object */;
 }

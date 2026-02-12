@@ -17,114 +17,116 @@ struct ContactListView: View {
     }
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                List {
-                    // Connection status indicator
-                    HStack {
-                        ConnectionStatusView(status: viewModel.connectionStatus)
-                        Spacer()
-                    }
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
-                    .padding(.horizontal)
-                    .padding(.vertical, 4)
+        ZStack {
+            List {
+                // Connection status indicator
+                HStack {
+                    ConnectionStatusView(status: viewModel.connectionStatus)
+                    Spacer()
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
+                .padding(.horizontal)
+                .padding(.vertical, 4)
 
-                    if !viewModel.contactsPermissionGranted {
-                        Section {
-                            VStack(spacing: 12) {
-                                Image(systemName: "person.crop.circle.badge.questionmark")
-                                    .font(.system(size: 40))
-                                    .foregroundColor(.secondary)
-                                Text("VeriCall needs access to your contacts to identify VeriCall users you can verify calls with.")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-                                Button("Grant Access") {
-                                    viewModel.requestContactsPermission()
-                                }
-                                .buttonStyle(.borderedProminent)
+                if !viewModel.contactsPermissionGranted {
+                    Section {
+                        VStack(spacing: 12) {
+                            Image(systemName: "person.crop.circle.badge.questionmark")
+                                .font(.system(size: 40))
+                                .foregroundColor(.secondary)
+                            Text("VeriCall needs access to your contacts to identify VeriCall users you can verify calls with.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                            Button("Grant Access") {
+                                viewModel.requestContactsPermission()
                             }
-                            .padding(.vertical, 12)
-                            .frame(maxWidth: .infinity)
+                            .buttonStyle(.borderedProminent)
                         }
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity)
                     }
+                }
 
-                    if !filteredVerifiedContacts.isEmpty {
-                        Section(header: Text("VeriCall Users")) {
-                            ForEach(filteredVerifiedContacts) { contact in
-                                ContactRowView(contact: contact) {
-                                    initiateCall(to: contact)
+                if !filteredVerifiedContacts.isEmpty {
+                    Section(header: Text("VeriCall Users")) {
+                        ForEach(filteredVerifiedContacts) { contact in
+                            ContactRowView(contact: contact, onCall: {
+                                initiateCall(to: contact)
+                            }, onToggleFavorite: {
+                                viewModel.toggleFavorite(contact: contact)
+                            })
+                            .swipeActions(edge: .leading) {
+                                Button {
+                                    viewModel.toggleFavorite(contact: contact)
+                                } label: {
+                                    Label(contact.isFavorite ? "Unfavorite" : "Favorite", 
+                                          systemImage: contact.isFavorite ? "heart.slash" : "heart")
                                 }
-                                .swipeActions(edge: .leading) {
-                                    Button {
-                                        viewModel.toggleFavorite(contact: contact)
-                                    } label: {
-                                        Label(contact.isFavorite ? "Unfavorite" : "Favorite", 
-                                              systemImage: contact.isFavorite ? "heart.slash" : "heart")
-                                    }
-                                    .tint(contact.isFavorite ? .gray : .pink)
-                                }
-                            }
-                        }
-                    }
-
-                    if !filteredUnverifiedContacts.isEmpty {
-                        Section(header: Text("Other Contacts")) {
-                            ForEach(filteredUnverifiedContacts) { contact in
-                                ContactRowView(contact: contact) {
-                                    initiateCall(to: contact)
-                                }
-                                .swipeActions(edge: .leading) {
-                                    Button {
-                                        viewModel.toggleFavorite(contact: contact)
-                                    } label: {
-                                        Label(contact.isFavorite ? "Unfavorite" : "Favorite", 
-                                              systemImage: contact.isFavorite ? "heart.slash" : "heart")
-                                    }
-                                    .tint(contact.isFavorite ? .gray : .pink)
-                                }
+                                .tint(contact.isFavorite ? .gray : .pink)
                             }
                         }
                     }
                 }
-                .listStyle(InsetGroupedListStyle())
-                .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
-                .navigationTitle("Contacts")
-                .navigationBarTitleDisplayMode(.large)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: {
-                            viewModel.refreshContacts()
-                        }) {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                        .disabled(viewModel.isLoading)
-                    }
-                }
-                .refreshable {
-                    await viewModel.refreshContactsAsync()
-                }
-                .sheet(item: $selectedContact) { contact in
-                    ContactCallSheet(contact: contact, onCall: {
-                        selectedContact = nil
-                        makePhoneCall(to: contact)
-                    }, onVoIPCall: {
-                        selectedContact = nil
-                        makeVoIPCall(to: contact)
-                    })
-                }
 
-                if viewModel.isLoading {
-                    ProgressView()
-                        .scaleEffect(1.2)
+                if !filteredUnverifiedContacts.isEmpty {
+                    Section(header: Text("Other Contacts")) {
+                        ForEach(filteredUnverifiedContacts) { contact in
+                            ContactRowView(contact: contact, onCall: {
+                                initiateCall(to: contact)
+                            }, onToggleFavorite: {
+                                viewModel.toggleFavorite(contact: contact)
+                            })
+                            .swipeActions(edge: .leading) {
+                                Button {
+                                    viewModel.toggleFavorite(contact: contact)
+                                } label: {
+                                    Label(contact.isFavorite ? "Unfavorite" : "Favorite", 
+                                          systemImage: contact.isFavorite ? "heart.slash" : "heart")
+                                }
+                                .tint(contact.isFavorite ? .gray : .pink)
+                            }
+                        }
+                    }
                 }
             }
-            .alert("Error", isPresented: $viewModel.showError) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(viewModel.errorMessage)
+            .listStyle(InsetGroupedListStyle())
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
+            .navigationTitle("Contacts")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        viewModel.refreshContacts()
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .disabled(viewModel.isLoading)
+                }
             }
+            .refreshable {
+                await viewModel.refreshContactsAsync()
+            }
+            .sheet(item: $selectedContact) { contact in
+                ContactCallSheet(contact: contact, onCall: {
+                    selectedContact = nil
+                    makePhoneCall(to: contact)
+                }, onVoIPCall: {
+                    selectedContact = nil
+                    makeVoIPCall(to: contact)
+                })
+            }
+
+            if viewModel.isLoading {
+                ProgressView()
+                    .scaleEffect(1.2)
+            }
+        }
+        .alert("Error", isPresented: $viewModel.showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(viewModel.errorMessage)
         }
         .onAppear {
             viewModel.loadContacts()

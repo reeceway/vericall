@@ -3,6 +3,7 @@ import SwiftUI
 struct ContactRowView: View {
     let contact: Contact
     let onCall: () -> Void
+    var onToggleFavorite: () -> Void = {}
     
     var body: some View {
         HStack(spacing: 12) {
@@ -59,6 +60,12 @@ struct ContactRowView: View {
                             .foregroundColor(.green)
                             .font(.caption)
                     }
+                    
+                    if contact.isFavorite {
+                        Image(systemName: "heart.fill")
+                            .foregroundColor(.pink)
+                            .font(.caption)
+                    }
                 }
                 
                 if let phoneNumber = contact.phoneNumber {
@@ -80,6 +87,21 @@ struct ContactRowView: View {
             
             Spacer()
             
+            trailingButtons
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var trailingButtons: some View {
+        HStack(spacing: 16) {
+            // Heart toggle button
+            Button(action: onToggleFavorite) {
+                Image(systemName: contact.isFavorite ? "heart.fill" : "heart")
+                    .font(.system(size: 18))
+                    .foregroundColor(contact.isFavorite ? .pink : .gray.opacity(0.5))
+            }
+            .buttonStyle(PlainButtonStyle())
+
             // Call button
             Button(action: onCall) {
                 Image(systemName: "phone.fill")
@@ -93,7 +115,6 @@ struct ContactRowView: View {
             }
             .buttonStyle(PlainButtonStyle())
         }
-        .padding(.vertical, 4)
     }
     
     private func timeAgo(from date: Date) -> String {

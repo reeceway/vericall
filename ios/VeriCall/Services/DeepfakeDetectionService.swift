@@ -1,12 +1,12 @@
 import Foundation
 import AVFoundation
-import CoreML
 import Accelerate
+import CoreML
 
-/// Real-time deepfake detection during VoIP calls.
+/// Real-time deepfake detection during VoIP calls using Core ML WavLM model.
 ///
 /// Periodically samples the remote audio buffer (3 seconds) and runs the
-/// WavLMDeepfake CoreML model to classify the audio as "real" (human) or "fake" (AI).
+/// WavLMDeepfake model to classify the audio as "real" (human) or "fake" (AI).
 @MainActor
 final class DeepfakeDetectionService: ObservableObject {
 
@@ -16,10 +16,12 @@ final class DeepfakeDetectionService: ObservableObject {
 
     @Published private(set) var detectionResult: DeepfakeDetectionResult?
     @Published private(set) var isDetecting = false
+    @Published var useNormalization = true // Toggle for Lab (Default TRUE for Hemgg)
+    @Published var lastAudioStats: String = "Waiting..."
 
-    // MARK: - CoreML Model
+    // MARK: - Core ML Model
 
-    private var model: WavLMDeepfake?
+    private var model: HemggDeepfake?
 
     // MARK: - Audio Configuration
 
@@ -35,12 +37,10 @@ final class DeepfakeDetectionService: ObservableObject {
     private let detectionInterval: TimeInterval = 4.0
     private let initialDelay: TimeInterval = 4.0
 
-    // MARK: - Smoothing
+    // MARK: - Threshold
 
-    private var recentResults: [Bool] = [] // true = human
-    private let smoothingWindow = 1 // No smoothing - immediate detection
     /// Model must be at least this confident in "fake" before we flag it.
-    private let fakeConfidenceThreshold: Float = 0.30
+    private let fakeConfidenceThreshold: Float = 0.50
 
     // MARK: - Background Queue
 
@@ -56,18 +56,13 @@ final class DeepfakeDetectionService: ObservableObject {
     // MARK: - Init
 
     private init() {
-        // Load CoreML model
-        if #available(iOS 17.0, *) {
-            do {
-                let config = MLModelConfiguration()
-                config.computeUnits = .all 
-                model = try WavLMDeepfake(configuration: config)
-                print("[DeepfakeDetection] WavLM CoreML model loaded")
-            } catch {
-                print("[DeepfakeDetection] Failed to load model: \(error)")
-            }
-        } else {
-            print("[DeepfakeDetection] WavLM model requires iOS 17+")
+        do {
+            let config = MLModelConfiguration()
+            config.computeUnits = .all // Use Neural Engine if available
+            self.model = try HemggDeepfake(configuration: config)
+            print("[DeepfakeDetection] Core ML Hemgg model loaded successfully")
+        } catch {
+            print("[DeepfakeDetection] Failed to load Core ML model: \(error)")
         }
     }
 
@@ -76,15 +71,13 @@ final class DeepfakeDetectionService: ObservableObject {
     func startDetection() {
         guard !isDetecting else { return }
         guard model != nil else {
-            print("[DeepfakeDetection] No model available - cannot start")
+            print("[DeepfakeDetection] No Core ML model available - cannot start")
             return
         }
 
         isDetecting = true
         detectionResult = nil
-        recentResults.removeAll()
 
-        // Wait for audio to accumulate before first detection
         DispatchQueue.main.asyncAfter(deadline: .now() + initialDelay) { [weak self] in
             guard let self, self.isDetecting else { return }
             self.performDetectionCycle()
@@ -99,139 +92,160 @@ final class DeepfakeDetectionService: ObservableObject {
             }
         }
 
-        print("[DeepfakeDetection] Detection started (first run in \(initialDelay)s)")
+        print("[DeepfakeDetection] Core ML detection started (first run in \(initialDelay)s)")
     }
 
     func stopDetection() {
         detectionTimer?.invalidate()
         detectionTimer = nil
         isDetecting = false
-        recentResults.removeAll()
         print("[DeepfakeDetection] Detection stopped")
     }
 
     // MARK: - Detection Pipeline
 
-    /// Called from the main actor timer; captures state then dispatches to background.
+    // MARK: - Lab Mode Configuration
+    
+    enum InputSource {
+        case remote // Default: VoIP call audio
+        case local  // Lab Mode: Microphone input
+    }
+    
+    var inputSource: InputSource = .remote
+    var inputGain: Float = 1.0
+
+    // MARK: - Detection Pipeline
+
     private func performDetectionCycle() {
-        // Capture model reference on main actor
-        guard let capturedModel = self.model else { return }
+        guard let model = self.model else { return }
 
-        // Thread-safe copy of remote audio
-        let remoteAudio: [Float] = audioStream.remoteQueue.sync {
-            return audioStream.remoteBuffer
+        // Thread-safe copy of audio
+        let audioData: [Float]
+        if inputSource == .local {
+            audioData = audioStream.captureQueue.sync {
+                return audioStream.captureBuffer
+            }
+        } else {
+            audioData = audioStream.remoteQueue.sync {
+                return audioStream.remoteBuffer
+            }
         }
-
+        
         let requiredSamples = inputSampleCount // 48000
-        guard remoteAudio.count >= requiredSamples else {
-            print("[DeepfakeDetection] Waiting for audio (\(remoteAudio.count)/\(requiredSamples) samples)")
+        guard audioData.count >= requiredSamples else {
+            // Only log waiting if we are actually detecting
+            if isDetecting {
+                 print("[DeepfakeDetection] Waiting for audio (\(audioData.count)/\(requiredSamples) samples)")
+            }
             return
         }
 
-        // Use the most recent 3 seconds (48000 samples)
-        let chunk = Array(remoteAudio.suffix(requiredSamples))
+        // Use the most recent 3 seconds
+        var chunk = Array(audioData.suffix(requiredSamples))
+        
+        // Apply Lab Gain if needed
+        if inputGain != 1.0 {
+            var gain = inputGain
+            vDSP_vsmul(chunk, 1, &gain, &chunk, 1, vDSP_Length(chunk.count))
+        }
 
-        // Check audio energy (RMS) to avoid analyzing silence
+        // Audio diagnostics
         var rms: Float = 0
         vDSP_measqv(chunk, 1, &rms, vDSP_Length(chunk.count))
         rms = sqrt(rms)
+        var minVal: Float = 0, maxVal: Float = 0
+        vDSP_minv(chunk, 1, &minVal, vDSP_Length(chunk.count))
+        vDSP_maxv(chunk, 1, &maxVal, vDSP_Length(chunk.count))
         
-        // Threshold: 0.005 catches most silence but allows quiet speech
-        guard rms > 0.005 else {
-            print("[DeepfakeDetection] Audio too quiet (RMS: \(String(format: "%.5f", rms))) - skipping")
-            return
+        let stats = "RMS: \(String(format: "%.3f", rms)) | Pk: \(String(format: "%.2f", max(abs(minVal), abs(maxVal))))"
+        print("[DeepfakeDetection] \(stats)")
+        
+        Task { @MainActor in
+            self.lastAudioStats = stats
+        }
+        
+        // Normalize if enabled (DEFAULT TRUE for Hemgg)
+        // Check either the toggle OR if it's the default behavior we want
+        if useNormalization {
+            var normalizedChunk = chunk
+            var mean: Float = 0
+            var stdDev: Float = 0
+            vDSP_normalize(chunk, 1, &normalizedChunk, 1, &mean, &stdDev, vDSP_Length(chunk.count))
+            if stdDev > 0 {
+                chunk = normalizedChunk
+            }
         }
 
         // Run on background queue
-        // CoreML model is thread-safe for inference but not Sendable, so we capture it carefully
-        nonisolated(unsafe) let model = capturedModel
+        nonisolated(unsafe) let capturedModel = model
         detectionQueue.async { [weak self] in
             guard let self else { return }
-            self.runDetection(chunk: chunk, model: model)
+            self.runDetection(chunk: chunk, model: capturedModel)
         }
     }
 
     /// Pure background detection — no main-actor state accessed.
-    nonisolated private func runDetection(chunk: [Float], model: WavLMDeepfake) {
+    nonisolated private func runDetection(chunk: [Float], model: HemggDeepfake) {
         let t0 = CFAbsoluteTimeGetCurrent()
 
-        // 1. Create MLMultiArray input
-        // WavLM expects shape (1, 48000)
-        guard let input = try? MLMultiArray(shape: [1, NSNumber(value: chunk.count)], dataType: .float32) else {
-            print("[DeepfakeDetection] Failed to create MLMultiArray")
-            return
-        }
-
-        // Allow direct memory access for speed
-        input.withUnsafeMutableBufferPointer(ofType: Float.self) { ptr, _ in
-           let count = ptr.count
-           if let baseAddr = ptr.baseAddress {
-               // Copy chunk to input buffer
-               chunk.withUnsafeBufferPointer { srcPtr in
-                   if let srcAddr = srcPtr.baseAddress {
-                       memcpy(baseAddr, srcAddr, min(count, chunk.count) * MemoryLayout<Float>.stride)
-                   }
-               }
-           }
-        }
-
-        // 2. Run CoreML inference
         do {
-            let prediction = try model.prediction(audio: input)
+            // Prepare input: (1, 48000) float32 tensor
+            let multiArray = try MLMultiArray(shape: [1, 48000] as [NSNumber], dataType: .float32)
+            
+            // Efficiently copy float array to MLMultiArray
+            let count = chunk.count
+            chunk.withUnsafeBufferPointer { bufferPointer in
+                let ptr = multiArray.dataPointer.bindMemory(to: Float.self, capacity: count)
+                if let baseAddress = bufferPointer.baseAddress {
+                    ptr.update(from: baseAddress, count: count)
+                }
+            }
+
+            // Predict
+            let input = HemggDeepfakeInput(input_values: multiArray)
+            let output = try model.prediction(input: input)
+            
+            // Handle output: logits (1, 2)
+            let logitsArray = output.logits
+            let logitsCount = logitsArray.count // Should be 2
+            
+            guard logitsCount == 2 else {
+                print("[DeepfakeDetection] Unexpected logits shape: \(logitsArray.shape)")
+                return
+            }
+            
+            // Extract logits - Hemgg: Index 0 = Fake, Index 1 = Real
+            let logitFake = logitsArray[0].floatValue // Index 0 (AIVoice)
+            let logitReal = logitsArray[1].floatValue // Index 1 (HumanVoice)
+            
+            // Softmax
+            let maxLogit = max(logitFake, logitReal)
+            let expFake = exp(logitFake - maxLogit)
+            let expReal = exp(logitReal - maxLogit)
+            let sumExp = expFake + expReal
+            
+            let fakeProb = expFake / sumExp
+            let realProb = expReal / sumExp
+            
             let ms = (CFAbsoluteTimeGetCurrent() - t0) * 1000
-
-            // 3. Process Result
-            // Output has 'label' (String) and 'label_probs' (Dictionary<String, Double>)
-            // The values are likely LOGITS (unnormalized scores), not probabilities, 
-            // given that users saw values > 1.0 (e.g. 500%).
-            // We must apply Softmax to get valid probabilities (0.0 - 1.0).
-            let probs = prediction.label_probs
-            let fakeLogit = probs["fake"] ?? 0.0
-            let realLogit = probs["real"] ?? 0.0
             
-            // Softmax: e^x / sum(e^x)
-            let expFake = exp(fakeLogit)
-            let expReal = exp(realLogit)
-            let sum = expFake + expReal + 1e-6 // Avoid div/0
-            
-            let fakeProb = Float(expFake / sum)
-            let realProb = Float(expReal / sum)
-            
-            // Threshold: fakeProb >= 0.30 means AI-generated voice detected
-            // Very low threshold to catch borderline AI voices (aggressive detection)
-            let isHuman = fakeProb < 0.30
-            
-            // Confidence is the probability of the predicted class
+            let realThreshold: Float = 0.85
+            let isHuman = realProb > realThreshold
             let confidence = isHuman ? realProb : fakeProb
-
+            
             Task { @MainActor [weak self] in
-                self?.processResult(
+                self?.detectionResult = DeepfakeDetectionResult(
                     isHuman: isHuman,
                     confidence: confidence,
                     label: isHuman ? "real" : "fake",
+                    timestamp: Date(),
                     processingTimeMs: ms
                 )
             }
 
-            print("[DeepfakeDetection] logits(f/r)=\(String(format: "%.2f", fakeLogit))/\(String(format: "%.2f", realLogit)) probs(f/r)=\(String(format: "%.1f%%", fakeProb * 100))/\(String(format: "%.1f%%", realProb * 100)) → \(isHuman ? "HUMAN" : "FAKE")")
+            print("[DeepfakeDetection] \(String(format: "%.0f", ms))ms | logits=[\(String(format: "%.3f", logitFake)), \(String(format: "%.3f", logitReal))] fake=\(String(format: "%.4f%%", fakeProb * 100)) real=\(String(format: "%.4f%%", realProb * 100)) → \(isHuman ? "HUMAN" : "FAKE - AI DETECTED")")
         } catch {
-            print("[DeepfakeDetection] Inference error: \(error)")
+            print("[DeepfakeDetection] Core ML inference error: \(error)")
         }
-    }
-
-    private func processResult(
-        isHuman: Bool,
-        confidence: Float,
-        label: String,
-        processingTimeMs: Double
-    ) {
-        // Immediate detection - no smoothing
-        detectionResult = DeepfakeDetectionResult(
-            isHuman: isHuman,
-            confidence: confidence,
-            label: label,
-            timestamp: Date(),
-            processingTimeMs: processingTimeMs
-        )
     }
 }

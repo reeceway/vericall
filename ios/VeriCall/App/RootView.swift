@@ -35,27 +35,35 @@ struct MainTabView: View {
             }
 
             TabView {
-                HomeView()
-                    .tabItem {
-                        Image(systemName: "phone.fill")
-                        Text("Home")
-                    }
+                NavigationView {
+                    HomeView()
+                }
+                .ignoresSafeArea(edges: .top)
+                .tabItem {
+                    Image(systemName: "phone.fill")
+                    Text("Home")
+                }
 
-                ContactListView()
-                    .tabItem {
-                        Image(systemName: "person.2.fill")
-                        Text("Contacts")
-                    }
+                NavigationView {
+                    ContactListView()
+                }
+                .tabItem {
+                    Image(systemName: "person.2.fill")
+                    Text("Contacts")
+                }
 
-                SettingsView()
-                    .environmentObject(authService)
-                    .tabItem {
-                        Image(systemName: "gear")
-                        Text("Settings")
-                    }
+                NavigationView {
+                    SettingsView()
+                        .environmentObject(authService)
+                }
+                .tabItem {
+                    Image(systemName: "gear")
+                    Text("Settings")
+                }
             }
             .accentColor(.veriBlue)
         }
+        .ignoresSafeArea(.all, edges: .top) // Move this to the root of the tab view container
         .onAppear {
             // Ensure WebSocket is connected and NativeCallObserver is initialized
             _ = NativeCallObserver.shared

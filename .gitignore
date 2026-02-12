@@ -1,1 +1,4 @@
 ios/build/
+ios/VeriCall/Models/*.mlpackage/
+ios/Frameworks/onnxruntime.xcframework/
+ios/Frameworks/*.zip
