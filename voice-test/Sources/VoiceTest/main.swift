@@ -24,7 +24,7 @@ func loadAudioFile(_ path: String) -> [Float] {
         let srcChannels = audioFile.fileFormat.channelCount
         let frameCount = AVAudioFrameCount(audioFile.length)
 
-        print("  File: \(url.lastPathComponent) (\(srcRate)Hz, \(srcChannels)ch, \(frameCount) frames)")
+        // print("  File: \(url.lastPathComponent) (\(srcRate)Hz, \(srcChannels)ch, \(frameCount) frames)")
 
         // Read in the file's native processing format (Float32, deinterleaved)
         let processingFormat = audioFile.processingFormat
@@ -66,7 +66,7 @@ func resample(_ input: [Float], from srcRate: Double, to dstRate: Double) -> [Fl
         let frac = Float(srcIdx - Double(lo))
         output[i] = input[lo] * (1 - frac) + input[hi] * frac
     }
-    print("  Resampled \(input.count) @ \(Int(srcRate))Hz -> \(outCount) @ \(Int(dstRate))Hz")
+    // print("  Resampled \(input.count) @ \(Int(srcRate))Hz -> \(outCount) @ \(Int(dstRate))Hz")
     return output
 }
 
@@ -129,7 +129,7 @@ func analyzeAudio(_ samples: [Float], label: String) {
     vDSP_maxmgv(samples, 1, &maxAmp, vDSP_Length(samples.count))
 
     let duration = Double(samples.count) / 16000.0
-    print("  [\(label)] \(samples.count) samples (\(String(format: "%.1f", duration))s), RMS: \(String(format: "%.4f", rms)), peak: \(String(format: "%.4f", maxAmp))")
+    // print("  [\(label)] \(samples.count) samples (\(String(format: "%.1f", duration))s), RMS: \(String(format: "%.4f", rms)), peak: \(String(format: "%.4f", maxAmp))")
 }
 
 // MARK: - Commands
@@ -203,15 +203,10 @@ func cmdCompare(name1: String, name2: String) {
 
 /// Print per-feature-group cosine similarity to diagnose what's matching/mismatching
 func printFeatureBreakdown(_ a: [Float], _ b: [Float]) {
-    guard a.count == 192, b.count == 192 else { return }
+    guard a.count == 24, b.count == 24 else { return }
 
     let groups: [(String, Range<Int>)] = [
-        ("MFCC Covariance  [0-90] ", 0..<91),
-        ("Mean Delta      [91-103]", 91..<104),
-        ("Mean DeltaDelta[104-116]", 104..<117),
-        ("Formants       [117-137]", 117..<138),
-        ("Pitch-MFCC Corr[138-167]", 138..<168),
-        ("Pitch+Jitter   [168-191]", 168..<192),
+        ("Mean CMS (1-24)  [0-23]", 0..<24)
     ]
 
     print("\n  Feature Group Breakdown (unweighted cosine per group):")
@@ -323,6 +318,150 @@ func printResult(_ result: VoiceVerificationResult, againstName: String) {
     print("  └─────────────────────────────────────────┘\n")
 }
 
+// MARK: - Batch FSDD Test
+
+/// Concatenate audio from multiple short WAV files into one long sample
+func concatenateAudioFiles(_ paths: [String]) -> [Float] {
+    var combined: [Float] = []
+    for path in paths {
+        let samples = loadAudioFile(path)
+        if !samples.isEmpty {
+            combined.append(contentsOf: samples)
+        }
+    }
+    return combined
+}
+
+/// Run batch test on FSDD dataset
+func cmdBatch(datasetDir: String) {
+    print("\n╔═══════════════════════════════════════════════════════════╗")
+    print("║  BATCH SPEAKER VERIFICATION TEST (FSDD Dataset)        ║")
+    print("╚═══════════════════════════════════════════════════════════╝\n")
+
+    let speakers = ["george", "jackson", "lucas", "nicolas", "theo", "yweweler"]
+    let verifier = LocalVoiceVerifier()
+    let fm = FileManager.default
+    let dir = (datasetDir as NSString).expandingTildeInPath
+
+    guard fm.fileExists(atPath: dir) else {
+        print("  ERROR: Dataset directory not found: \(dir)")
+        return
+    }
+
+    // Build two groups per speaker: A (digits 0-4) and B (digits 5-9)
+    var signaturesA: [String: [Float]] = [:]
+    var signaturesB: [String: [Float]] = [:]
+
+    for speaker in speakers {
+        // Group A: digits 0-4, instances 0-9
+        var filesA: [String] = []
+        for digit in 0...4 {
+            for inst in 0...9 {
+                let path = "\(dir)/\(digit)_\(speaker)_\(inst).wav"
+                if fm.fileExists(atPath: path) { filesA.append(path) }
+            }
+        }
+
+        // Group B: digits 5-9, instances 0-9
+        var filesB: [String] = []
+        for digit in 5...9 {
+            for inst in 0...9 {
+                let path = "\(dir)/\(digit)_\(speaker)_\(inst).wav"
+                if fm.fileExists(atPath: path) { filesB.append(path) }
+            }
+        }
+
+        print("  Loading \(speaker): \(filesA.count) files (A) + \(filesB.count) files (B)")
+
+        let audioA = concatenateAudioFiles(filesA)
+        let audioB = concatenateAudioFiles(filesB)
+
+        let durA = Double(audioA.count) / 16000.0
+        let durB = Double(audioB.count) / 16000.0
+        print("    Group A: \(String(format: "%.1f", durA))s, Group B: \(String(format: "%.1f", durB))s")
+
+        if !audioA.isEmpty { signaturesA[speaker] = verifier.extractSignature(from: audioA) }
+        if !audioB.isEmpty { signaturesB[speaker] = verifier.extractSignature(from: audioB) }
+    }
+
+    // SAME-SPEAKER TEST: compare A vs B for each speaker
+    print("\n┌─────────────────────────────────────────────────────────────┐")
+    print("│  SAME-SPEAKER (A vs B) — Should be MATCH (>72%)           │")
+    print("├───────────────┬──────────┬──────────────────────────────────┤")
+    print("│ Speaker       │ Score    │ Result                           │")
+    print("├───────────────┼──────────┼──────────────────────────────────┤")
+
+    var sameScores: [Float] = []
+    for speaker in speakers {
+        guard let a = signaturesA[speaker], let b = signaturesB[speaker] else { continue }
+        let sim = verifier.calculateSimilarity(between: a, and: b)
+        sameScores.append(sim)
+        let isMatch = sim > VoiceVerificationThresholds.matchThreshold
+        let result = isMatch ? "✅ MATCH" : "❌ REJECT"
+        print("│ \(speaker.padding(toLength: 13, withPad: " ", startingAt: 0)) │ \(String(format: "%5.1f", sim * 100))%   │ \(result.padding(toLength: 32, withPad: " ", startingAt: 0)) │")
+        
+        if !isMatch {
+             print("└─────────────────────────────────────────────────────────────┘")
+             print("  >>> DIAGNOSTIC: False Reject (\(speaker)) <<<")
+             printFeatureBreakdown(a, b)
+             print("┌─────────────────────────────────────────────────────────────┐")
+        }
+    }
+    let avgSame = sameScores.reduce(0, +) / Float(sameScores.count)
+    let correctAccepts = sameScores.filter { $0 > VoiceVerificationThresholds.matchThreshold }.count
+    print("├───────────────┼──────────┼──────────────────────────────────┤")
+    print("│ AVERAGE       │ \(String(format: "%5.1f", avgSame * 100))%   │ \(correctAccepts)/\(sameScores.count) correct accepts                │")
+    print("└───────────────┴──────────┴──────────────────────────────────┘")
+
+    // CROSS-SPEAKER TEST: compare A of each speaker vs A of every other
+    print("\n┌─────────────────────────────────────────────────────────────┐")
+    print("│  CROSS-SPEAKER (A vs A) — Should be NO MATCH (<72%)       │")
+    print("├──────────────────────────┬──────────┬───────────────────────┤")
+    print("│ Pair                     │ Score    │ Result                │")
+    print("├──────────────────────────┼──────────┼───────────────────────┤")
+
+    var crossScores: [Float] = []
+    for i in 0..<speakers.count {
+        for j in (i+1)..<speakers.count {
+            guard let a = signaturesA[speakers[i]], let b = signaturesA[speakers[j]] else { continue }
+            let sim = verifier.calculateSimilarity(between: a, and: b)
+            crossScores.append(sim)
+            let isFalseAccept = sim > VoiceVerificationThresholds.matchThreshold
+            let result = isFalseAccept ? "❌ FALSE ACCEPT" : "✅ REJECT"
+            let pair = "\(speakers[i]) vs \(speakers[j])"
+            print("│ \(pair.padding(toLength: 24, withPad: " ", startingAt: 0)) │ \(String(format: "%5.1f", sim * 100))%   │ \(result.padding(toLength: 21, withPad: " ", startingAt: 0)) │")
+            
+            if isFalseAccept {
+                 print("└─────────────────────────────────────────────────────────────┘")
+                 print("  >>> DIAGNOSTIC: False Accept (\(pair)) <<<")
+                 printFeatureBreakdown(a, b)
+                 print("┌─────────────────────────────────────────────────────────────┐")
+            }
+        }
+    }
+    let avgCross = crossScores.reduce(0, +) / Float(crossScores.count)
+    let correctRejects = crossScores.filter { $0 <= VoiceVerificationThresholds.matchThreshold }.count
+    print("├──────────────────────────┼──────────┼───────────────────────┤")
+    print("│ AVERAGE                  │ \(String(format: "%5.1f", avgCross * 100))%   │ \(correctRejects)/\(crossScores.count) correct rejects    │")
+    print("└──────────────────────────┴──────────┴───────────────────────┘")
+
+    // SUMMARY
+    let gap = avgSame - avgCross
+    print("\n  ═══════════════════════════════════════")
+    print("  SUMMARY")
+    print("  ═══════════════════════════════════════")
+    print("  Same-speaker avg:  \(String(format: "%.1f", avgSame * 100))%")
+    print("  Cross-speaker avg: \(String(format: "%.1f", avgCross * 100))%")
+    print("  Gap:               \(String(format: "%.1f", gap * 100)) percentage points")
+    print("  Threshold:         \(String(format: "%.1f", VoiceVerificationThresholds.matchThreshold * 100))%")
+    print("  Correct accepts:   \(correctAccepts)/\(sameScores.count)")
+    print("  Correct rejects:   \(correctRejects)/\(crossScores.count)")
+    let totalTests = sameScores.count + crossScores.count
+    let totalCorrect = correctAccepts + correctRejects
+    print("  Overall accuracy:  \(totalCorrect)/\(totalTests) (\(String(format: "%.1f", Float(totalCorrect) / Float(totalTests) * 100))%)")
+    print("")
+}
+
 func printUsage() {
     print("""
 
@@ -334,6 +473,7 @@ func printUsage() {
       VoiceTest compare <name1> <name2>       Compare two saved enrollments
       VoiceTest test <audio_file> <name>      Test a file against an enrollment
       VoiceTest filevs <file1> <file2>        Compare two audio files directly
+      VoiceTest batch <dataset_dir>           Run batch test on FSDD dataset
       VoiceTest list                          List saved enrollments
 
     Audio files: WAV, M4A, CAF, MP3, AIFF (any format macOS can read)
@@ -345,6 +485,7 @@ func printUsage() {
       VoiceTest verify reece ~/Desktop/reece_test.m4a
       VoiceTest compare reece other
       VoiceTest filevs ~/Desktop/reece1.m4a ~/Desktop/reece2.m4a
+      VoiceTest batch dataset/recordings
 
     Workflow:
       1. Record voice memos on your iPhone (5-10 seconds of speech)
@@ -407,6 +548,10 @@ case "filevs":
         exit(1)
     }
     cmdFileVsFile(file1: args[2], file2: args[3])
+
+case "batch":
+    let dir = args.count >= 3 ? args[2] : "dataset/recordings"
+    cmdBatch(datasetDir: dir)
 
 case "list":
     cmdList()
