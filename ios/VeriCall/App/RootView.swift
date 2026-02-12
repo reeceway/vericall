@@ -35,16 +35,16 @@ struct MainTabView: View {
             }
 
             TabView {
-                NavigationView {
+                NavigationStack {
                     HomeView()
+                        .toolbar(.hidden, for: .navigationBar)
                 }
-                .ignoresSafeArea(edges: .top)
                 .tabItem {
                     Image(systemName: "phone.fill")
                     Text("Home")
                 }
 
-                NavigationView {
+                NavigationStack {
                     ContactListView()
                 }
                 .tabItem {
@@ -52,7 +52,7 @@ struct MainTabView: View {
                     Text("Contacts")
                 }
 
-                NavigationView {
+                NavigationStack {
                     SettingsView()
                         .environmentObject(authService)
                 }
@@ -63,7 +63,6 @@ struct MainTabView: View {
             }
             .accentColor(.veriBlue)
         }
-        .ignoresSafeArea(.all, edges: .top) // Move this to the root of the tab view container
         .onAppear {
             // Ensure WebSocket is connected and NativeCallObserver is initialized
             _ = NativeCallObserver.shared

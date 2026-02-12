@@ -118,23 +118,24 @@ struct HomeView: View {
         ZStack {
             Color(UIColor.systemGroupedBackground)
                 .ignoresSafeArea()
-            
+
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 0) {
                     ConnectionStatusBar(status: viewModel.connectionStatus)
                         .padding(.horizontal)
-                        .padding(.top, 8)
-                    
-                    VStack(alignment: .leading, spacing: 16) {
+                        .padding(.top, 4)
+
+                    VStack(alignment: .leading, spacing: 12) {
                         SectionHeader(title: "Favorites", icon: "star.fill", color: .yellow)
-                        
+                            .padding(.horizontal)
+
                         if viewModel.favorites.isEmpty {
                             EmptyFavoritesView(onAddTap: { showNewCallSheet = true })
                         } else {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 16) {
                                     AddFavoriteButton(action: { showNewCallSheet = true })
-                                    
+
                                     ForEach(viewModel.favorites) { contact in
                                         FavoriteCard(contact: contact) {
                                             selectedContact = contact
@@ -145,17 +146,18 @@ struct HomeView: View {
                             }
                         }
                     }
-                    .padding(.vertical, 16)
-                    
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
+
                     Divider()
                         .padding(.horizontal)
-                    
-                    VStack(alignment: .leading, spacing: 16) {
+
+                    VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             SectionHeader(title: "Recents", icon: "clock.arrow.circlepath", color: .veriBlue)
-                            
+
                             Spacer()
-                            
+
                             HStack(spacing: 4) {
                                 ForEach(CallFilter.allCases, id: \.rawValue) { filter in
                                     FilterPill(
@@ -167,7 +169,7 @@ struct HomeView: View {
                             }
                         }
                         .padding(.horizontal)
-                        
+
                         if filteredHistory.isEmpty {
                             EmptyHistoryView(filter: selectedFilter)
                                 .padding(.top, 40)
@@ -182,18 +184,18 @@ struct HomeView: View {
                                     .padding(.horizontal)
                                 }
                             }
-                            .padding(.top, 8)
                         }
                     }
-                    .padding(.vertical, 16)
-                    
+                    .padding(.top, 12)
+                    .padding(.bottom, 16)
+
                     Color.clear.frame(height: 100)
                 }
             }
             .refreshable {
                 viewModel.loadData()
             }
-            
+
             VStack {
                 Spacer()
                 HStack {
@@ -204,7 +206,6 @@ struct HomeView: View {
                 }
             }
         }
-        .navigationBarHidden(true)
         .sheet(item: $selectedContact) { contact in
             ContactCallSheet(
                 contact: contact,
