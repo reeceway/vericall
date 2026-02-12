@@ -136,6 +136,7 @@ struct Contact: Identifiable, Codable, Equatable, Hashable {
     let phoneNumber: String?
     let email: String?
     var isVerified: Bool
+    var isFavorite: Bool // Persisted locally via StorageService
     var avatarUrl: String?
     var lastContactedAt: Date?
     

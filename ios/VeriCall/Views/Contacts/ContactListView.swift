@@ -56,6 +56,15 @@ struct ContactListView: View {
                                 ContactRowView(contact: contact) {
                                     initiateCall(to: contact)
                                 }
+                                .swipeActions(edge: .leading) {
+                                    Button {
+                                        viewModel.toggleFavorite(contact: contact)
+                                    } label: {
+                                        Label(contact.isFavorite ? "Unfavorite" : "Favorite", 
+                                              systemImage: contact.isFavorite ? "heart.slash" : "heart")
+                                    }
+                                    .tint(contact.isFavorite ? .gray : .pink)
+                                }
                             }
                         }
                     }
@@ -65,6 +74,15 @@ struct ContactListView: View {
                             ForEach(filteredUnverifiedContacts) { contact in
                                 ContactRowView(contact: contact) {
                                     initiateCall(to: contact)
+                                }
+                                .swipeActions(edge: .leading) {
+                                    Button {
+                                        viewModel.toggleFavorite(contact: contact)
+                                    } label: {
+                                        Label(contact.isFavorite ? "Unfavorite" : "Favorite", 
+                                              systemImage: contact.isFavorite ? "heart.slash" : "heart")
+                                    }
+                                    .tint(contact.isFavorite ? .gray : .pink)
                                 }
                             }
                         }
@@ -213,13 +231,18 @@ class ContactListViewModel: ObservableObject {
 
                 // 2. Extract phone numbers and sync with backend
                 let phoneNumbers = deviceContacts.compactMap { $0.phoneNumber }
-                let veriCallPhoneNumbers = await syncWithBackend(phoneNumbers: phoneNumbers)
+                async let verifiedNumbersTask = syncWithBackend(phoneNumbers: phoneNumbers)
+                async let favoritesTask = StorageService.shared.getFavoriteIds()
+                
+                let (veriCallPhoneNumbers, favoriteIds) = await (verifiedNumbersTask, favoritesTask)
 
                 var updatedContacts = deviceContacts
                 for i in updatedContacts.indices {
                     if let phone = updatedContacts[i].phoneNumber {
                         updatedContacts[i].isVerified = veriCallPhoneNumbers.contains(normalizePhoneNumber(phone))
                     }
+                    // Sync favorites status
+                    updatedContacts[i].isFavorite = favoriteIds.contains(updatedContacts[i].id)
                 }
 
                 contacts = updatedContacts
@@ -265,6 +288,7 @@ class ContactListViewModel: ObservableObject {
                 phoneNumber: primaryPhone.value.stringValue,
                 email: email,
                 isVerified: false,
+                isFavorite: false,
                 avatarUrl: nil,
                 lastContactedAt: nil
             )
@@ -311,6 +335,17 @@ class ContactListViewModel: ObservableObject {
     func refreshContactsAsync() async {
         await MainActor.run {
             loadContacts()
+        }
+    }
+    
+    func toggleFavorite(contact: Contact) {
+        Task {
+            await StorageService.shared.toggleFavorite(contactId: contact.id)
+            await MainActor.run {
+                if let index = contacts.firstIndex(where: { $0.id == contact.id }) {
+                    contacts[index].isFavorite.toggle()
+                }
+            }
         }
     }
 }

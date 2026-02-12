@@ -111,27 +111,27 @@ struct ContactRowView_Previews: PreviewProvider {
                 contact: Contact(
                     id: "1",
                     name: "Alice Johnson",
-                    phoneNumber: "+1-555-0101",
+                    phoneNumber: "+1 (555) 123-4567",
                     email: "alice@example.com",
                     isVerified: true,
+                    isFavorite: false,
                     avatarUrl: nil,
-                    lastContactedAt: Date().addingTimeInterval(-86400)
-                ),
-                onCall: {}
-            )
+                    lastContactedAt: Date()
+                )
+            ) {}
             
             ContactRowView(
                 contact: Contact(
                     id: "2",
                     name: "Bob Smith",
-                    phoneNumber: "+1-555-0102",
+                    phoneNumber: "+1 (555) 987-6543",
                     email: "bob@example.com",
                     isVerified: false,
+                    isFavorite: true,
                     avatarUrl: nil,
-                    lastContactedAt: nil
-                ),
-                onCall: {}
-            )
+                    lastContactedAt: Date()
+                )
+            ) {}
         }
     }
 }

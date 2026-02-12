@@ -1,5 +1,6 @@
 import SwiftUI
 
+// Superseded by HomeView
 struct CallHistoryView: View {
     @StateObject private var viewModel = CallHistoryViewModel()
     @State private var selectedFilter: CallFilter = .all
@@ -458,6 +459,7 @@ class CallHistoryViewModel: ObservableObject {
                     phoneNumber: nil,
                     email: nil,
                     isVerified: entry.call.isVerified,
+                    isFavorite: false,
                     avatarUrl: nil,
                     lastContactedAt: nil
                 )

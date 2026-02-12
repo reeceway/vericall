@@ -14,6 +14,7 @@ class CallManager: ObservableObject {
     private let callKitManager = CallKitManager.shared
     private let callSignaling = CallSignaling.shared
     private let deepfakeDetection = DeepfakeDetectionService.shared
+    private let storageService = StorageService.shared
     private var cancellables = Set<AnyCancellable>()
     
     private init() {
@@ -322,6 +323,11 @@ class CallManager: ObservableObject {
             endedCall.state = .ended
             endedCall.endedAt = Date()
             self.currentCall = endedCall
+            
+            // Persist call history
+            Task {
+                await self.storageService.saveCall(endedCall)
+            }
         }
         
         // Delay to show ended state

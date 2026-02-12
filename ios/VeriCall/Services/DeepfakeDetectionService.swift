@@ -38,10 +38,9 @@ final class DeepfakeDetectionService: ObservableObject {
     // MARK: - Smoothing
 
     private var recentResults: [Bool] = [] // true = human
-    private let smoothingWindow = 5
+    private let smoothingWindow = 1 // No smoothing - immediate detection
     /// Model must be at least this confident in "fake" before we flag it.
-    /// WavLM is very accurate, so we use a high threshold to be safe.
-    private let fakeConfidenceThreshold: Float = 0.70
+    private let fakeConfidenceThreshold: Float = 0.30
 
     // MARK: - Background Queue
 
@@ -132,12 +131,14 @@ final class DeepfakeDetectionService: ObservableObject {
         // Use the most recent 3 seconds (48000 samples)
         let chunk = Array(remoteAudio.suffix(requiredSamples))
 
-        // Check audio energy (RMS) to avoid running on silence
+        // Check audio energy (RMS) to avoid analyzing silence
         var rms: Float = 0
         vDSP_measqv(chunk, 1, &rms, vDSP_Length(chunk.count))
         rms = sqrt(rms)
-        guard rms > 0.003 else {
-            print("[DeepfakeDetection] Audio too quiet (RMS: \(String(format: "%.4f", rms))) - skipping")
+        
+        // Threshold: 0.005 catches most silence but allows quiet speech
+        guard rms > 0.005 else {
+            print("[DeepfakeDetection] Audio too quiet (RMS: \(String(format: "%.5f", rms))) - skipping")
             return
         }
 
@@ -180,15 +181,28 @@ final class DeepfakeDetectionService: ObservableObject {
             let ms = (CFAbsoluteTimeGetCurrent() - t0) * 1000
 
             // 3. Process Result
-            // Output has 'label' (String) and 'label_probs' (Dictionary<String, Double>) (Found via strings inspection)
+            // Output has 'label' (String) and 'label_probs' (Dictionary<String, Double>)
+            // The values are likely LOGITS (unnormalized scores), not probabilities, 
+            // given that users saw values > 1.0 (e.g. 500%).
+            // We must apply Softmax to get valid probabilities (0.0 - 1.0).
             let probs = prediction.label_probs
-            let fakeProb = Float(probs["fake"] ?? 0.0)
-            let realProb = Float(probs["real"] ?? 0.0)
-            let predictedLabel = prediction.label
-
-            // Only classify as fake if model confidence exceeds threshold
-            let isHuman = fakeProb < fakeConfidenceThreshold
-            let confidence = isHuman ? max(realProb, 1.0 - fakeProb) : fakeProb
+            let fakeLogit = probs["fake"] ?? 0.0
+            let realLogit = probs["real"] ?? 0.0
+            
+            // Softmax: e^x / sum(e^x)
+            let expFake = exp(fakeLogit)
+            let expReal = exp(realLogit)
+            let sum = expFake + expReal + 1e-6 // Avoid div/0
+            
+            let fakeProb = Float(expFake / sum)
+            let realProb = Float(expReal / sum)
+            
+            // Threshold: fakeProb >= 0.30 means AI-generated voice detected
+            // Very low threshold to catch borderline AI voices (aggressive detection)
+            let isHuman = fakeProb < 0.30
+            
+            // Confidence is the probability of the predicted class
+            let confidence = isHuman ? realProb : fakeProb
 
             Task { @MainActor [weak self] in
                 self?.processResult(
@@ -199,7 +213,7 @@ final class DeepfakeDetectionService: ObservableObject {
                 )
             }
 
-            print("[DeepfakeDetection] raw=\(predictedLabel) fake=\(String(format: "%.1f%%", fakeProb * 100)) real=\(String(format: "%.1f%%", realProb * 100)) → \(isHuman ? "HUMAN" : "FAKE") (\(String(format: "%.0fms", ms)))")
+            print("[DeepfakeDetection] logits(f/r)=\(String(format: "%.2f", fakeLogit))/\(String(format: "%.2f", realLogit)) probs(f/r)=\(String(format: "%.1f%%", fakeProb * 100))/\(String(format: "%.1f%%", realProb * 100)) → \(isHuman ? "HUMAN" : "FAKE")")
         } catch {
             print("[DeepfakeDetection] Inference error: \(error)")
         }
@@ -211,19 +225,11 @@ final class DeepfakeDetectionService: ObservableObject {
         label: String,
         processingTimeMs: Double
     ) {
-        // Smoothing: majority vote over recent results
-        recentResults.append(isHuman)
-        if recentResults.count > smoothingWindow {
-            recentResults.removeFirst()
-        }
-
-        let humanCount = recentResults.filter { $0 }.count
-        let smoothedIsHuman = humanCount > recentResults.count / 2
-
+        // Immediate detection - no smoothing
         detectionResult = DeepfakeDetectionResult(
-            isHuman: smoothedIsHuman,
+            isHuman: isHuman,
             confidence: confidence,
-            label: smoothedIsHuman ? "real" : "fake",
+            label: label,
             timestamp: Date(),
             processingTimeMs: processingTimeMs
         )

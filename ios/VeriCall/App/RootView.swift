@@ -35,10 +35,10 @@ struct MainTabView: View {
             }
 
             TabView {
-                CallHistoryView()
+                HomeView()
                     .tabItem {
                         Image(systemName: "phone.fill")
-                        Text("Calls")
+                        Text("Home")
                     }
 
                 ContactListView()
