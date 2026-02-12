@@ -1,0 +1,37 @@
+{
+  "/Users/reeceway/vericall/ios/VeriCall/App/Constants.swift" : {
+    "const-values" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/Constants.swiftconstvalues",
+    "dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/Constants.d",
+    "diagnostics" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/Constants.dia",
+    "object" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/Constants.o",
+    "swift-dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/Constants.swiftdeps"
+  },
+  "/Users/reeceway/vericall/ios/VeriCall/App/RootView.swift" : {
+    "const-values" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/RootView.swiftconstvalues",
+    "dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/RootView.d",
+    "diagnostics" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/RootView.dia",
+    "object" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/RootView.o",
+    "swift-dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/RootView.swiftdeps"
+  },
+  "/Users/reeceway/vericall/ios/VeriCall/App/VeriCallApp.swift" : {
+    "const-values" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VeriCallApp.swiftconstvalues",
+    "dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VeriCallApp.d",
+    "diagnostics" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VeriCallApp.dia",
+    "object" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VeriCallApp.o",
+    "swift-dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VeriCallApp.swiftdeps"
+  },
+  "/Users/reeceway/vericall/ios/VeriCall/Models/CallModels.swift" : {
+    "const-values" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/CallModels.swiftconstvalues",
+    "dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/CallModels.d",
+    "diagnostics" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/CallModels.dia",
+    "object" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/CallModels.o",
+    "swift-dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/CallModels.swiftdeps"
+  },
+  "/Users/reeceway/vericall/ios/VeriCall/Models/User.swift" : {
+    "const-values" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/User.swiftconstvalues",
+    "dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/User.d",
+    "diagnostics" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/User.dia",
+    "object" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/User.o",
+    "swift-dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/User.swiftdeps"
+  }
+}

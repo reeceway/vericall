@@ -27,9 +27,9 @@ struct RootView: View {
             // Refresh the voice enrollment status when view appears
             hasCompletedVoiceEnrollment = UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.hasCompletedVoiceEnrollment)
         }
-        .onChange(of: authService.isAuthenticated) { isAuthenticated in
+        .onChange(of: authService.isAuthenticated) {
             // When user logs out, check if voice signature still exists
-            if !isAuthenticated {
+            if !authService.isAuthenticated {
                 let keychainService = VoiceKeychainService()
                 if !keychainService.signatureExists(for: "self") {
                     UserDefaults.standard.set(false, forKey: Constants.UserDefaultsKeys.hasCompletedVoiceEnrollment)
@@ -43,6 +43,9 @@ struct RootView: View {
 struct MainTabView: View {
     @EnvironmentObject var authService: AuthService
     @ObservedObject private var callObserver = NativeCallObserver.shared
+    @ObservedObject private var voipCallService = VoIPCallService.shared
+    @State private var showVoIPIncoming = false
+    @State private var showVoIPActive = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -80,6 +83,28 @@ struct MainTabView: View {
         .onAppear {
             // Ensure WebSocket is connected and NativeCallObserver is initialized
             _ = NativeCallObserver.shared
+        }
+        .fullScreenCover(isPresented: $showVoIPIncoming) {
+            VoIPIncomingCallView()
+        }
+        .fullScreenCover(isPresented: $showVoIPActive) {
+            VoIPActiveCallView()
+        }
+        .onChange(of: voipCallService.callState) {
+            switch voipCallService.callState {
+            case .ringing:
+                showVoIPIncoming = true
+                showVoIPActive = false
+            case .connecting, .connected, .calling:
+                showVoIPIncoming = false
+                showVoIPActive = true
+            case .ended, .failed:
+                // Keep active view visible briefly for "Call Ended" display
+                showVoIPIncoming = false
+            case .idle:
+                showVoIPIncoming = false
+                showVoIPActive = false
+            }
         }
     }
 }

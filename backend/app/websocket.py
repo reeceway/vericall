@@ -84,45 +84,40 @@ class WebSocketManager:
 
 async def get_user_by_phone(phone_number: str) -> Optional[User]:
     """Look up a user by their phone number."""
-    # Normalize phone number (remove spaces, dashes, etc.)
+    from sqlalchemy import func
+    # Normalize phone number (remove spaces, dashes, parens, etc.)
     normalized = ''.join(c for c in phone_number if c.isdigit() or c == '+')
     
     async with AsyncSessionLocal() as session:
-        # Try exact match first
+        # Use SQL regexp_replace to normalize stored numbers too
+        # Handles stored values like '(412) 862-8887'
+        db_normalized = func.regexp_replace(User.phone_number, '[^0-9+]', '', 'g')
+        
+        # Build list of candidate values to match
+        candidates = [normalized]
+        if normalized.startswith('+'):
+            candidates.append(normalized[1:])
+        if normalized.startswith('+61'):
+            candidates.append('0' + normalized[3:])
+        if normalized.startswith('0'):
+            candidates.append('+61' + normalized[1:])
+        if normalized.startswith('+1'):
+            candidates.append(normalized[2:])
+        if len(normalized) == 10 and normalized.isdigit():
+            candidates.append('+1' + normalized)
+        
         result = await session.execute(
-            select(User).where(User.phone_number == normalized)
+            select(User).where(db_normalized.in_(candidates))
         )
         user = result.scalar_one_or_none()
-        
-        if not user:
-            # Try without country code prefix variations
-            if normalized.startswith('+'):
-                # Try without the +
-                result = await session.execute(
-                    select(User).where(User.phone_number == normalized[1:])
-                )
-                user = result.scalar_one_or_none()
-            
-            if not user and normalized.startswith('+61'):
-                # Australian number - try with 0 prefix instead
-                result = await session.execute(
-                    select(User).where(User.phone_number == '0' + normalized[3:])
-                )
-                user = result.scalar_one_or_none()
-            
-            if not user and normalized.startswith('0'):
-                # Try with +61 prefix (Australian)
-                result = await session.execute(
-                    select(User).where(User.phone_number == '+61' + normalized[1:])
-                )
-                user = result.scalar_one_or_none()
         
         return user
 
 
 async def get_user_voip_token(user_id: UUID) -> Optional[str]:
-    """Get the VoIP push token for a user's device."""
+    """Get a push token for a user's device (VoIP or FCM/APNs)."""
     async with AsyncSessionLocal() as session:
+        # Try voip_token first
         result = await session.execute(
             select(Device).where(
                 Device.user_id == user_id,
@@ -130,7 +125,18 @@ async def get_user_voip_token(user_id: UUID) -> Optional[str]:
             )
         )
         device = result.scalar_one_or_none()
-        return device.voip_token if device else None
+        if device and device.voip_token:
+            return device.voip_token
+        
+        # Fall back to push_token (FCM/APNs token)
+        result = await session.execute(
+            select(Device).where(
+                Device.user_id == user_id,
+                Device.push_token.isnot(None)
+            )
+        )
+        device = result.scalar_one_or_none()
+        return device.push_token if device else None
 
 
 async def handle_websocket(websocket: WebSocket):
@@ -198,6 +204,8 @@ async def process_message(sender_id: UUID, message: dict, websocket: WebSocket):
         await handle_in_call(sender_id, message, websocket)
     elif msg_type == "native_call:call_ended":
         await handle_call_pool_ended(sender_id, websocket)
+    elif msg_type and msg_type.startswith("voip:"):
+        await handle_voip_signaling(sender_id, message, websocket)
     elif msg_type and msg_type.startswith("native_call:"):
         await handle_native_call(sender_id, message, websocket)
     else:
@@ -544,4 +552,108 @@ async def handle_call_end(sender_id: UUID, message: dict, websocket: WebSocket):
             "type": "call:ended",
             "call_id": call_id,
             "reason": reason
+        })
+
+
+async def handle_voip_signaling(sender_id: UUID, message: dict, websocket: WebSocket):
+    """
+    Handle VoIP call signaling and audio relay messages.
+    
+    Message types:
+    - voip:initiate  - Caller sends voiceThumbprint to callee
+    - voip:answer    - Callee sends voiceThumbprint back
+    - voip:audio     - Audio data relay (base64 PCM, high frequency)
+    - voip:reject    - Callee rejects the call
+    - voip:end       - Either party ends the call
+    """
+    msg_type = message.get("type")
+    to_user_id_str = message.get("toUserId")
+    to_phone = message.get("toPhone")
+    
+    # Fast path for audio relay — skip DB lookups, minimal overhead
+    if msg_type == "voip:audio" and to_user_id_str:
+        try:
+            recipient_id = UUID(to_user_id_str)
+        except (ValueError, TypeError):
+            return
+        if WebSocketManager.is_user_online(recipient_id):
+            forwarded = dict(message)
+            forwarded["fromUserId"] = str(sender_id)
+            forwarded.pop("toUserId", None)
+            forwarded.pop("toPhone", None)
+            await WebSocketManager.send_to_user(recipient_id, forwarded)
+        return
+    
+    print(f"[VoIP] Processing {msg_type} from {sender_id}")
+    
+    recipient_id = None
+    
+    # Resolve recipient by user ID first.
+    # IMPORTANT: iOS sends CNContact identifiers (local address-book UUIDs) as
+    # toUserId for outgoing calls.  Those parse as valid UUIDs but will never
+    # appear in active_connections, so we verify the user is actually online
+    # before accepting the UUID.  If not, we fall through to phone lookup.
+    if to_user_id_str:
+        try:
+            candidate_id = UUID(to_user_id_str)
+            if WebSocketManager.is_user_online(candidate_id):
+                recipient_id = candidate_id
+            else:
+                print(f"[VoIP] UUID {candidate_id} not in active connections, trying phone lookup")
+        except (ValueError, TypeError):
+            pass
+    
+    # Fall back to phone number lookup
+    if not recipient_id and to_phone:
+        recipient_user = await get_user_by_phone(to_phone)
+        if recipient_user:
+            recipient_id = recipient_user.id
+            print(f"[VoIP] Resolved phone {to_phone} -> user {recipient_id}")
+    
+    if not recipient_id:
+        await websocket.send_json({
+            "type": "voip:error",
+            "message": "Could not find recipient user"
+        })
+        return
+    
+    # Get sender info (only for signaling, not audio)
+    sender_name = None
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.id == sender_id)
+        )
+        sender_user = result.scalar_one_or_none()
+        if sender_user:
+            sender_name = sender_user.name
+    
+    # Build forwarded message
+    forwarded = dict(message)  # Copy all fields
+    forwarded["fromUserId"] = str(sender_id)
+    forwarded["callerName"] = sender_name or "Unknown"
+    
+    # Remove routing fields the recipient doesn't need
+    forwarded.pop("toUserId", None)
+    forwarded.pop("toPhone", None)
+    
+    if WebSocketManager.is_user_online(recipient_id):
+        sent = await WebSocketManager.send_to_user(recipient_id, forwarded)
+        if sent:
+            print(f"[VoIP] Forwarded {msg_type} to {recipient_id}")
+            await websocket.send_json({
+                "type": "voip:delivered",
+                "callId": message.get("callId"),
+                "toUserId": str(recipient_id)
+            })
+        else:
+            await websocket.send_json({
+                "type": "voip:error",
+                "message": "Failed to send to recipient"
+            })
+    else:
+        print(f"[VoIP] Recipient {recipient_id} is offline")
+        # TODO: Send push notification to wake app
+        await websocket.send_json({
+            "type": "voip:offline",
+            "message": "Recipient is offline"
         })

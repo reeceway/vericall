@@ -1,0 +1,301 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.VoiceTest-arm64-apple-macosx15.0-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.build/sources",
+      "importPath" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/reeceway/vericall/voice-test/Sources/VoiceTest/LocalVoiceVerifier.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/reeceway/vericall/voice-test/Sources/VoiceTest/VoiceModels.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/reeceway/vericall/voice-test/Sources/VoiceTest/main.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "VoiceTest",
+      "moduleOutputPath" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/Modules/VoiceTest.swiftmodule",
+      "objects" : [
+        "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.build/LocalVoiceVerifier.swift.o",
+        "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.build/VoiceModels.swift.o",
+        "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.build/main.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx13.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "VoiceTest_main",
+        "-swift-version",
+        "5",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "voice_test"
+      ],
+      "outputFileMapPath" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.build/LocalVoiceVerifier.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.build/VoiceModels.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.build/main.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/Modules/VoiceTest.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/reeceway/vericall/voice-test/Sources/VoiceTest/LocalVoiceVerifier.swift",
+        "/Users/reeceway/vericall/voice-test/Sources/VoiceTest/VoiceModels.swift",
+        "/Users/reeceway/vericall/voice-test/Sources/VoiceTest/main.swift"
+      ],
+      "tempsPath" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "VoiceTest" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "VoiceTest",
+      "-package-name",
+      "voice_test",
+      "-c",
+      "/Users/reeceway/vericall/voice-test/Sources/VoiceTest/LocalVoiceVerifier.swift",
+      "/Users/reeceway/vericall/voice-test/Sources/VoiceTest/VoiceModels.swift",
+      "/Users/reeceway/vericall/voice-test/Sources/VoiceTest/main.swift",
+      "-I",
+      "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx13.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "VoiceTest_main",
+      "-swift-version",
+      "5",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "voice_test",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "VoiceTest" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest-entitlement.plist" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<entitlement-plist>"
+        },
+        {
+          "kind" : "virtual",
+          "name" : "<com.apple.security.get-task-allow>"
+        }
+      ],
+      "outputFilePath" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest-entitlement.plist"
+    },
+    "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/reeceway/vericall/voice-test/Sources/VoiceTest/LocalVoiceVerifier.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/reeceway/vericall/voice-test/Sources/VoiceTest/VoiceModels.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/reeceway/vericall/voice-test/Sources/VoiceTest/main.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.build/sources"
+    },
+    "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.build/LocalVoiceVerifier.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.build/VoiceModels.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.build/main.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/VoiceTest.product/Objects.LinkFileList"
+    },
+    "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/reeceway/vericall/voice-test/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}

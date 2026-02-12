@@ -1,0 +1,30 @@
+{
+  "/Users/reeceway/vericall/ios/VeriCall/Services/VoIPCallService.swift" : {
+    "const-values" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VoIPCallService.swiftconstvalues",
+    "dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VoIPCallService.d",
+    "diagnostics" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VoIPCallService.dia",
+    "object" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VoIPCallService.o",
+    "swift-dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VoIPCallService.swiftdeps"
+  },
+  "/Users/reeceway/vericall/ios/VeriCall/Services/WebRTCService.swift" : {
+    "const-values" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/WebRTCService.swiftconstvalues",
+    "dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/WebRTCService.d",
+    "diagnostics" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/WebRTCService.dia",
+    "object" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/WebRTCService.o",
+    "swift-dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/WebRTCService.swiftdeps"
+  },
+  "/Users/reeceway/vericall/ios/VeriCall/Views/Calling/VoIPActiveCallView.swift" : {
+    "const-values" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VoIPActiveCallView.swiftconstvalues",
+    "dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VoIPActiveCallView.d",
+    "diagnostics" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VoIPActiveCallView.dia",
+    "object" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VoIPActiveCallView.o",
+    "swift-dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VoIPActiveCallView.swiftdeps"
+  },
+  "/Users/reeceway/vericall/ios/VeriCall/Views/Calling/VoIPIncomingCallView.swift" : {
+    "const-values" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VoIPIncomingCallView.swiftconstvalues",
+    "dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VoIPIncomingCallView.d",
+    "diagnostics" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VoIPIncomingCallView.dia",
+    "object" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VoIPIncomingCallView.o",
+    "swift-dependencies" : "/Users/reeceway/vericall/ios/build/Build/Intermediates.noindex/VeriCall.build/Debug-iphoneos/VeriCall.build/Objects-normal/arm64/VoIPIncomingCallView.swiftdeps"
+  }
+}

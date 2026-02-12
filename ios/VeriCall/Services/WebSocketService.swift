@@ -150,6 +150,15 @@ class WebSocketService: NSObject, ObservableObject {
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let messageType = json["type"] as? String {
             
+            // Route VoIP call signaling messages
+            if messageType.hasPrefix("voip:") {
+                print("[WebSocketService] VoIP message: \(messageType)")
+                Task { @MainActor in
+                    VoIPCallService.shared.handleSignalingMessage(json, type: messageType)
+                }
+                return
+            }
+            
             if messageType.hasPrefix("native_call:") {
                 print("[WebSocketService] Native call message: \(messageType)")
                 Task { @MainActor in
@@ -248,6 +257,19 @@ class WebSocketService: NSObject, ObservableObject {
                     print("[WebSocketService] ⚠️ Handshake response had no voiceprint")
                 }
             }
+            
+        case "native_call:matched":
+            // Matching pool found our call partner - handshakes will be sent separately
+            let matchedName = json["matched_name"] as? String ?? "Unknown"
+            print("[WebSocketService] Matching pool matched us with \(matchedName)")
+            
+        case "native_call:waiting":
+            // We're in the matching pool waiting for the other party
+            print("[WebSocketService] Added to matching pool - waiting for other VeriCall user...")
+            
+        case "native_call:call_ended":
+            // Other party ended the call
+            print("[WebSocketService] Other party ended the call")
             
         default:
             print("[WebSocketService] Unknown native call message type: \(type)")

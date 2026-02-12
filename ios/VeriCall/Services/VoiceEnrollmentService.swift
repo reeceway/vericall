@@ -188,9 +188,12 @@ public final class VoiceEnrollmentService: ObservableObject {
             self?.processAudioBuffer(buffer)
         }
         
-        // Configure audio session
+        // Configure audio session - MUST use .voiceChat mode to match the
+        // audio processing pipeline used during live calls. Previously used
+        // .default mode which produces different spectral characteristics,
+        // causing enrolled voice signatures to not match live verification.
         let audioSession = AVAudioSession.sharedInstance()
-        try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
+        try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker])
         try audioSession.setActive(true)
     }
     
@@ -227,6 +230,7 @@ public final class VoiceEnrollmentService: ObservableObject {
         }
     }
     
+    /// Simple FFT-based spectrum for visualization (32 frequency bins)
     private func calculateQuickSpectrum(_ samples: [Float]) -> [Float] {
         let fftSize = 256
         guard samples.count >= fftSize else { return [Float](repeating: 0, count: 32) }
@@ -294,20 +298,51 @@ public final class VoiceEnrollmentService: ObservableObject {
             self.state = .processing(phraseIndex: self.currentPhraseIndex)
         }
         
-        // Extract signature from recorded audio
-        guard audioBuffer.count >= Int(sampleRate * 2) else { // At least 2 seconds
+        // Require at least 2 seconds of audio
+        let minSamples = Int(sampleRate * 2)
+        guard audioBuffer.count >= minSamples else {
+            print("[Enrollment] FAILED: Only \(audioBuffer.count) samples, need \(minSamples) (2 seconds)")
             await MainActor.run {
                 self.state = .failed(EnrollmentError.insufficientAudio)
             }
             return
         }
         
-        // Trim to target duration if too long
+        // Check audio quality — reject if mostly silence
+        var rms: Float = 0
+        vDSP_measqv(audioBuffer, 1, &rms, vDSP_Length(audioBuffer.count))
+        rms = sqrt(rms)
+        print("[Enrollment] Audio collected: \(audioBuffer.count) samples, RMS=\(rms)")
+        // Lowered threshold from 0.01 to 0.005 — voiceChat mode is quieter
+        guard rms > 0.005 else {
+            print("[Enrollment] FAILED: Audio too quiet (RMS=\(rms) < 0.005) — please speak louder")
+            await MainActor.run {
+                self.state = .failed(EnrollmentError.insufficientAudio)
+            }
+            return
+        }
+        
+        // Trim to target duration
         let targetSamples = Int(phraseDuration * sampleRate)
         let audioToProcess = Array(audioBuffer.prefix(targetSamples))
         
         // Extract signature
         let signature = verifier.extractSignature(from: audioToProcess)
+        
+        // Consistency check: compare with previous phrases
+        if !phraseSignatures.isEmpty {
+            let similarities = phraseSignatures.map { prev in
+                verifier.calculateSimilarity(between: prev, and: signature)
+            }
+            let avgSim = similarities.reduce(0, +) / Float(similarities.count)
+            print("[Enrollment] Phrase \(currentPhraseIndex + 1) consistency: \(Int(avgSim * 100))% vs previous phrases")
+            
+            // Warn if consistency is very low (but don't block — different phrases will naturally vary)
+            if avgSim < 0.3 {
+                print("[Enrollment] ⚠️ Low consistency — user may have changed voice or too much noise")
+            }
+        }
+        
         phraseSignatures.append(signature)
         
         await MainActor.run {
@@ -361,18 +396,21 @@ public final class VoiceEnrollmentService: ObservableObject {
         audioEngine.inputNode.removeTap(onBus: 0)
     }
     
+    /// L2 normalize - MUST match LocalVoiceVerifier.l2Normalize() exactly.
+    /// Previous version used vDSP_measqv (mean of squares) instead of
+    /// vDSP_svesq (sum of squares), producing a different magnitude and
+    /// therefore a differently-scaled vector. This caused enrolled signatures
+    /// to live in a different vector space than verification signatures,
+    /// making similarity scores meaningless.
     private func normalizeVector(_ vector: [Float]) -> [Float] {
-        var sumSquares: Float = 0
-        vDSP_measqv(vector, 1, &sumSquares, vDSP_Length(vector.count))
-        
-        let magnitude = sqrt(sumSquares * Float(vector.count))
-        guard magnitude > 1e-10 else { return vector }
-        
-        var normalized = [Float](repeating: 0, count: vector.count)
-        var scale = 1.0 / magnitude
-        vDSP_vsmul(vector, 1, &scale, &normalized, 1, vDSP_Length(vector.count))
-        
-        return normalized
+        var sumSq: Float = 0
+        vDSP_svesq(vector, 1, &sumSq, vDSP_Length(vector.count))
+        let mag = sqrt(sumSq)
+        guard mag > 1e-10 else { return vector }
+        var out = [Float](repeating: 0, count: vector.count)
+        var s: Float = 1.0 / mag
+        vDSP_vsmul(vector, 1, &s, &out, 1, vDSP_Length(vector.count))
+        return out
     }
     
     private func getOwnVoiceSignatureFromKeychain() throws -> [Float]? {

@@ -52,6 +52,10 @@
 		AA000038 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000139 /* ProfileSetupView.swift */; };
 		AA000039 /* VoiceEnrollmentCompleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000140 /* VoiceEnrollmentCompleteView.swift */; };
 		AA000040 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000141 /* SettingsView.swift */; };
+		BB000001 /* WebRTCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000101 /* WebRTCService.swift */; };
+		BB000002 /* VoIPCallService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000102 /* VoIPCallService.swift */; };
+		BB000003 /* VoIPActiveCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000103 /* VoIPActiveCallView.swift */; };
+		BB000004 /* VoIPIncomingCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000104 /* VoIPIncomingCallView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -102,6 +106,10 @@
 		AA000139 /* ProfileSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSetupView.swift; sourceTree = "<group>"; };
 		AA000140 /* VoiceEnrollmentCompleteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceEnrollmentCompleteView.swift; sourceTree = "<group>"; };
 		AA000141 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		BB000101 /* WebRTCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCService.swift; sourceTree = "<group>"; };
+		BB000102 /* VoIPCallService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoIPCallService.swift; sourceTree = "<group>"; };
+		BB000103 /* VoIPActiveCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoIPActiveCallView.swift; sourceTree = "<group>"; };
+		BB000104 /* VoIPIncomingCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoIPIncomingCallView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -179,6 +187,8 @@
 				AA000129 /* VoiceEnrollmentService.swift */,
 				AA000130 /* VoiceVerificationService.swift */,
 				AA000131 /* LocalVoiceVerifier.swift */,
+				BB000101 /* WebRTCService.swift */,
+				BB000102 /* VoIPCallService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -225,6 +235,8 @@
 				AA000121 /* IncomingCallView.swift */,
 				AA000122 /* ActiveCallView.swift */,
 				AA000123 /* CallHistoryView.swift */,
+				BB000103 /* VoIPActiveCallView.swift */,
+				BB000104 /* VoIPIncomingCallView.swift */,
 			);
 			path = Calling;
 			sourceTree = "<group>";
@@ -376,6 +388,10 @@
 				AA000038 /* ProfileSetupView.swift in Sources */,
 				AA000039 /* VoiceEnrollmentCompleteView.swift in Sources */,
                                 AA000040 /* SettingsView.swift in Sources */,
+				BB000001 /* WebRTCService.swift in Sources */,
+				BB000002 /* VoIPCallService.swift in Sources */,
+				BB000003 /* VoIPActiveCallView.swift in Sources */,
+				BB000004 /* VoIPIncomingCallView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -586,5 +602,6 @@
 		};
 /* End XCConfigurationList section */
 	};
+
 	rootObject = AA000600 /* Project object */;
 }

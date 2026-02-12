@@ -88,10 +88,13 @@ struct ContactListView: View {
                     await viewModel.refreshContactsAsync()
                 }
                 .sheet(item: $selectedContact) { contact in
-                    ContactCallSheet(contact: contact) {
+                    ContactCallSheet(contact: contact, onCall: {
                         selectedContact = nil
                         makePhoneCall(to: contact)
-                    }
+                    }, onVoIPCall: {
+                        selectedContact = nil
+                        makeVoIPCall(to: contact)
+                    })
                 }
 
                 if viewModel.isLoading {
@@ -122,21 +125,29 @@ struct ContactListView: View {
         selectedContact = contact
     }
 
+    private func makeVoIPCall(to contact: Contact) {
+        Task {
+            await VoIPCallService.shared.initiateCall(to: contact)
+        }
+    }
+
     private func makePhoneCall(to contact: Contact) {
         guard let phoneNumber = contact.phoneNumber else { return }
 
-        // Tell NativeCallObserver what number we're calling
-        // so it can send the handshake when CXCallObserver detects the outgoing call
-        NativeCallObserver.shared.userInitiatedCall(to: phoneNumber)
-
-        // Open the Phone app to make the call
         let cleaned = phoneNumber.replacingOccurrences(of: " ", with: "")
             .replacingOccurrences(of: "-", with: "")
             .replacingOccurrences(of: "(", with: "")
             .replacingOccurrences(of: ")", with: "")
 
-        if let url = URL(string: "tel://\(cleaned)") {
-            UIApplication.shared.open(url)
+        Task {
+            // Send the handshake BEFORE opening the Phone app.
+            // Once we open tel: URL, VeriCall goes to background and WebSocket drops.
+            await NativeCallObserver.shared.sendHandshakeBeforeCall(to: cleaned)
+
+            // Now open the Phone app
+            if let url = URL(string: "tel://\(cleaned)") {
+                await UIApplication.shared.open(url)
+            }
         }
     }
 }
@@ -338,6 +349,7 @@ struct ConnectionStatusView: View {
 struct ContactCallSheet: View {
     let contact: Contact
     let onCall: () -> Void
+    var onVoIPCall: () -> Void = {}
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -395,7 +407,33 @@ struct ContactCallSheet: View {
 
                 Spacer()
 
-                // Call button
+                // VoIP call button (primary — works with voice verification)
+                Button(action: {
+                    dismiss()
+                    onVoIPCall()
+                }) {
+                    VStack(spacing: 8) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.veriBlue)
+                                .frame(width: 72, height: 72)
+                            Image(systemName: "phone.connection.fill")
+                                .font(.title)
+                                .foregroundColor(.white)
+                        }
+                        Text("VeriCall")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                        if contact.isVerified {
+                            Text("Voice Verified")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                        }
+                    }
+                }
+                
+                // Regular phone call button (fallback)
                 Button(action: {
                     dismiss()
                     onCall()
@@ -404,14 +442,14 @@ struct ContactCallSheet: View {
                         ZStack {
                             Circle()
                                 .fill(Color.green)
-                                .frame(width: 72, height: 72)
+                                .frame(width: 56, height: 56)
                             Image(systemName: "phone.fill")
-                                .font(.title)
+                                .font(.title2)
                                 .foregroundColor(.white)
                         }
-                        Text("Call via Phone")
+                        Text("Phone")
                             .font(.caption)
-                            .foregroundColor(.primary)
+                            .foregroundColor(.secondary)
                     }
                 }
 

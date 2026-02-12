@@ -2,10 +2,10 @@ import Foundation
 import Accelerate
 
 // MARK: - Voice Signature Model
-/// Represents a 192-dimensional spectral voice fingerprint
+/// Represents a 192-dimensional MFCC-based voice fingerprint
 /// Stored securely in Keychain, never leaves the device
 public struct VoiceSignature: Codable, Equatable {
-    /// 192-dimensional spectral fingerprint vector
+    /// 192-dimensional MFCC-based fingerprint vector
     public let vector: [Float]
     
     /// Timestamp when signature was created
@@ -36,7 +36,7 @@ public struct VoiceSignature: Codable, Equatable {
 
 // MARK: - Voice Verification Result
 public struct VoiceVerificationResult: Equatable {
-    /// Cosine similarity score (0.0 to 1.0)
+    /// Weighted cosine similarity score (0.0 to 1.0)
     public let similarity: Float
     
     /// Whether the voice matches based on threshold
@@ -96,17 +96,22 @@ public struct VoiceVerificationResult: Equatable {
 
 // MARK: - Verification Thresholds
 public struct VoiceVerificationThresholds {
-    /// Threshold for considering a match (>75% = green)
-    public static let highConfidence: Float = 0.75
+    /// Threshold for high-confidence match (green badge)
+    /// Per-group scoring: same-speaker scores typically 0.85+
+    public static let highConfidence: Float = 0.85
     
-    /// Threshold for medium confidence (55-75% = yellow)
-    public static let mediumConfidence: Float = 0.55
+    /// Threshold for medium confidence (yellow badge)
+    /// 0.72-0.85 is plausible same speaker under noisy/degraded conditions
+    /// Voice clones score ~0.70 — will show as orange warning
+    public static let mediumConfidence: Float = 0.72
     
     /// Minimum threshold for any match consideration
-    public static let matchThreshold: Float = 0.55
+    /// Per-group scoring: clones score ~0.698, different speakers ~0.545
+    public static let matchThreshold: Float = 0.72
     
     /// Threshold for enrollment quality check
-    public static let enrollmentQualityThreshold: Float = 0.70
+    /// Per-group scoring between different phrases of same speaker may be lower
+    public static let enrollmentQualityThreshold: Float = 0.55
 }
 
 // MARK: - Audio Configuration
@@ -124,7 +129,7 @@ public struct AudioConfiguration {
     public static let enrollmentPhraseDuration: TimeInterval = 5.0
     
     /// Duration for verification chunks (seconds)
-    public static let verificationChunkDuration: TimeInterval = 3.0
+    public static let verificationChunkDuration: TimeInterval = 5.0
     
     /// Buffer size for real-time processing
     public static let bufferSize: UInt32 = 1024

@@ -1,9 +1,9 @@
 from dotenv import load_dotenv
 load_dotenv()
-from fastapi import FastAPI, Depends, HTTPException, WebSocket, status
+from fastapi import FastAPI, Depends, HTTPException, WebSocket, Header, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sqlalchemy import select, or_, and_
+from sqlalchemy import select, or_, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional, Dict
 from datetime import datetime, timedelta
@@ -170,15 +170,18 @@ async def verify_otp_endpoint(
             detail="Invalid or expired OTP"
         )
     
-    # Get or create user
+    # Get or create user – normalize the phone number
+    clean_phone = normalize_phone(request.phone_number)
+    from sqlalchemy import func as sa_func
+    db_normalized = sa_func.regexp_replace(User.phone_number, '[^0-9+]', '', 'g')
     result = await db.execute(
-        select(User).where(User.phone_number == request.phone_number)
+        select(User).where(or_(User.phone_number == clean_phone, db_normalized == clean_phone))
     )
     user = result.scalar_one_or_none()
     
     if not user:
         user = User(
-            phone_number=request.phone_number,
+            phone_number=clean_phone,
             name=None
         )
         db.add(user)
@@ -294,41 +297,46 @@ class UpdateProfileRequest(BaseModel):
     display_name: str
 
 
+def normalize_phone(raw: str) -> str:
+    """Strip all formatting from a phone number, keep only digits and +."""
+    return ''.join(c for c in raw if c.isdigit() or c == '+')
+
+
 @app.post("/users/lookup", response_model=UserLookupResponse)
 async def lookup_user(
     request: UserLookupRequest,
     db: AsyncSession = Depends(get_db)
 ):
     """Look up a VeriCall user by phone number."""
-    # Normalize phone number
-    normalized = ''.join(c for c in request.phone_number if c.isdigit() or c == '+')
-
-    # Try exact match first
+    normalized = normalize_phone(request.phone_number)
+    logger.info(f"[Lookup] Looking up phone: '{request.phone_number}' → normalized: '{normalized}'")
+    
+    # Use SQL regexp_replace to strip formatting from stored numbers too
+    # This handles stored values like '(412) 862-8887' matching input '4128628887'
+    from sqlalchemy import text
+    db_normalized = func.regexp_replace(User.phone_number, '[^0-9+]', '', 'g')
+    
+    # Build list of values to try
+    candidates = [normalized]
+    if normalized.startswith('+'):
+        candidates.append(normalized[1:])  # without +
+    if normalized.startswith('+61'):
+        candidates.append('0' + normalized[3:])  # +61 → 0
+    if normalized.startswith('0'):
+        candidates.append('+61' + normalized[1:])  # 0 → +61
+    # Also try without leading +1 for US numbers
+    if normalized.startswith('+1'):
+        candidates.append(normalized[2:])  # +14128628887 → 4128628887
+    if len(normalized) == 10 and normalized.isdigit():
+        candidates.append('+1' + normalized)  # 4128628887 → +14128628887
+    
     result = await db.execute(
-        select(User).where(User.phone_number == normalized)
+        select(User).where(db_normalized.in_(candidates))
     )
     user = result.scalar_one_or_none()
 
-    # Try variations if not found
-    if not user and normalized.startswith('+'):
-        result = await db.execute(
-            select(User).where(User.phone_number == normalized[1:])
-        )
-        user = result.scalar_one_or_none()
-
-    if not user and normalized.startswith('+61'):
-        result = await db.execute(
-            select(User).where(User.phone_number == '0' + normalized[3:])
-        )
-        user = result.scalar_one_or_none()
-
-    if not user and normalized.startswith('0'):
-        result = await db.execute(
-            select(User).where(User.phone_number == '+61' + normalized[1:])
-        )
-        user = result.scalar_one_or_none()
-
     if user:
+        logger.info(f"[Lookup] ✅ FOUND user {user.id} with phone '{user.phone_number}' name='{user.name}'")
         return UserLookupResponse(
             user=UserResponse(
                 id=user.id,
@@ -339,6 +347,7 @@ async def lookup_user(
             found=True
         )
 
+    logger.info(f"[Lookup] ❌ NOT FOUND for phone '{normalized}' (tried {candidates})")
     return UserLookupResponse(user=None, found=False)
 
 
@@ -580,44 +589,65 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.post("/devices/push-token")
 async def register_push_token(
     request: RegisterPushTokenRequest,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    authorization: Optional[str] = Header(None)
 ):
     """
     Register a push token for the current device.
     Requires Authorization header with Bearer token.
     """
-    # For now, we'll extract device from query or update all devices
-    # In production, get device_id from JWT
+    from app.auth import decode_access_token
     
-    # Update all devices with this token (simplified)
-    # Find devices that don't have this token set
-    if request.token_type == "voip":
-        # Update devices that match this voip token or don't have one
+    user_id = None
+    device_id = None
+    
+    # Extract user_id and device_id from JWT
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
+        try:
+            payload = decode_access_token(token)
+            user_id = UUID(payload.get("sub")) if payload.get("sub") else None
+            device_id = UUID(payload.get("device_id")) if payload.get("device_id") else None
+        except Exception as e:
+            logger.warning(f"Failed to decode token for push registration: {e}")
+    
+    if user_id and device_id:
+        # Find the exact device for this user
         result = await db.execute(
             select(Device).where(
-                or_(
-                    Device.voip_token == request.push_token,
-                    Device.voip_token.is_(None)
-                )
-            ).limit(1)
+                Device.user_id == user_id,
+                Device.id == device_id
+            )
         )
         device = result.scalar_one_or_none()
-        if device:
-            device.voip_token = request.push_token
-            logger.info(f"Registered VoIP token for device {device.id}")
+    elif user_id:
+        # Find any device for this user
+        result = await db.execute(
+            select(Device).where(Device.user_id == user_id).limit(1)
+        )
+        device = result.scalar_one_or_none()
     else:
+        # Fallback: find device by existing token
         result = await db.execute(
             select(Device).where(
                 or_(
                     Device.push_token == request.push_token,
-                    Device.push_token.is_(None)
+                    Device.voip_token == request.push_token
                 )
             ).limit(1)
         )
         device = result.scalar_one_or_none()
-        if device:
+    
+    if device:
+        if request.token_type == "voip":
+            device.voip_token = request.push_token
+            logger.info(f"Registered VoIP token for device {device.id} (user {device.user_id})")
+        else:
             device.push_token = request.push_token
-            logger.info(f"Registered APNs token for device {device.id}")
+            logger.info(f"Registered push token for device {device.id} (user {device.user_id})")
+        await db.commit()
+    else:
+        logger.warning(f"No device found for push token registration (user_id={user_id}, device_id={device_id})")
     
     return {"status": "registered", "token_type": request.token_type}
 

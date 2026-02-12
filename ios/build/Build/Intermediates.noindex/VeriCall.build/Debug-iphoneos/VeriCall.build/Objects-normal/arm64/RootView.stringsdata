@@ -1,0 +1,40 @@
+{
+  "source": "/Users/reeceway/vericall/ios/VeriCall/App/RootView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Calls",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 65
+        }
+      },
+      {
+        "comment": "",
+        "key": "Contacts",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 71
+        }
+      },
+      {
+        "comment": "",
+        "key": "Settings",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 78
+        }
+      },
+      {
+        "comment": "",
+        "key": "Voice match: %lld%%",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 136
+        }
+      }
+    ]
+  },
+  "version": 1
+}

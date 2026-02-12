@@ -35,8 +35,10 @@ struct User: Codable, Identifiable {
         }
         self.phoneNumber = try container.decode(String.self, forKey: .phoneNumber)
         self.displayName = try container.decodeIfPresent(String.self, forKey: .displayName)
-        self.createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt)
-        self.updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt)
+        // Handle dates that may or may not have timezone suffix
+        // Backend sends "2026-01-15T10:30:00.123456" (no Z) which fails with .iso8601
+        self.createdAt = (try? container.decodeIfPresent(Date.self, forKey: .createdAt)) ?? nil
+        self.updatedAt = (try? container.decodeIfPresent(Date.self, forKey: .updatedAt)) ?? nil
     }
 }
 

@@ -1,0 +1,48 @@
+{
+  "source": "/Users/reeceway/vericall/ios/VeriCall/Views/Calling/IncomingCallView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Incoming Call",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 31
+        }
+      },
+      {
+        "comment": "",
+        "key": "✓ Device Verified",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 41
+        }
+      },
+      {
+        "comment": "",
+        "key": "Unverified Caller",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 60
+        }
+      },
+      {
+        "comment": "",
+        "key": "Decline",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 129
+        }
+      },
+      {
+        "comment": "",
+        "key": "Accept",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 150
+        }
+      }
+    ]
+  },
+  "version": 1
+}

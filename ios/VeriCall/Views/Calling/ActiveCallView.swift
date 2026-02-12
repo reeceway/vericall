@@ -213,11 +213,9 @@ struct ActiveCallView: View {
     }
     
     private func voiceMatchColor(_ percentage: Double) -> Color {
-        if percentage >= 90 {
+        if percentage >= 85 {
             return .green
-        } else if percentage >= 70 {
-            return .yellow
-        } else if percentage >= 50 {
+        } else if percentage >= 72 {
             return .orange
         } else {
             return .red

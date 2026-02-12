@@ -1,0 +1,88 @@
+{
+  "source": "/Users/reeceway/vericall/ios/VeriCall/Views/Settings/SettingsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Settings",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 96
+        }
+      },
+      {
+        "comment": "",
+        "key": "Voice Verification",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 37
+        }
+      },
+      {
+        "comment": "",
+        "key": "About",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 72
+        }
+      },
+      {
+        "comment": "",
+        "key": "Re-record Voice Thumbprint",
+        "location": {
+          "startingColumn": 58,
+          "startingLine": 50
+        }
+      },
+      {
+        "comment": "",
+        "key": "Record Voice Thumbprint",
+        "location": {
+          "startingColumn": 89,
+          "startingLine": 50
+        }
+      },
+      {
+        "comment": "",
+        "key": "Your voice signature is enrolled",
+        "location": {
+          "startingColumn": 58,
+          "startingLine": 52
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set up voice verification for calls",
+        "location": {
+          "startingColumn": 95,
+          "startingLine": 52
+        }
+      },
+      {
+        "comment": "",
+        "key": "Version",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 74
+        }
+      },
+      {
+        "comment": "",
+        "key": "1.0.0",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 76
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sign Out",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 88
+        }
+      }
+    ]
+  },
+  "version": 1
+}

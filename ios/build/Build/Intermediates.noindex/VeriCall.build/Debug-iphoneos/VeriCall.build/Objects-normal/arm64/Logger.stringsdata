@@ -1,0 +1,40 @@
+{
+  "source": "/Users/reeceway/vericall/ios/VeriCall/Utils/Logger.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Debug Logs",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 230
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copy",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 233
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 239
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copied!",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 252
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,64 @@
+{
+  "source": "/Users/reeceway/vericall/ios/VeriCall/Views/Onboarding/PhoneInputView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Phone Number",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 26
+        }
+      },
+      {
+        "comment": "",
+        "key": "What's your phone number?",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 46
+        }
+      },
+      {
+        "comment": "",
+        "key": "We'll send you a verification code",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 51
+        }
+      },
+      {
+        "comment": "",
+        "key": "(555) 000-0000",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 78
+        }
+      },
+      {
+        "comment": "",
+        "key": "🇺🇸",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 62
+        }
+      },
+      {
+        "comment": "",
+        "key": "+1",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 64
+        }
+      },
+      {
+        "comment": "",
+        "key": "Continue",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 119
+        }
+      }
+    ]
+  },
+  "version": 1
+}

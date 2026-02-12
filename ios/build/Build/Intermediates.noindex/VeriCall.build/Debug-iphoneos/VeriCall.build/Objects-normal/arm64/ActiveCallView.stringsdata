@@ -1,0 +1,72 @@
+{
+  "source": "/Users/reeceway/vericall/ios/VeriCall/Views/Calling/ActiveCallView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Call Ended",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 206
+        }
+      },
+      {
+        "comment": "",
+        "key": "✓ Device Verified",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 43
+        }
+      },
+      {
+        "comment": "",
+        "key": "Voice Match: %lld%%",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 88
+        }
+      },
+      {
+        "comment": "",
+        "key": "Analyzing voice...",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 118
+        }
+      },
+      {
+        "comment": "",
+        "key": "End Call",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 177
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 207
+        }
+      },
+      {
+        "comment": "",
+        "key": "Keypad",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 295
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 299
+        }
+      }
+    ]
+  },
+  "version": 1
+}

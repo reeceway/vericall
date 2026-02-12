@@ -1,0 +1,176 @@
+{
+  "source": "/Users/reeceway/vericall/ios/VeriCall/Views/Onboarding/VoiceEnrollmentView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Voice Enrollment",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 46
+        }
+      },
+      {
+        "comment": "",
+        "key": "Microphone Permission Required",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 53
+        }
+      },
+      {
+        "comment": "",
+        "key": "Error",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 63
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 50
+        }
+      },
+      {
+        "comment": "",
+        "key": "Settings",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 54
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 59
+        }
+      },
+      {
+        "comment": "",
+        "key": "VeriCall needs microphone access to record your voice for authentication.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 61
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 64
+        }
+      },
+      {
+        "comment": "",
+        "key": "Enroll %@",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 80
+        }
+      },
+      {
+        "comment": "",
+        "key": "Record 5 phrases to create a secure voice signature",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 84
+        }
+      },
+      {
+        "comment": "",
+        "key": "Phrase %lld of %lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 112
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 118
+        }
+      },
+      {
+        "comment": "",
+        "key": "Recording...",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 186
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld seconds remaining",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 192
+        }
+      },
+      {
+        "comment": "",
+        "key": "Processing voice...",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 209
+        }
+      },
+      {
+        "comment": "",
+        "key": "Extracting spectral features",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 213
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tap the button below and speak clearly",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 234
+        }
+      },
+      {
+        "comment": "",
+        "key": "Audio Level",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 242
+        }
+      },
+      {
+        "comment": "",
+        "key": "Stop Recording",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 269
+        }
+      },
+      {
+        "comment": "",
+        "key": "Start Recording",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 283
+        }
+      },
+      {
+        "comment": "",
+        "key": "Start Over",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 299
+        }
+      }
+    ]
+  },
+  "version": 1
+}
