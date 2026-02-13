@@ -1,4 +1,19 @@
+# Build artifacts
 ios/build/
+ios/build.log
+ios/build_generic.log
+
+# Xcode user-specific data
+ios/VeriCall.xcodeproj/project.xcworkspace/xcuserdata/
+ios/VeriCall.xcodeproj/xcuserdata/
+*.pbxproj.bak*
+
+# macOS
+.DS_Store
+
+# ML model packages (large binaries)
 ios/VeriCall/Models/*.mlpackage/
+
+# Large frameworks and archives
 ios/Frameworks/onnxruntime.xcframework/
 ios/Frameworks/*.zip
