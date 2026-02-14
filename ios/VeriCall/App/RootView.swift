@@ -35,10 +35,7 @@ struct MainTabView: View {
             }
 
             TabView {
-                NavigationStack {
-                    HomeView()
-                        .toolbar(.hidden, for: .navigationBar)
-                }
+                HomeView()
                 .tabItem {
                     Image(systemName: "phone.fill")
                     Text("Home")

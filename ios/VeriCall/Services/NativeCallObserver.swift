@@ -377,6 +377,30 @@ class NativeCallObserver: NSObject, ObservableObject {
 
         endBackgroundTask()
 
+        // SAVE TO HISTORY
+        let phoneNumber = currentCallPhoneNumber ?? "Unknown"
+        let name = remoteUserName ?? "Unknown"
+        let isVerified = verificationStatus == .verified
+        let direction: CallDirection = isOutgoingCall ? .outgoing : .incoming
+        
+        let isMissed = !call.hasConnected && direction == .incoming
+        
+        Task {
+            let finishedCall = Call(
+                id: call.uuid.uuidString,
+                callerId: direction == .incoming ? phoneNumber : "me",
+                callerName: direction == .incoming ? name : (UserDefaults.standard.string(forKey: "userName") ?? "Me"),
+                recipientId: direction == .outgoing ? phoneNumber : "me",
+                recipientName: direction == .outgoing ? name : (UserDefaults.standard.string(forKey: "userName") ?? "Me"),
+                direction: direction,
+                state: isMissed ? .missed : (call.hasConnected ? .ended : .failed),
+                startedAt: Date(), // CXCall doesn't give us start time easily, use end as approximate or improvement needed
+                endedAt: Date(),
+                isVerified: isVerified
+            )
+            await StorageService.shared.saveCall(finishedCall)
+        }
+
         // Notify matching pool that our call ended
         if sentToMatchingPool {
             Task {

@@ -29,6 +29,8 @@ actor StorageService {
         )
         callHistory.append(entry)
         persistCallHistory()
+        
+        NotificationCenter.default.post(name: Constants.Notifications.callHistoryUpdated, object: nil)
     }
     
     func deleteCall(id: String) {

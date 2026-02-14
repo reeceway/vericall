@@ -164,15 +164,29 @@ final class VoIPCallService: ObservableObject {
     // MARK: - Decline
 
     func declineCall() {
-        guard let call = currentCall else { return }
+        guard let callData = currentCall else { return }
 
         Task {
             try? await ws.sendRaw(message: [
                 "type": "voip:reject",
-                "callId": call.id,
-                "toUserId": call.remoteUserId,
+                "callId": callData.id,
+                "toUserId": callData.remoteUserId,
                 "reason": "declined"
             ])
+            
+            let finishedCall = Call(
+                id: callData.id,
+                callerId: callData.direction == .incoming ? callData.remoteUserId : "me",
+                callerName: callData.direction == .incoming ? callData.remoteName : (UserDefaults.standard.string(forKey: "userName") ?? "Me"),
+                recipientId: callData.direction == .outgoing ? callData.remoteUserId : "me",
+                recipientName: callData.direction == .outgoing ? callData.remoteName : (UserDefaults.standard.string(forKey: "userName") ?? "Me"),
+                direction: callData.direction,
+                state: .declined,
+                startedAt: Date(),
+                endedAt: Date(),
+                isVerified: true
+            )
+            await StorageService.shared.saveCall(finishedCall)
         }
 
         resetCall()
@@ -181,14 +195,28 @@ final class VoIPCallService: ObservableObject {
     // MARK: - End call
 
     func endCall() {
-        guard let call = currentCall else { return }
+        guard let callData = currentCall else { return }
 
         Task {
             try? await ws.sendRaw(message: [
                 "type": "voip:end",
-                "callId": call.id,
-                "toUserId": call.remoteUserId
+                "callId": callData.id,
+                "toUserId": callData.remoteUserId
             ])
+            
+            let finishedCall = Call(
+                id: callData.id,
+                callerId: callData.direction == .incoming ? callData.remoteUserId : "me",
+                callerName: callData.direction == .incoming ? callData.remoteName : (UserDefaults.standard.string(forKey: "userName") ?? "Me"),
+                recipientId: callData.direction == .outgoing ? callData.remoteUserId : "me",
+                recipientName: callData.direction == .outgoing ? callData.remoteName : (UserDefaults.standard.string(forKey: "userName") ?? "Me"),
+                direction: callData.direction,
+                state: callState == .ringing ? .missed : .ended,
+                startedAt: Date().addingTimeInterval(-callDuration),
+                endedAt: Date(),
+                isVerified: true
+            )
+            await StorageService.shared.saveCall(finishedCall)
         }
 
         callState = .ended
@@ -228,6 +256,25 @@ final class VoIPCallService: ObservableObject {
         case "voip:reject":
             let reason = json["reason"] as? String ?? "rejected"
             print("[VoIPCall] Call rejected: \(reason)")
+            
+            if let callData = currentCall {
+                Task {
+                    let finishedCall = Call(
+                        id: callData.id,
+                        callerId: callData.direction == .incoming ? callData.remoteUserId : "me",
+                        callerName: callData.direction == .incoming ? callData.remoteName : (UserDefaults.standard.string(forKey: "userName") ?? "Me"),
+                        recipientId: callData.direction == .outgoing ? callData.remoteUserId : "me",
+                        recipientName: callData.direction == .outgoing ? callData.remoteName : (UserDefaults.standard.string(forKey: "userName") ?? "Me"),
+                        direction: callData.direction,
+                        state: reason == "declined" ? .declined : .failed,
+                        startedAt: Date(),
+                        endedAt: Date(),
+                        isVerified: true
+                    )
+                    await StorageService.shared.saveCall(finishedCall)
+                }
+            }
+            
             callState = .ended
             audioStream.tearDown()
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
@@ -236,6 +283,26 @@ final class VoIPCallService: ObservableObject {
 
         case "voip:end":
             print("[VoIPCall] Remote ended call")
+            
+            if let callData = currentCall {
+                let currentState = callState // Capture state before it changes
+                Task {
+                    let finishedCall = Call(
+                        id: callData.id,
+                        callerId: callData.direction == .incoming ? callData.remoteUserId : "me",
+                        callerName: callData.direction == .incoming ? callData.remoteName : (UserDefaults.standard.string(forKey: "userName") ?? "Me"),
+                        recipientId: callData.direction == .outgoing ? callData.remoteUserId : "me",
+                        recipientName: callData.direction == .outgoing ? callData.remoteName : (UserDefaults.standard.string(forKey: "userName") ?? "Me"),
+                        direction: callData.direction,
+                        state: (currentState == .ringing || currentState == .calling) ? .missed : .ended,
+                        startedAt: Date().addingTimeInterval(-callDuration),
+                        endedAt: Date(),
+                        isVerified: true
+                    )
+                    await StorageService.shared.saveCall(finishedCall)
+                }
+            }
+            
             callState = .ended
             deepfakeDetection.stopDetection()
             audioStream.tearDown()
