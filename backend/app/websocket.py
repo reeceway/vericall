@@ -549,27 +549,12 @@ async def handle_voip_signaling(sender_id: UUID, message: dict, websocket: WebSo
     Message types:
     - voip:initiate  - Caller initiates VoIP call
     - voip:answer    - Callee answers VoIP call
-    - voip:audio     - Audio data relay (base64 PCM, high frequency)
     - voip:reject    - Callee rejects the call
     - voip:end       - Either party ends the call
     """
     msg_type = message.get("type")
     to_user_id_str = message.get("toUserId")
     to_phone = message.get("toPhone")
-    
-    # Fast path for audio relay — skip DB lookups, minimal overhead
-    if msg_type == "voip:audio" and to_user_id_str:
-        try:
-            recipient_id = UUID(to_user_id_str)
-        except (ValueError, TypeError):
-            return
-        if WebSocketManager.is_user_online(recipient_id):
-            forwarded = dict(message)
-            forwarded["fromUserId"] = str(sender_id)
-            forwarded.pop("toUserId", None)
-            forwarded.pop("toPhone", None)
-            await WebSocketManager.send_to_user(recipient_id, forwarded)
-        return
     
     print(f"[VoIP] Processing {msg_type} from {sender_id}")
     
@@ -618,6 +603,11 @@ async def handle_voip_signaling(sender_id: UUID, message: dict, websocket: WebSo
     forwarded = dict(message)  # Copy all fields
     forwarded["fromUserId"] = str(sender_id)
     forwarded["callerName"] = sender_name or "Unknown"
+    
+    # [WAN P2P] Inject sender's Public IP for direct connection
+    if websocket.client:
+        forwarded["senderIp"] = websocket.client.host
+        print(f"[VoIP] Injected sender IP: {websocket.client.host}")
     
     # Remove routing fields the recipient doesn't need
     forwarded.pop("toUserId", None)

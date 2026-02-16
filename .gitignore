@@ -17,3 +17,6 @@ ios/VeriCall/Models/*.mlpackage/
 # Large frameworks and archives
 ios/Frameworks/onnxruntime.xcframework/
 ios/Frameworks/*.zip
+
+# Build debug logs
+ios/build_debug*.log

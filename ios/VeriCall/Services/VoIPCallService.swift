@@ -2,14 +2,30 @@ import Foundation
 import AVFoundation
 import Accelerate
 import Combine
+import UIKit
 
-/// Manages the full lifecycle of a VoIP call:
-/// initiate -> ring -> answer -> connected (with AI deepfake detection) -> end.
+/// Manages the full lifecycle of a VoIP call with HYBRID architecture:
+///
+/// RTP Path (Ultra-Low Latency): Phone-to-phone conversation
+///   - RTPAudioService handles human voice conversation
+///   - 5ms buffers, UDP, Opus encoding
+///   - Directly plays to speaker for instant response
+///
+/// MoQ Path (AI Analysis): Parallel stream to AI backend
+///   - AudioStreamService (MoQ/QUIC) sends audio to AI
+///   - Slightly higher latency acceptable for deepfake detection
+///   - Does NOT play through speaker - only analyzed
+///
+/// Architecture:
+///   Mic -> [Split] -> RTP -> Other Phone (speaker)
+///              |
+///              +----> MoQ -> AI Analysis (no playback)
 ///
 /// Integrates:
-///  - AudioStreamService - mic capture & playback via WebSocket relay
+///  - RTPAudioService - Real-time phone conversation (ultra-low latency)
+///  - AudioStreamService - MoQ-based AI analysis stream
 ///  - WebSocketService - signaling relay
-///  - DeepfakeDetectionService - real-time AI detection on incoming audio
+///  - DeepfakeDetectionService - real-time AI detection
 @MainActor
 final class VoIPCallService: ObservableObject {
 
@@ -24,7 +40,10 @@ final class VoIPCallService: ObservableObject {
     @Published var callDuration: TimeInterval = 0
 
     // MARK: - Services
-    private let audioStream = AudioStreamService.shared
+    // RTP: Ultra-low latency phone conversation (plays through speaker)
+    private let rtpAudio = RTPAudioService.shared
+    // MoQ: AI analysis path (parallel, does not play)
+    private let moqAudio = AudioStreamService.shared
     private let ws = WebSocketService.shared
     private let deepfakeDetection = DeepfakeDetectionService.shared
 
@@ -43,6 +62,12 @@ final class VoIPCallService: ObservableObject {
                 self?.deepfakeResult = result
             }
     }
+    
+    // MARK: - Computed Properties
+    
+    private var myDeviceName: String {
+        UserDefaults.standard.string(forKey: "userName") ?? UIDevice.current.name
+    }
 
     // MARK: - Outgoing call
 
@@ -59,6 +84,9 @@ final class VoIPCallService: ObservableObject {
             remoteUserId: contact.id,
             remoteName: contact.displayName,
             remotePhone: contact.phoneNumber,
+            remoteDeviceName: nil, // Will be filled on answer
+            remoteIp: nil,
+            remotePort: nil,
             direction: .outgoing
         )
 
@@ -66,20 +94,28 @@ final class VoIPCallService: ObservableObject {
         callState = .calling
         deepfakeResult = nil
 
-        // Setup audio but don't start streaming yet (wait for answer)
-        audioStream.setup()
+        // Setup BOTH audio paths:
+        // RTP: For ultra-low latency phone conversation
+        rtpAudio.startListening()
+        // MoQ: For AI analysis (parallel path, doesn't play through speaker)
+        moqAudio.setup()
 
         do {
-            // Send call initiation via WebSocket (no voiceprint)
+            // Send call initiation with BOTH ports
+            // RTP port for phone conversation, MoQ port for AI
             try await ws.sendRaw(message: [
                 "type": "voip:initiate",
                 "callId": callId,
                 "toPhone": contact.phoneNumber ?? "",
                 "toUserId": contact.id,
-                "callerName": UserDefaults.standard.string(forKey: "userName") ?? "Unknown"
+                "callerName": UserDefaults.standard.string(forKey: "userName") ?? "Unknown",
+                "deviceName": myDeviceName,
+                "rtpPort": rtpAudio.currentLocalPort ?? 5004,
+                "moqPort": moqAudio.transport.localPort ?? 0,
+                "listenerPort": rtpAudio.currentLocalPort ?? 5004  // Backward compat
             ])
 
-            print("[VoIPCall] Sent call to \(contact.displayName)")
+            print("[VoIPCall] Sent call to \(contact.displayName) (my device: \(myDeviceName))")
 
         } catch {
             print("[VoIPCall] Failed to initiate: \(error)")
@@ -95,7 +131,10 @@ final class VoIPCallService: ObservableObject {
     func handleIncomingCall(
         callId: String,
         fromUserId: String,
-        callerName: String
+        callerName: String,
+        callerDeviceName: String?,
+        callerIp: String? = nil,
+        callerPort: UInt16? = nil
     ) {
         guard callState == .idle else {
             print("[VoIPCall] Busy - rejecting incoming call")
@@ -115,13 +154,20 @@ final class VoIPCallService: ObservableObject {
             remoteUserId: fromUserId,
             remoteName: callerName,
             remotePhone: nil,
+            remoteDeviceName: callerDeviceName,
+            remoteIp: nil, // Will be filled from signaling if available, but initiate captures it
+            remotePort: nil,
             direction: .incoming
         )
-
-        currentCall = call
+        // Store IP/Port if passed in (custom init or modifying below)
+        var mutableCall = call
+        mutableCall.remoteIp = callerIp
+        mutableCall.remotePort = callerPort
+        
+        currentCall = mutableCall
         callState = .ringing
 
-        print("[VoIPCall] Incoming call from \(callerName)")
+        print("[VoIPCall] Incoming call from \(callerName) (device: \(callerDeviceName ?? "unknown"))")
     }
 
     // MARK: - Answer
@@ -135,22 +181,50 @@ final class VoIPCallService: ObservableObject {
 
         callState = .connecting
 
-        // Setup and start audio streaming
-        audioStream.setup()
+        // Setup BOTH audio paths:
+        // RTP: Ultra-low latency phone conversation
+        rtpAudio.startListening()
+        // MoQ: AI analysis (parallel path)
+        moqAudio.setup()
 
         do {
-            // Send answer back (no voiceprint)
+            // Send answer back with BOTH ports
             try await ws.sendRaw(message: [
                 "type": "voip:answer",
                 "callId": call.id,
-                "toUserId": call.remoteUserId
+                "toUserId": call.remoteUserId,
+                "deviceName": myDeviceName,
+                "rtpPort": rtpAudio.currentLocalPort ?? 5004,
+                "moqPort": moqAudio.transport.localPort ?? 0,
+                "listenerPort": rtpAudio.currentLocalPort ?? 5004  // Backward compat
             ])
 
-            // Start streaming audio immediately
-            audioStream.startStreaming()
-            onAudioConnected()
+            // RTP: Connect for phone conversation (ultra-low latency)
+            if let remoteDevice = call.remoteDeviceName {
+                print("[VoIPCall] RTP: Connecting to \(remoteDevice)")
+                rtpAudio.connectToPeer(deviceName: remoteDevice)
+            }
+            if let ip = call.remoteIp, let port = call.remotePort, port > 0 {
+                print("[VoIPCall] RTP: Connecting to \(ip):\(port)")
+                rtpAudio.connectToPeer(host: ip, port: port)
+            }
+            
+            // MoQ: Connect for AI analysis (parallel, doesn't affect latency)
+            if let remoteDevice = call.remoteDeviceName {
+                print("[VoIPCall] MoQ: Connecting to \(remoteDevice)")
+                moqAudio.connectToPeer(callerName: remoteDevice)
+            }
+            if let ip = call.remoteIp, let port = call.remotePort, port > 0 {
+                moqAudio.connectToPeer(host: ip, port: port)
+            }
+            
+            // Start BOTH streams:
+            // RTP: Plays through speaker immediately (ultra-low latency)
+            rtpAudio.startStreaming()
+            // MoQ: Sends to AI for analysis (parallel, no playback)
+            moqAudio.startStreaming()
 
-            print("[VoIPCall] Answered call, audio streaming started")
+            print("[VoIPCall] Call answered - RTP (voice) + MoQ (AI) active")
 
         } catch {
             print("[VoIPCall] Failed to answer: \(error)")
@@ -221,7 +295,9 @@ final class VoIPCallService: ObservableObject {
 
         callState = .ended
         deepfakeDetection.stopDetection()
-        audioStream.tearDown()
+        // Stop BOTH audio paths
+        rtpAudio.disconnect()  // RTP: Phone conversation
+        moqAudio.tearDown()    // MoQ: AI analysis
         stopDurationTimer()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
@@ -238,20 +314,24 @@ final class VoIPCallService: ObservableObject {
             let callId = json["callId"] as? String ?? UUID().uuidString
             let fromUserId = json["fromUserId"] as? String ?? "unknown"
             let callerName = json["callerName"] as? String ?? "Unknown"
+            let deviceName = json["deviceName"] as? String
+            
             handleIncomingCall(
                 callId: callId,
                 fromUserId: fromUserId,
-                callerName: callerName
+                callerName: callerName,
+                callerDeviceName: deviceName,
+                callerIp: json["senderIp"] as? String,
+                callerPort: json["listenerPort"] as? UInt16
             )
 
         case "voip:answer":
             handleRemoteAnswer(json)
 
         case "voip:audio":
-            // Route audio data to AudioStreamService for playback
-            if let audioData = json["audio"] as? String {
-                audioStream.receiveAudioData(audioData)
-            }
+            // NO-OP: MoQ handles audio directly.
+            // Ignore legacy WebSocket audio packets.
+            break
 
         case "voip:reject":
             let reason = json["reason"] as? String ?? "rejected"
@@ -276,7 +356,9 @@ final class VoIPCallService: ObservableObject {
             }
             
             callState = .ended
-            audioStream.tearDown()
+            // Stop BOTH audio paths
+            rtpAudio.disconnect()  // RTP: Phone conversation
+            moqAudio.tearDown()    // MoQ: AI analysis
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                 self?.resetCall()
             }
@@ -305,7 +387,9 @@ final class VoIPCallService: ObservableObject {
             
             callState = .ended
             deepfakeDetection.stopDetection()
-            audioStream.tearDown()
+            // Stop BOTH audio paths
+            rtpAudio.disconnect()  // RTP: Phone conversation
+            moqAudio.tearDown()    // MoQ: AI analysis
             stopDurationTimer()
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                 self?.resetCall()
@@ -320,12 +404,15 @@ final class VoIPCallService: ObservableObject {
 
     func toggleMute() {
         isMuted.toggle()
-        audioStream.setMicrophoneEnabled(!isMuted)
+        // Mute affects BOTH paths (RTP + MoQ)
+        rtpAudio.isMuted = isMuted
+        moqAudio.isMuted = isMuted
     }
 
     func toggleSpeaker() {
         isSpeakerOn.toggle()
-        audioStream.setSpeaker(isSpeakerOn)
+        // Speaker only affects RTP (phone conversation)
+        rtpAudio.isSpeakerOn = isSpeakerOn
     }
 
     // MARK: - Private helpers
@@ -334,36 +421,100 @@ final class VoIPCallService: ObservableObject {
         // Update remoteUserId to the REAL backend user ID.
         if let realUserId = json["fromUserId"] as? String {
             currentCall?.remoteUserId = realUserId
-            audioStream.updateRemoteUserId(realUserId)
             print("[VoIPCall] Updated remoteUserId to backend ID: \(realUserId)")
         }
+        
+        // Connect BOTH audio paths
+        // RTP: Phone conversation (ultra-low latency)
+        if let deviceName = json["deviceName"] as? String {
+            currentCall?.remoteDeviceName = deviceName
+            rtpAudio.connectToPeer(deviceName: deviceName)
+            print("[VoIPCall] RTP: Connecting to \(deviceName)")
+        }
+        
+        // MoQ: AI analysis (parallel)
+        if let deviceName = json["deviceName"] as? String {
+            moqAudio.connectToPeer(callerName: deviceName)
+            print("[VoIPCall] MoQ: Connecting to \(deviceName)")
+        }
 
-        // The other side answered - start streaming audio
-        audioStream.startStreaming()
-        onAudioConnected()
+        // [WAN P2P] Connect via Direct IP if available
+        if let ip = json["senderIp"] as? String {
+            // RTP port for phone conversation
+            if let rtpPort = json["rtpPort"] as? UInt16, rtpPort > 0 {
+                print("[VoIPCall] RTP: Connecting to \(ip):\(rtpPort)")
+                rtpAudio.connectToPeer(host: ip, port: rtpPort)
+            } else if let port = json["listenerPort"] as? UInt16, port > 0 {
+                // Backward compat
+                print("[VoIPCall] RTP: Connecting to \(ip):\(port)")
+                rtpAudio.connectToPeer(host: ip, port: port)
+            }
+            // MoQ port for AI
+            if let moqPort = json["moqPort"] as? UInt16, moqPort > 0 {
+                print("[VoIPCall] MoQ: Connecting to \(ip):\(moqPort)")
+                moqAudio.connectToPeer(host: ip, port: moqPort)
+            }
+        }
 
-        print("[VoIPCall] Remote answered - audio streaming started")
+        // Start BOTH streams:
+        // RTP: Ultra-low latency phone conversation (plays through speaker)
+        rtpAudio.startStreaming()
+        // MoQ: AI analysis (parallel, no playback)
+        moqAudio.startStreaming()
+        
+        print("[VoIPCall] Remote answered - RTP (voice) + MoQ (AI) active")
     }
 
     private func setupCallbacks() {
-        // When audio from the other side first arrives, upgrade state
-        audioStream.onAudioConnected = { [weak self] in
+        // RTP callback: When phone conversation audio connects (ultra-low latency)
+        rtpAudio.onConnected = { [weak self] in
             Task { @MainActor in
-                guard let self, self.callState == .connecting || self.callState == .calling else { return }
-                // Already handled in onAudioConnected
+                self?.onRTPConnected()
             }
         }
+        
+        // MoQ callback: When AI analysis stream connects
+        moqAudio.onAudioConnected = { [weak self] in
+            Task { @MainActor in
+                self?.onMoQConnected()
+            }
+        }
+    }
+    
+    /// Called when RTP (phone conversation) connects - ultra-low latency path
+    private func onRTPConnected() {
+        print("[VoIPCall] RTP Connected - phone conversation active!")
+        // If MoQ is not yet connected, we're still in 'connecting' state
+        // but the user can already talk (RTP is active)
+        if callState == .calling {
+            callState = .connecting
+        }
+    }
+    
+    /// Called when MoQ (AI analysis) connects - parallel path
+    private func onMoQConnected() {
+        guard callState == .connecting || callState == .calling else { return }
+        
+        callState = .connected
+        startDurationTimer()
+        
+        // Start AI deepfake detection on the incoming audio
+        deepfakeDetection.startDetection()
+        
+        print("[VoIPCall] MoQ Connected - AI deepfake detection active!")
     }
 
     /// Called when audio is flowing in both directions.
     private func onAudioConnected() {
+        guard callState == .connecting || callState == .calling else { return }
+        
         callState = .connected
         startDurationTimer()
 
         // Start AI deepfake detection on the incoming audio
         deepfakeDetection.startDetection()
 
-        print("[VoIPCall] Audio connected - AI deepfake detection active!")
+        print("[VoIPCall] MoQ Connected - AI deepfake detection active!")
     }
 
     // MARK: - Duration timer
@@ -394,6 +545,9 @@ final class VoIPCallService: ObservableObject {
         callDuration = 0
         deepfakeDetection.stopDetection()
         stopDurationTimer()
+        // Clean up both audio services
+        rtpAudio.disconnect()
+        moqAudio.tearDown()
     }
 
     /// VoIP calls through VeriCall are inherently device-verified
@@ -445,6 +599,9 @@ struct VoIPCall: Identifiable, Equatable {
     var remoteUserId: String
     let remoteName: String
     let remotePhone: String?
+    var remoteDeviceName: String? // Bonjour service name for P2P
+    var remoteIp: String?         // WAN IP for P2P
+    var remotePort: UInt16?       // WAN Port for P2P
     let direction: CallDirection
 
     static func == (lhs: VoIPCall, rhs: VoIPCall) -> Bool {

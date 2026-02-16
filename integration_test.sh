@@ -19,9 +19,9 @@ FAILED=0
 echo "🧪 Test 1: Checking file structure..."
 REQUIRED_FILES=(
     "backend/app/main.py"
-    "backend/app/routes/auth.py"
-    "backend/app/routes/calls.py"
-    "backend/app/routes/voice.py"
+    "backend/app/auth.py"
+    "backend/app/websocket.py"
+    "backend/app/push.py"
     "backend/Dockerfile"
     "backend/fly.toml"
     "voice-ml/speaker_model.py"
@@ -33,7 +33,7 @@ REQUIRED_FILES=(
 )
 
 for file in "${REQUIRED_FILES[@]}"; do
-    if [ -f "/opt/moltbot/.openclaw/workspace/projects/vericall/$file" ]; then
+    if [ -f "$file" ]; then
         echo -e "${GREEN}✓${NC} $file"
     else
         echo -e "${RED}✗${NC} $file (MISSING)"
@@ -42,16 +42,11 @@ for file in "${REQUIRED_FILES[@]}"; do
 done
 echo ""
 
-# Test 2: Check API constants match
+# Test 2: Check API constants alignment
 echo "🧪 Test 2: Checking API constants alignment..."
-if grep -q "VOICE_EMBEDDING_DIMENSION = 192" /opt/moltbot/.openclaw/workspace/projects/vericall/backend/app/routes/voice.py; then
-    echo -e "${GREEN}✓${NC} Backend: 192-dim embeddings"
-else
-    echo -e "${RED}✗${NC} Backend: Embedding dimension mismatch"
-    FAILED=$((FAILED + 1))
-fi
+# Backend voice check removed as verification is local P2P now
 
-if grep -q "voiceEmbeddingDimension = 192" /opt/moltbot/.openclaw/workspace/projects/vericall/ios/VeriCall/Constants.swift 2>/dev/null || grep -q "192" /opt/moltbot/.openclaw/workspace/projects/vericall/ios/VeriCall/Services/VoiceCaptureService.swift 2>/dev/null; then
+if grep -q "voiceEmbeddingDimension = 192" ios/VeriCall/Constants.swift 2>/dev/null || grep -q "192" ios/VeriCall/Services/VoiceCaptureService.swift 2>/dev/null; then
     echo -e "${GREEN}✓${NC} iOS: 192-dim embeddings"
 else
     echo -e "${YELLOW}⚠${NC} iOS: Embedding dimension check skipped (in Swift files)"
@@ -60,12 +55,12 @@ echo ""
 
 # Test 3: Check Docker build
 echo "🧪 Test 3: Validating Docker configuration..."
-if [ -f "/opt/moltbot/.openclaw/workspace/projects/vericall/backend/Dockerfile" ]; then
+if [ -f "backend/Dockerfile" ]; then
     echo -e "${GREEN}✓${NC} Dockerfile exists"
-    if grep -q "uvicorn" /opt/moltbot/.openclaw/workspace/projects/vericall/backend/Dockerfile; then
+    if grep -q "uvicorn" backend/Dockerfile; then
         echo -e "${GREEN}✓${NC} Uvicorn server configured"
     fi
-    if grep -q "workers.*4" /opt/moltbot/.openclaw/workspace/projects/vericall/backend/Dockerfile; then
+    if grep -q "workers.*4" backend/Dockerfile; then
         echo -e "${GREEN}✓${NC} 4 workers configured (scalability)"
     fi
 else
@@ -76,15 +71,15 @@ echo ""
 
 # Test 4: Check Fly.io configuration
 echo "🧪 Test 4: Validating Fly.io configuration..."
-if [ -f "/opt/moltbot/.openclaw/workspace/projects/vericall/backend/fly.toml" ]; then
+if [ -f "backend/fly.toml" ]; then
     echo -e "${GREEN}✓${NC} fly.toml exists"
-    if grep -q "hard_limit = 1000" /opt/moltbot/.openclaw/workspace/projects/vericall/backend/fly.toml; then
+    if grep -q "hard_limit = 1000" backend/fly.toml; then
         echo -e "${GREEN}✓${NC} Concurrency: 1000 connections (scalable)"
     fi
-    if grep -q "cpu = 2" /opt/moltbot/.openclaw/workspace/projects/vericall/backend/fly.toml; then
+    if grep -q "cpu = 2" backend/fly.toml; then
         echo -e "${GREEN}✓${NC} CPU: 2 cores"
     fi
-    if grep -q "memory = \"2gb\"" /opt/moltbot/.openclaw/workspace/projects/vericall/backend/fly.toml; then
+    if grep -q "memory = \"2gb\"" backend/fly.toml; then
         echo -e "${GREEN}✓${NC} Memory: 2GB"
     fi
 else
@@ -95,12 +90,12 @@ echo ""
 
 # Test 5: Check database migrations
 echo "🧪 Test 5: Checking database schema..."
-if [ -f "/opt/moltbot/.openclaw/workspace/projects/vericall/backend/migrations/versions/20250209_1800_initial_schema.py" ]; then
+if [ -f "backend/migrations/versions/20250209_1800_initial_schema.py" ]; then
     echo -e "${GREEN}✓${NC} Database migrations exist"
-    if grep -q "users" /opt/moltbot/.openclaw/workspace/projects/vericall/backend/migrations/versions/20250209_1800_initial_schema.py; then
+    if grep -q "users" backend/migrations/versions/20250209_1800_initial_schema.py; then
         echo -e "${GREEN}✓${NC} Users table defined"
     fi
-    if grep -q "voiceprints" /opt/moltbot/.openclaw/workspace/projects/vericall/backend/migrations/versions/20250209_1800_initial_schema.py; then
+    if grep -q "voiceprints" backend/migrations/versions/20250209_1800_initial_schema.py; then
         echo -e "${GREEN}✓${NC} Voiceprints table defined"
     fi
 else
@@ -110,23 +105,23 @@ echo ""
 
 # Test 6: Check WebSocket implementation
 echo "🧪 Test 6: Checking WebSocket support..."
-if grep -q "WebSocket" /opt/moltbot/.openclaw/workspace/projects/vericall/backend/app/main.py; then
+if grep -q "WebSocket" backend/app/main.py 2>/dev/null; then
     echo -e "${GREEN}✓${NC} WebSocket endpoint implemented"
 fi
-if grep -q "WebSocket" /opt/moltbot/.openclaw/workspace/projects/vericall/ios/VeriCall/Services/CallWebSocketService.swift; then
+if grep -q "WebSocket" ios/VeriCall/Services/WebSocketService.swift 2>/dev/null; then
     echo -e "${GREEN}✓${NC} iOS WebSocket service implemented"
 fi
 echo ""
 
 # Test 7: Security checks
 echo "🧪 Test 7: Security checks..."
-if grep -q "SecureEnclave" /opt/moltbot/.openclaw/workspace/projects/vericall/ios/VeriCall/Services/DeviceCrypto.swift; then
+if grep -q "SecureEnclave" ios/VeriCall/Services/DeviceCrypto.swift 2>/dev/null; then
     echo -e "${GREEN}✓${NC} iOS: SecureEnclave for key storage"
 fi
-if grep -q "Keychain" /opt/moltbot/.openclaw/workspace/projects/vericall/ios/VeriCall/Services/KeychainService.swift; then
+if grep -q "Keychain" ios/VeriCall/Services/KeychainService.swift 2>/dev/null; then
     echo -e "${GREEN}✓${NC} iOS: Keychain for certificate storage"
 fi
-if grep -q "JWT" /opt/moltbot/.openclaw/workspace/projects/vericall/backend/app/services/device_verification.py; then
+if grep -q "jwt" backend/app/auth.py 2>/dev/null; then
     echo -e "${GREEN}✓${NC} Backend: JWT for auth tokens"
 fi
 echo ""
@@ -139,7 +134,7 @@ if [ $FAILED -eq 0 ]; then
     echo "System is ready for deployment!"
     echo ""
     echo "Next steps:"
-    echo "1. Deploy backend: cd projects/vericall/backend && ./deploy.sh"
+    echo "1. Deploy backend: cd backend && fly deploy"
     echo "2. Build iOS app in Xcode"
     echo "3. Run integration tests"
     echo "4. Demo!"

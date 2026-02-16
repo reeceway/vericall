@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B5F71640DB27493AB537D11E /* MoQTransportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF693AB1F276459F985BC11D /* MoQTransportService.swift */; };
+		54B8D5A35E3D48868575B989 /* SelfVoiceEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2C2B57FC3E4833BE05C18F /* SelfVoiceEnrollmentView.swift */; };
 		12AF4F17B16F937FF9FFC7E8 /* DeepfakeLabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75E84BBD74D5B78DDD7CE6AC /* DeepfakeLabView.swift */; };
 		51BE11E960584E8F8B4E97E7 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8DC5DE8EEA48EC95B89342 /* HomeView.swift */; };
 		520B93C5072545BEBC0D6AC9 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38711FD7CDD24875B2627F4E /* NotificationService.swift */; };
@@ -51,8 +53,8 @@
 		BB000003 /* VoIPActiveCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000103 /* VoIPActiveCallView.swift */; };
 		BB000004 /* VoIPIncomingCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000104 /* VoIPIncomingCallView.swift */; };
 		CC000001 /* DeepfakeDetectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000101 /* DeepfakeDetectionService.swift */; };
-		CC000104 /* RTPReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000103 /* RTPReceiver.swift */; };
 		CC000106 /* OpusDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000105 /* OpusDecoder.swift */; };
+		CC000107 /* RTPAudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000108 /* RTPAudioService.swift */; };
 		DD000010 /* onnxruntime.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DD000020 /* onnxruntime.xcframework */; };
 		DD000011 /* onnxruntime.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DD000020 /* onnxruntime.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DD000012 /* WavLMDeepfake.onnx in Resources */ = {isa = PBXBuildFile; fileRef = DD000021 /* WavLMDeepfake.onnx */; };
@@ -77,6 +79,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		FF693AB1F276459F985BC11D /* MoQTransportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoQTransportService.swift; sourceTree = "<group>"; };
+		FB2C2B57FC3E4833BE05C18F /* SelfVoiceEnrollmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfVoiceEnrollmentView.swift; sourceTree = "<group>"; };
 		2C1B317B561B414BBDB60D1F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		38711FD7CDD24875B2627F4E /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		3A75B8120B0F49E8BD549550 /* StorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageService.swift; sourceTree = "<group>"; };
@@ -121,8 +125,8 @@
 		BB000103 /* VoIPActiveCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoIPActiveCallView.swift; sourceTree = "<group>"; };
 		BB000104 /* VoIPIncomingCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoIPIncomingCallView.swift; sourceTree = "<group>"; };
 		CC000101 /* DeepfakeDetectionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepfakeDetectionService.swift; sourceTree = "<group>"; };
-		CC000103 /* RTPReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RTPReceiver.swift; sourceTree = "<group>"; };
 		CC000105 /* OpusDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpusDecoder.swift; sourceTree = "<group>"; };
+		CC000108 /* RTPAudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RTPAudioService.swift; sourceTree = "<group>"; };
 		DD000020 /* onnxruntime.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = onnxruntime.xcframework; path = Frameworks/onnxruntime.xcframework; sourceTree = "<group>"; };
 		CC000102 /* HemggDeepfake.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = HemggDeepfake.mlpackage; sourceTree = "<group>"; };
 		DC8DC5DE8EEA48EC95B89342 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
@@ -197,6 +201,7 @@
 		AA000304 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				FF693AB1F276459F985BC11D /* MoQTransportService.swift */,
 				3A75B8120B0F49E8BD549550 /* StorageService.swift */,
 				AA000107 /* APIService.swift */,
 				E7FF01B4311944159CE6F57F /* NativeCallObserver.swift */,
@@ -214,8 +219,8 @@
 				BB000101 /* WebRTCService.swift */,
 				BB000102 /* VoIPCallService.swift */,
 				CC000101 /* DeepfakeDetectionService.swift */,
-				CC000103 /* RTPReceiver.swift */,
 				CC000105 /* OpusDecoder.swift */,
+				CC000108 /* RTPAudioService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -246,6 +251,7 @@
 			isa = PBXGroup;
 			children = (
 				AA000115 /* WelcomeView.swift */,
+				FB2C2B57FC3E4833BE05C18F /* SelfVoiceEnrollmentView.swift */,
 				AA000116 /* PhoneInputView.swift */,
 				AA000117 /* VerificationCodeView.swift */,
 				AA000119 /* OnboardingContainerView.swift */,
@@ -381,6 +387,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B5F71640DB27493AB537D11E /* MoQTransportService.swift in Sources */,
+				54B8D5A35E3D48868575B989 /* SelfVoiceEnrollmentView.swift in Sources */,
 				51BE11E960584E8F8B4E97E7 /* HomeView.swift in Sources */,
 				9C12D55DDCE94811B6281481 /* StorageService.swift in Sources */,
 				F3F1498750604DA89CF7CEF5 /* AppDelegate.swift in Sources */,
@@ -424,8 +432,8 @@
 				BB000003 /* VoIPActiveCallView.swift in Sources */,
 				BB000004 /* VoIPIncomingCallView.swift in Sources */,
 				CC000001 /* DeepfakeDetectionService.swift in Sources */,
-				CC000104 /* RTPReceiver.swift in Sources */,
 				CC000106 /* OpusDecoder.swift in Sources */,
+				CC000107 /* RTPAudioService.swift in Sources */,
 				DD000013 /* ONNXRunner.mm in Sources */,
 				EE000001 /* UITestView.swift in Sources */,
 				58CE7C5A81703712C5BE85E5 /* HemggDeepfake.mlpackage in Sources */,

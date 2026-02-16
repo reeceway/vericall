@@ -9,6 +9,7 @@ struct UITestView: View {
             isHuman: isHuman,
             confidence: confidence,
             label: isHuman ? "real" : "fake",
+            timestamp: Date(),
             processingTimeMs: 18.0
         )
     }

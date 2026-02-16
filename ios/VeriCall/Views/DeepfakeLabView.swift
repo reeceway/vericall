@@ -57,14 +57,7 @@ struct DeepfakeLabView: View {
                 Toggle("Enable Normalization", isOn: $detectionService.useNormalization)
                     .toggleStyle(SwitchToggleStyle(tint: .blue))
                 
-                Toggle("Use RTP/Opus (Port 5004)", isOn: $audioService.useRTP)
-                    .toggleStyle(SwitchToggleStyle(tint: .purple))
-                    .onChange(of: audioService.useRTP) { newValue in
-                        if isRunning {
-                            // If running, switch input source immediately
-                            detectionService.inputSource = newValue ? .remote : .local
-                        }
-                    }
+                // RTP Toggle removed (Legacy)
             }
             .padding()
             
@@ -101,14 +94,12 @@ struct DeepfakeLabView: View {
     }
     
     private func startLab() {
-        // Set service to Local mode unless RTP is active
-        detectionService.inputSource = audioService.useRTP ? .remote : .local
+        // Set service to Local mode
+        detectionService.inputSource = .local
         detectionService.inputGain = gain
         
-        // Start Audio (Local Capture or RTP listener)
-        if !audioService.useRTP {
-            audioService.startLocalCapture()
-        }
+        // Start Audio (Local Capture)
+        audioService.startStreaming()
         
         // Start Detection
         detectionService.startDetection()

@@ -12,6 +12,7 @@ NEW_FILES = [
     ("VeriCall/App/AppDelegate.swift", "App"),
     ("VeriCall/Services/NativeCallObserver.swift", "Services"),
     ("VeriCall/Services/NotificationService.swift", "Services"),
+    ("VeriCall/Services/MoQTransportService.swift", "Services"),
     ("VeriCall/Views/Onboarding/SelfVoiceEnrollmentView.swift", "Views/Onboarding"),
 ]
 
