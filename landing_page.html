@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VeriCall - Know Who's Really Calling</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: white;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        .hero {
+            padding: 100px 0;
+            text-align: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        .logo {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #00d4ff, #0099ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .tagline {
+            font-size: 24px;
+            color: #888;
+            margin-bottom: 40px;
+        }
+        .hero-text {
+            font-size: 18px;
+            max-width: 600px;
+            margin: 0 auto 40px;
+            color: #ccc;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #00d4ff, #0099ff);
+            color: white;
+            padding: 15px 40px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 18px;
+            transition: transform 0.2s;
+        }
+        .cta-button:hover {
+            transform: scale(1.05);
+        }
+        .problem {
+            padding: 80px 0;
+            background: #0a0a0a;
+        }
+        .section-title {
+            font-size: 36px;
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+        .stat {
+            text-align: center;
+            padding: 30px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+        }
+        .stat-number {
+            font-size: 48px;
+            font-weight: 700;
+            color: #00d4ff;
+        }
+        .stat-label {
+            color: #888;
+            margin-top: 10px;
+        }
+        .solution {
+            padding: 80px 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+        .feature {
+            padding: 30px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .feature-icon {
+            font-size: 40px;
+            margin-bottom: 20px;
+        }
+        .feature-title {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        .feature-desc {
+            color: #888;
+        }
+        .beta {
+            padding: 80px 0;
+            text-align: center;
+            background: #0a0a0a;
+        }
+        .beta-form {
+            max-width: 500px;
+            margin: 40px auto;
+        }
+        .beta-form input {
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05);
+            color: white;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .beta-form input::placeholder {
+            color: #666;
+        }
+        footer {
+            padding: 40px 0;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <div class="container">
+            <div class="logo">VeriCall</div>
+            <p class="tagline">Know Who's Really Calling</p>
+            <p class="hero-text">
+                AI voice clones fooled $10 billion from victims last year. 
+                VeriCall detects synthetic voices in real-time during calls.
+            </p>
+            <a href="#beta" class="cta-button">Join Beta</a>
+        </div>
+    </section>
+
+    <section class="problem">
+        <div class="container">
+            <h2 class="section-title">The $10 Billion Problem</h2>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-number">$10B</div>
+                    <div class="stat-label">Lost to voice scams annually</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">3 sec</div>
+                    <div class="stat-label">To clone a voice</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">77%</div>
+                    <div class="stat-label">Can't detect AI voices</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="solution">
+        <div class="container">
+            <h2 class="section-title">How VeriCall Works</h2>
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">🔐</div>
+                    <h3 class="feature-title">Real-Time Detection</h3>
+                    <p class="feature-desc">Analyzes voice patterns during calls. Detects AI-generated audio in milliseconds.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📱</div>
+                    <h3 class="feature-title">On-Device AI</h3>
+                    <p class="feature-desc">All processing happens on your iPhone. No audio sent to cloud. Complete privacy.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">⚡</div>
+                    <h3 class="feature-title">Instant Alert</h3>
+                    <p class="feature-desc">Get notified immediately when a synthetic voice is detected. Never get fooled again.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="beta" id="beta">
+        <div class="container">
+            <h2 class="section-title">Join the Beta</h2>
+            <p>Be among the first to try VeriCall. Free for beta testers.</p>
+            <div class="beta-form">
+                <input type="email" placeholder="Enter your email" />
+                <a href="#" class="cta-button">Get Early Access</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 VeriCall. Built for the future of secure calling.</p>
+        </div>
+    </footer>
+</body>
+</html>

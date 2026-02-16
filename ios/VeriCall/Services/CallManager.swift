@@ -13,8 +13,7 @@ class CallManager: ObservableObject {
     private let webSocketService = WebSocketService.shared
     private let callKitManager = CallKitManager.shared
     private let callSignaling = CallSignaling.shared
-    private let deepfakeDetection = DeepfakeDetectionService.shared
-    private let storageService = StorageService.shared
+    private let voiceVerificationService = VoiceVerificationService()
     private var cancellables = Set<AnyCancellable>()
     
     private init() {
@@ -46,6 +45,8 @@ class CallManager: ObservableObject {
             await handleCallAnswered(signal)
         case .end:
             await handleCallEnded(signal)
+        case .voiceMatchUpdate:
+            await handleVoiceMatchUpdate(signal)
         default:
             break
         }
@@ -64,7 +65,7 @@ class CallManager: ObservableObject {
         // Generate call ID
         let callId = UUID().uuidString
         
-        // Create call object
+        // Create call object (outgoing calls don't have voiceThumbprint yet)
         let call = Call(
             id: callId,
             callerId: "current_user_id", // TODO: Get from auth
@@ -75,7 +76,9 @@ class CallManager: ObservableObject {
             state: .dialing,
             startedAt: Date(),
             endedAt: nil,
-            isVerified: contact.isVerified
+            isVerified: contact.isVerified,
+            voiceMatchPercentage: nil,
+            voiceThumbprint: nil
         )
         
         await MainActor.run {
@@ -100,7 +103,7 @@ class CallManager: ObservableObject {
             await callKitManager.reportOutgoingCall(call: call)
             
         } catch {
-            try? await endCall()
+            await endCall()
             throw error
         }
     }
@@ -122,6 +125,9 @@ class CallManager: ObservableObject {
         let isVerified = signal.signature != nil ? 
             await callSignaling.verifySignal(signal) : false
         
+        // Extract voice thumbprint from incoming signal (for caller verification)
+        let receivedVoiceThumbprint = signal.voiceThumbprint
+        
         let call = Call(
             id: signal.callId,
             callerId: signal.fromUserId,
@@ -132,7 +138,9 @@ class CallManager: ObservableObject {
             state: .ringing,
             startedAt: nil,
             endedAt: nil,
-            isVerified: isVerified
+            isVerified: isVerified,
+            voiceMatchPercentage: nil,
+            voiceThumbprint: receivedVoiceThumbprint
         )
         
         await MainActor.run {
@@ -140,23 +148,14 @@ class CallManager: ObservableObject {
             self.isInCall = true
         }
         
-        // Show verification notification (appears on lock screen)
-        await NotificationService.shared.showCallVerificationNotification(
-            callerName: call.callerName,
-            callerId: call.callerId,
-            isDeviceVerified: isVerified,
-            hasVoiceThumbprint: false
-        )
         // Report to CallKit for native UI
         await callKitManager.reportIncomingCall(call: call) { accepted in
             if accepted {
                 Task {
-                    NotificationService.shared.removeCallNotification(for: call.callerId)
                     try? await self.acceptCall(call)
                 }
             } else {
                 Task {
-                    NotificationService.shared.removeCallNotification(for: call.callerId)
                     try? await self.declineCall(call)
                 }
             }
@@ -177,8 +176,11 @@ class CallManager: ObservableObject {
         try await webSocketService.sendSignal(acceptSignal)
         await updateCallState(.connecting)
         
-        // Start AI deepfake detection on the call audio
-        deepfakeDetection.startDetection()
+        // Start voice verification if we have the caller's thumbprint
+        if let voiceThumbprint = call.voiceThumbprint {
+            print("[CallManager] Starting voice verification with received thumbprint")
+            try? await voiceVerificationService.startVerification(withExternalThumbprint: voiceThumbprint)
+        }
         
         // Simulate connection delay
         try await Task.sleep(nanoseconds: 1_000_000_000)
@@ -193,7 +195,7 @@ class CallManager: ObservableObject {
         }
         
         // Stop voice verification if it was started
-        deepfakeDetection.stopDetection()
+        voiceVerificationService.stopVerification()
         
         let rejectSignal = await callSignaling.createRejectSignal(
             callId: call.id,
@@ -203,7 +205,7 @@ class CallManager: ObservableObject {
         
         try await webSocketService.sendSignal(rejectSignal)
         await updateCallState(.declined)
-        try await endCall()
+        await endCall()
     }
     
     // MARK: - Handle Answers
@@ -233,20 +235,20 @@ class CallManager: ObservableObject {
             signature: nil,
             voiceThumbprint: nil
         )
-
+        
         try await webSocketService.sendSignal(signal)
     }
-
+    
     func setSpeaker(_ enabled: Bool) async throws {
         // This would configure audio session
         // For now, just a placeholder
     }
-
+    
     func holdCall() async throws {
         guard let call = currentCall else {
             throw CallError.invalidState
         }
-
+        
         let signal = CallSignal(
             type: .hold,
             callId: call.id,
@@ -257,16 +259,16 @@ class CallManager: ObservableObject {
             signature: nil,
             voiceThumbprint: nil
         )
-
+        
         try await webSocketService.sendSignal(signal)
         await updateCallState(.held)
     }
-
+    
     func resumeCall() async throws {
         guard let call = currentCall else {
             throw CallError.invalidState
         }
-
+        
         let signal = CallSignal(
             type: .resume,
             callId: call.id,
@@ -294,7 +296,7 @@ class CallManager: ObservableObject {
         }
         
         // Stop voice verification
-        deepfakeDetection.stopDetection()
+        voiceVerificationService.stopVerification()
         
         let endSignal = CallSignal(
             type: .end,
@@ -316,18 +318,13 @@ class CallManager: ObservableObject {
         guard let call = currentCall else { return }
         
         // Stop voice verification
-        deepfakeDetection.stopDetection()
+        voiceVerificationService.stopVerification()
         
         await MainActor.run {
             var endedCall = call
             endedCall.state = .ended
             endedCall.endedAt = Date()
             self.currentCall = endedCall
-            
-            // Persist call history
-            Task {
-                await self.storageService.saveCall(endedCall)
-            }
         }
         
         // Delay to show ended state
@@ -339,6 +336,19 @@ class CallManager: ObservableObject {
         }
         
         await callKitManager.reportCallEnded(callId: signal.callId)
+    }
+    
+    // MARK: - Voice Match Update
+    private func handleVoiceMatchUpdate(_ signal: CallSignal) async {
+        guard let call = currentCall, call.id == signal.callId else { return }
+        
+        await MainActor.run {
+            if let percentage = signal.payload.voiceMatchPercentage {
+                var updatedCall = call
+                updatedCall.voiceMatchPercentage = percentage
+                self.currentCall = updatedCall
+            }
+        }
     }
     
     // MARK: - Helpers
