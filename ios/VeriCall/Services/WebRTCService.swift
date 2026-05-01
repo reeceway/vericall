@@ -205,7 +205,7 @@ final class AudioStreamService: ObservableObject {
             try session.setCategory(
                 .playAndRecord,
                 mode: .voiceChat,
-                options: [.allowBluetooth]
+                options: [.allowBluetoothHFP]
             )
             try session.setPreferredIOBufferDuration(0.005) // 5ms buffer for ultra-low latency P2P
             try session.setActive(true)

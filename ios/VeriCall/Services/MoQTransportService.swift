@@ -33,6 +33,10 @@ class MoQTransportService: ObservableObject {
     private var listener: NWListener?
     private var connection: NWConnection?
     private var audioStream: NWConnection? // Individual stream for audio data
+    private let sendControlQueue = DispatchQueue(label: "com.vericall.moq.sendControl")
+    private let maxPendingSendPackets = 8
+    nonisolated(unsafe) private var pendingSendPackets = 0
+    nonisolated(unsafe) private var droppedSendPackets = 0
     
     // MARK: - Callbacks
     
@@ -80,12 +84,20 @@ class MoQTransportService: ObservableObject {
     
     /// Connect to a specific peer endpoint (discovered via Bonjour or manual IP)
     func connect(to endpoint: NWEndpoint) {
-        stop() // Ensure clean slate
+        // Keep listener alive so peers can still route inbound media while we dial out.
+        connection?.cancel()
+        connection = nil
         
         print("[MoQ] Connecting to \(endpoint)...")
         state = .connecting
         
         let parameters = createQUICParameters()
+        if let listenerPort = listener?.port {
+            parameters.requiredLocalEndpoint = NWEndpoint.hostPort(
+                host: NWEndpoint.Host("0.0.0.0"),
+                port: listenerPort
+            )
+        }
         let newConnection = NWConnection(to: endpoint, using: parameters)
         
         newConnection.stateUpdateHandler = { [weak self] state in
@@ -107,13 +119,34 @@ class MoQTransportService: ObservableObject {
     /// For this version, we send raw data chunks.
     func sendAudio(_ data: Data) {
         guard let connection = connection, state.isConnected else { return }
+        guard !data.isEmpty else { return }
+
+        let shouldDrop = sendControlQueue.sync { () -> Bool in
+            if pendingSendPackets >= maxPendingSendPackets {
+                droppedSendPackets += 1
+                return true
+            }
+            pendingSendPackets += 1
+            return false
+        }
+        if shouldDrop {
+            let dropped = sendControlQueue.sync { droppedSendPackets }
+            if dropped % 50 == 0 {
+                print("[MoQ] Dropping stale AI packet to protect latency (dropped=\(dropped))")
+            }
+            return
+        }
         
         // In QUIC, we can send on the main connection (as a stream) or create sub-streams.
         // For simplicity and low latency, we'll send as a message on the main connection context
         // marked as "idempotent" if possible, or just standard messaging.
         // Network.framework QUIC maps `send` to QUIC streams automatically.
         
-        connection.send(content: data, completion: .contentProcessed { error in
+        connection.send(content: data, completion: .contentProcessed { [weak self] error in
+            self?.sendControlQueue.async {
+                guard let self else { return }
+                self.pendingSendPackets = max(0, self.pendingSendPackets - 1)
+            }
             if let error = error {
                 print("[MoQ] Send error: \(error)")
             }
@@ -127,6 +160,10 @@ class MoQTransportService: ObservableObject {
         
         connection?.cancel()
         connection = nil
+        sendControlQueue.sync {
+            pendingSendPackets = 0
+            droppedSendPackets = 0
+        }
         
         state = .disconnected
     }
@@ -134,22 +171,12 @@ class MoQTransportService: ObservableObject {
     // MARK: - Internal Handling
     
     private func createQUICParameters() -> NWParameters {
-        let parameters = NWParameters.quic(alpn: appProtocols)
-        
-        // Security configuration (TLS 1.3 is built-in to QUIC)
-        // For local P2P dev without signed certs, we might need to trust self-signed.
-        // In production, use proper Identity.
-        
-        if let securityOptions = parameters.defaultProtocolStack.applicationProtocols[0] as? NWProtocolTLS.Options {
-             sec_protocol_options_set_verify_block(securityOptions.securityProtocolOptions, { (sec_protocol_metadata, sec_trust, sec_protocol_verify_complete) in
-                 // TRUST ALL CERTIFICATES FOR LOCAL P2P DEMO
-                 // TODO: Implement proper trust logic with DeviceCrypto keys
-                 let _ = sec_trust_copy_ref(sec_trust).takeRetainedValue()
-                 sec_protocol_verify_complete(true)
-             }, .main)
-        }
-        
-        return parameters
+        // QUIC currently fails with NoAuth in this environment; use UDP transport for reliability.
+        print("[MoQ] Using UDP transport for AI stream")
+        let udpParameters = NWParameters.udp
+        udpParameters.allowFastOpen = true
+        udpParameters.allowLocalEndpointReuse = true
+        return udpParameters
     }
     
     private func handleListenerStateChange(_ newState: NWListener.State) {
@@ -207,8 +234,8 @@ class MoQTransportService: ObservableObject {
     private func startReceiving() {
         guard let connection = connection else { return }
         
-        // Receive loop
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] content, context, isComplete, error in
+        // UDP datagram receive loop.
+        connection.receiveMessage { [weak self] content, _, _, error in
             guard let self = self else { return }
             
             if let data = content, !data.isEmpty {
@@ -218,24 +245,41 @@ class MoQTransportService: ObservableObject {
             
             if let error = error {
                 print("[MoQ] Receive Error: \(error)")
+                self.state = .failed(error)
                 return
             }
-            
-            if isComplete {
-                print("[MoQ] Peer closed connection")
-                self.stop()
-                return
+
+            // Continue receiving until the connection is cancelled/torn down.
+            if self.connection != nil {
+                self.startReceiving()
             }
-            
-            // Continue receiving
-            self.startReceiving()
         }
     }
     
     // MARK: - Helpers
     
     private func getDeviceName() -> String {
-        return UserDefaults.standard.string(forKey: "userName") ?? UIDevice.current.name
+        let defaults = UserDefaults.standard
+        if let userId = defaults.string(forKey: "authUserId"), !userId.isEmpty {
+            let normalizedUser = userId.replacingOccurrences(of: "-", with: "").lowercased()
+            let userPart = String(normalizedUser.prefix(8))
+            let vendorId = UIDevice.current.identifierForVendor?.uuidString ?? ""
+            let normalizedVendor = vendorId.replacingOccurrences(of: "-", with: "").lowercased()
+            let vendorPart = String(normalizedVendor.prefix(6))
+            if !vendorPart.isEmpty {
+                return "vc-\(userPart)-\(vendorPart)"
+            }
+            return "vc-\(userPart)"
+        }
+
+        if let cached = defaults.string(forKey: "vericallPeerServiceName"), !cached.isEmpty {
+            return cached
+        }
+
+        let randomSuffix = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+        let fallback = "vc-\(String(randomSuffix.prefix(12)))"
+        defaults.set(fallback, forKey: "vericallPeerServiceName")
+        return fallback
     }
 }
 

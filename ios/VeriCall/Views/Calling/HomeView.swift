@@ -107,10 +107,12 @@ class HomeViewModel: ObservableObject {
     
     func callBack(_ entry: CallHistoryEntry) {
         Task {
+            let remoteId = entry.call.direction == .incoming ? entry.call.callerId : entry.call.recipientId
+            let derivedPhoneNumber = Constants.phoneNumber(fromTwilioIdentity: remoteId)
             let contact = Contact(
-                id: entry.call.direction == .incoming ? entry.call.callerId : entry.call.recipientId,
+                id: remoteId,
                 name: entry.call.direction == .incoming ? entry.call.callerName : entry.call.recipientName,
-                phoneNumber: nil,
+                phoneNumber: derivedPhoneNumber,
                 email: nil,
                 isVerified: entry.call.isVerified,
                 isFavorite: false,
@@ -168,8 +170,9 @@ struct HomeView: View {
                     // TRUE FLUSH HEADER
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text("VeriCall")
-                                .font(.system(size: 34, weight: .black, design: .rounded))
+                            Text(Constants.appName.uppercased())
+                                .font(.system(size: 34, weight: .black, design: .monospaced))
+                                .tracking(1.8)
                                 .foregroundStyle(
                                     LinearGradient(colors: [.veriBlue, .veriLightBlue], startPoint: .leading, endPoint: .trailing)
                                 )
@@ -543,4 +546,3 @@ struct HomeEmptyStateView: View {
         }
     }
 }
-

@@ -4,18 +4,30 @@ import SwiftUI
 struct VeriCallApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var authService = AuthService()
-    
-    // Initialize NativeCallObserver to monitor regular phone calls
-    private let nativeCallObserver = NativeCallObserver.shared
-    
+    private let screenshotKind = AppStoreScreenshotKind.current()
+    private let videoDemoKind = VideoDemoKind.current()
+
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environmentObject(authService)
-                .onAppear {
-                    // Register any pending push tokens after login
-                    registerPendingPushTokens()
-                }
+            Group {
+                if let screenshotKind {
+                    AppStoreScreenshotView(kind: screenshotKind)
+                } else if let videoDemoKind {
+                    VideoDemoView(kind: videoDemoKind)
+                        .environmentObject(authService)
+                } else {
+                    RootView()
+                        .environmentObject(authService)
+                        .onAppear {
+                            registerPendingPushTokens()
+                        }
+                        .onOpenURL { url in
+                            if Constants.storeCompanyAccessCode(from: url) {
+                                print("[VeriCallApp] Stored company access code from invite URL")
+                            }
+                        }
+                    }
+            }
         }
     }
     

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PhoneInputView: View {
     @Binding var phoneNumber: String
+    let companyAccessCode: String?
     let onContinue: () -> Void
     let onBack: () -> Void
     
@@ -176,13 +177,43 @@ struct PhoneInputView: View {
 
         Task { @MainActor in
             do {
-                _ = try await authService.requestOTP(phoneNumber: fullNumber)
+                let accessCode = Constants.sendCompanyAccessCodeToBackend ? companyAccessCode : nil
+                _ = try await authService.requestOTP(phoneNumber: fullNumber, companyAccessCode: accessCode)
                 isLoading = false
                 onContinue()
             } catch {
                 isLoading = false
-                errorMessage = error.localizedDescription
+                errorMessage = friendlyPhoneInputErrorMessage(error)
             }
+        }
+    }
+
+    private func friendlyPhoneInputErrorMessage(_ error: Error) -> String {
+        guard let apiError = error as? APIError else {
+            return error.localizedDescription
+        }
+
+        switch apiError {
+        case .httpError(402, let message):
+            let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty
+                ? "Your company's MSP needs to finish billing setup before this access code can activate seats."
+                : trimmed
+        case .httpError(409, let message):
+            let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty
+                ? "This company access code cannot activate another seat right now. Ask your MSP for a new code."
+                : trimmed
+        case .httpError(403, let message):
+            let lowered = message.lowercased()
+            if lowered.contains("access code") {
+                return "That company access code wasn't accepted. Go back and check it, then try again."
+            }
+            return message.isEmpty ? "You don't have access to continue with this login." : message
+        case .httpError(_, let message):
+            return message.isEmpty ? error.localizedDescription : message
+        default:
+            return error.localizedDescription
         }
     }
 }
@@ -190,6 +221,7 @@ struct PhoneInputView: View {
 #Preview {
     PhoneInputView(
         phoneNumber: .constant(""),
+        companyAccessCode: nil,
         onContinue: {},
         onBack: {}
     )

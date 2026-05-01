@@ -194,13 +194,13 @@ public struct CompactDeepfakeIndicatorView: View {
         guard let result = result else {
             return isAnalyzing ? "Analyzing Audio" : "Not Analyzed"
         }
-        return result.isHuman ? "Human Voice" : "AI Detected"
+        return result.isHuman ? "Human Voice" : "Highly Likely Synthetic"
     }
 
     private var subtitleText: String {
         guard let result = result else {
             return isAnalyzing ? "Running AI detection..." : "No audio data"
         }
-        return result.isHuman ? "Real person speaking" : "Possible deepfake detected"
+        return result.isHuman ? "Real person speaking" : "Do not trust this voice"
     }
 }

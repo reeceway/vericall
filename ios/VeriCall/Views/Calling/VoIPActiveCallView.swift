@@ -1,17 +1,17 @@
 import SwiftUI
 
-/// Full-screen VoIP call view — handles both outgoing (calling...) and
-/// connected states with real-time AI deepfake detection.
+/// Full-screen Twilio call view with live spoof detection status.
 struct VoIPActiveCallView: View {
     @ObservedObject var callService = VoIPCallService.shared
     @Environment(\.dismiss) private var dismiss
+    @State private var demoBanner: VideoDemoBannerData?
+    private let isVideoDemoMode = VideoDemoKind.current() != nil
 
     var body: some View {
-        ZStack {
-            // Background
+        ZStack(alignment: .top) {
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color.black.opacity(0.95),
+                    isVideoDemoMode ? Color.black : Color.black.opacity(0.95),
                     Color(red: 0.05, green: 0.05, blue: 0.15)
                 ]),
                 startPoint: .top,
@@ -22,7 +22,6 @@ struct VoIPActiveCallView: View {
             VStack(spacing: 0) {
                 Spacer().frame(height: 70)
 
-                // Call state text
                 Text(callService.callState.displayText)
                     .font(.title3)
                     .fontWeight(.medium)
@@ -31,9 +30,7 @@ struct VoIPActiveCallView: View {
 
                 Spacer().frame(height: 24)
 
-                // Avatar
                 ZStack {
-                    // Pulsing ring when calling
                     if callService.callState == .calling || callService.callState == .connecting {
                         Circle()
                             .stroke(Color.green.opacity(0.3), lineWidth: 3)
@@ -43,7 +40,6 @@ struct VoIPActiveCallView: View {
                             .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: callService.callState)
                     }
 
-                    // Avatar ring color based on detection
                     Circle()
                         .fill(avatarColor.opacity(0.25))
                         .frame(width: 140, height: 140)
@@ -55,14 +51,12 @@ struct VoIPActiveCallView: View {
 
                 Spacer().frame(height: 16)
 
-                // Remote name
                 Text(callService.currentCall?.remoteName ?? "Unknown")
                     .font(.system(size: 32, weight: .semibold))
                     .foregroundColor(.white)
 
                 Spacer().frame(height: 8)
 
-                // Duration
                 if callService.callState == .connected {
                     Text(callService.formattedDuration)
                         .font(.system(size: 28, weight: .medium))
@@ -70,21 +64,20 @@ struct VoIPActiveCallView: View {
                         .monospacedDigit()
                 }
 
-                Spacer().frame(height: 20)
+                Spacer().frame(height: 24)
 
-                // AI Detection status
                 if callService.callState == .connected {
-                    deepfakeDetectionSection
+                    aiVerificationSection
                 }
 
                 Spacer()
 
-                // Controls
-                if callService.callState == .connected || callService.callState == .calling || callService.callState == .connecting {
+                if callService.callState == .connected ||
+                   callService.callState == .calling ||
+                   callService.callState == .connecting {
                     callControls
                 }
 
-                // End state
                 if callService.callState == .ended || callService.callState.isFailure {
                     VStack(spacing: 16) {
                         Image(systemName: "phone.down.fill")
@@ -105,61 +98,58 @@ struct VoIPActiveCallView: View {
                 Spacer().frame(height: 40)
             }
             .padding()
+
+            if let demoBanner {
+                VideoDemoNotificationBanner(banner: demoBanner)
+                    .padding(.top, 10)
+                    .padding(.horizontal, 12)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
         .interactiveDismissDisabled(callService.callState.isActive)
         .onChange(of: callService.callState) { newState in
-            if newState == .idle {
-                dismiss()
-            }
+            if newState == .idle { dismiss() }
+        }
+        .task {
+            await configureVideoDemoBanner()
         }
     }
 
-    // MARK: - AI Detection Section
+    // MARK: - AI Verification Section
 
     @ViewBuilder
-    private var deepfakeDetectionSection: some View {
-        if let result = callService.deepfakeResult {
-            VStack(spacing: 12) {
-                // Main status
-                HStack(spacing: 8) {
-                    Image(systemName: result.isHuman ? "checkmark.shield.fill" : "exclamationmark.triangle.fill")
-                        .font(.title2)
-                    Text(result.isHuman ? "Human Detected" : "AI Detected")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                }
-                .foregroundColor(result.isHuman ? .green : .red)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 12)
-                .background(
-                    Capsule()
-                        .fill((result.isHuman ? Color.green : Color.red).opacity(0.2))
-                        .overlay(
-                            Capsule()
-                                .stroke((result.isHuman ? Color.green : Color.red).opacity(0.5), lineWidth: 1)
-                        )
-                )
-
-                // Confidence
-                Text("Confidence: \(Int(result.confidence * 100))%")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.6))
-
-                // Processing time
-                Text("\(String(format: "%.0f", result.processingTimeMs))ms")
+    private var aiVerificationSection: some View {
+        VStack(spacing: 10) {
+            aiVoiceChip
+            if showsAIDiagnostics {
+                Text(callService.aiDiagnosticsText)
                     .font(.caption2)
-                    .foregroundColor(.white.opacity(0.4))
-            }
-        } else {
-            // Analyzing state
-            HStack(spacing: 8) {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                Text("Analyzing audio with AI...")
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(.white.opacity(0.55))
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        .padding(.horizontal, 24)
+    }
+
+    @ViewBuilder
+    private var aiVoiceChip: some View {
+        if let spoof = callService.spoofResult {
+            spoofChip(for: spoof)
+        } else {
+            LoadingChip()
+        }
+    }
+
+    @ViewBuilder
+    private func spoofChip(for spoof: SpoofResult) -> some View {
+        let chipColor = chipColor(for: spoof)
+        VerificationChip(
+            icon: chipIcon(for: spoof),
+            label: chipLabel(for: spoof),
+            sublabel: chipSublabel(for: spoof),
+            color: chipColor
+        )
     }
 
     // MARK: - Call Controls
@@ -167,7 +157,6 @@ struct VoIPActiveCallView: View {
     @ViewBuilder
     private var callControls: some View {
         VStack(spacing: 40) {
-            // Mute / Speaker
             if callService.callState == .connected {
                 HStack(spacing: 60) {
                     CallControlButton(
@@ -177,7 +166,6 @@ struct VoIPActiveCallView: View {
                         backgroundColor: callService.isMuted ? Color.red.opacity(0.3) : Color.white.opacity(0.2),
                         action: { callService.toggleMute() }
                     )
-
                     CallControlButton(
                         icon: callService.isSpeakerOn ? "speaker.wave.3.fill" : "speaker.fill",
                         label: "Speaker",
@@ -188,7 +176,6 @@ struct VoIPActiveCallView: View {
                 }
             }
 
-            // End call
             Button(action: { callService.endCall() }) {
                 HStack(spacing: 12) {
                     Image(systemName: "phone.down.fill")
@@ -219,22 +206,135 @@ struct VoIPActiveCallView: View {
     }
 
     private var avatarColor: Color {
-        guard let result = callService.deepfakeResult else {
-            return .white
+        if let spoof = callService.spoofResult {
+            return chipColor(for: spoof)
         }
-        return result.isHuman ? .green : .red
+        return .white
+    }
+
+    private var showsAIDiagnostics: Bool {
+        UserDefaults.standard.bool(forKey: AIAnalysisService.debugCaptureEnabledKey)
+    }
+
+    private func chipLabel(for spoof: SpoofResult) -> String {
+        switch spoof.verdict {
+        case .human:
+            return "Human Voice"
+        case .likelyFake:
+            return "Highly Likely Synthetic"
+        case .uncertain:
+            return spoof.supportingWindows < AudioConfiguration.spoofWarmupWindowsCall
+                ? "Checking Voice"
+                : "Likely Synthetic Voice"
+        }
+    }
+
+    private func chipSublabel(for spoof: SpoofResult) -> String {
+        switch spoof.verdict {
+        case .human:
+            return "Live speech verified"
+        case .likelyFake:
+            return "Do not trust this voice"
+        case .uncertain:
+            if spoof.supportingWindows < AudioConfiguration.spoofWarmupWindowsCall {
+                return "Collecting live speech"
+            }
+            return "Do not trust this voice yet"
+        }
+    }
+
+    private func chipIcon(for spoof: SpoofResult) -> String {
+        switch spoof.verdict {
+        case .human:
+            return "checkmark.shield.fill"
+        case .likelyFake:
+            return "exclamationmark.triangle.fill"
+        case .uncertain:
+            return "waveform.badge.magnifyingglass"
+        }
+    }
+
+    private func chipColor(for spoof: SpoofResult) -> Color {
+        switch spoof.verdict {
+        case .human:
+            return .green
+        case .likelyFake:
+            return .red
+        case .uncertain:
+            return .orange
+        }
+    }
+
+    private func configureVideoDemoBanner() async {
+        await MainActor.run {
+            demoBanner = nil
+        }
+
+        guard let banner = VideoDemoKind.current()?.activeCallBanner else { return }
+
+        try? await Task.sleep(for: .seconds(0.9))
+        guard !Task.isCancelled else { return }
+
+        await MainActor.run {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                demoBanner = banner
+            }
+        }
     }
 }
 
-// MARK: - State extension
-extension VoIPCallState {
-    var isFailure: Bool {
-        if case .failed = self { return true }
-        return false
+// MARK: - Chip Components
+
+private struct VerificationChip: View {
+    let icon: String
+    let label: String
+    let sublabel: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: icon).font(.subheadline)
+                Text(label).font(.subheadline).fontWeight(.semibold)
+            }
+            .foregroundColor(color)
+            Text(sublabel).font(.caption2).foregroundColor(color.opacity(0.75))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 64)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(color.opacity(0.15))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.4), lineWidth: 1))
+        )
     }
 }
 
-// MARK: - Preview
+private struct LoadingChip: View {
+    var body: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 6) {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .scaleEffect(0.75)
+                Text("Listening for Caller").font(.subheadline).fontWeight(.semibold).foregroundColor(.white.opacity(0.7))
+            }
+            Text("Waiting for speech").font(.caption2).foregroundColor(.white.opacity(0.4))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 64)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.white.opacity(0.08))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.2), lineWidth: 1))
+        )
+    }
+}
+
 struct VoIPActiveCallView_Previews: PreviewProvider {
     static var previews: some View {
         VoIPActiveCallView()

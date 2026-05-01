@@ -31,8 +31,9 @@ struct WelcomeView: View {
             
             // Title and subtitle
             VStack(spacing: 16) {
-                Text("VeriCall")
-                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                Text(Constants.appName.uppercased())
+                    .font(.system(size: 42, weight: .black, design: .monospaced))
+                    .tracking(2.0)
                     .foregroundColor(.veriDark)
                 
                 Text("Secure, verified calls")

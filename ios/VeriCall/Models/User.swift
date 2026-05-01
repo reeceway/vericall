@@ -78,9 +78,19 @@ struct AuthResponse: Codable {
 
 struct OTPRequest: Codable {
     let phoneNumber: String
+    let companyAccessCode: String?
+    let accessGrantToken: String?
 
     enum CodingKeys: String, CodingKey {
         case phoneNumber = "phone_number"
+        case companyAccessCode = "access_code"
+        case accessGrantToken = "access_grant_token"
+    }
+
+    init(phoneNumber: String, companyAccessCode: String? = nil, accessGrantToken: String? = nil) {
+        self.phoneNumber = phoneNumber
+        self.companyAccessCode = companyAccessCode
+        self.accessGrantToken = accessGrantToken
     }
 }
 
@@ -88,11 +98,13 @@ struct OTPVerifyRequest: Codable {
     let phoneNumber: String
     let otp: String
     let publicKey: String?
+    let accessGrantToken: String?
 
     enum CodingKeys: String, CodingKey {
         case phoneNumber = "phone_number"
         case otp
         case publicKey = "public_key"
+        case accessGrantToken = "access_grant_token"
     }
 }
 
@@ -103,6 +115,71 @@ struct OTPResponse: Codable {
     enum CodingKeys: String, CodingKey {
         case message
         case phoneNumber = "phone_number"
+    }
+}
+
+struct AccessCodeValidationResponse: Codable {
+    let valid: Bool
+    let message: String?
+    let organizationId: String?
+    let organizationName: String?
+    let mspId: String?
+    let mspName: String?
+    let accessCodeId: String?
+    let grantToken: String?
+    let seatPriceCents: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case valid
+        case message
+        case organizationId = "organization_id"
+        case organizationName = "organization_name"
+        case mspId = "msp_id"
+        case mspName = "msp_name"
+        case accessCodeId = "access_code_id"
+        case grantToken = "grant_token"
+        case seatPriceCents = "seat_price_cents"
+    }
+
+    var accessContext: CompanyAccessContext? {
+        guard
+            let organizationId,
+            let organizationName,
+            let mspId,
+            let mspName,
+            let accessCodeId
+        else {
+            return nil
+        }
+        return CompanyAccessContext(
+            organizationId: organizationId,
+            organizationName: organizationName,
+            mspId: mspId,
+            mspName: mspName,
+            accessCodeId: accessCodeId,
+            grantToken: grantToken,
+            seatPriceCents: seatPriceCents
+        )
+    }
+}
+
+struct CompanyAccessContext: Codable {
+    let organizationId: String
+    let organizationName: String
+    let mspId: String
+    let mspName: String
+    let accessCodeId: String
+    var grantToken: String?
+    let seatPriceCents: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case organizationId = "organization_id"
+        case organizationName = "organization_name"
+        case mspId = "msp_id"
+        case mspName = "msp_name"
+        case accessCodeId = "access_code_id"
+        case grantToken = "grant_token"
+        case seatPriceCents = "seat_price_cents"
     }
 }
 
@@ -131,3 +208,82 @@ struct ContactSyncResponse: Codable {
     }
 }
 
+struct TwilioVoiceAccessTokenResponse: Codable {
+    let token: String
+    let identity: String?
+    let expiresIn: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case token
+        case identity
+        case expiresIn = "expires_in"
+    }
+}
+
+struct TwilioConferenceInviteResponse: Codable {
+    let callSid: String
+    let from: String
+    let to: String
+    let room: String
+
+    enum CodingKeys: String, CodingKey {
+        case callSid = "call_sid"
+        case from
+        case to
+        case room
+    }
+}
+
+struct TwilioAIAudioMirrorResponse: Codable {
+    let session: String
+    let sampleRate: Int
+    let remoteCursor: Int
+    let localCursor: Int
+    let remotePCM16Base64: String?
+    let localPCM16Base64: String?
+    let remoteSamples: Int
+    let localSamples: Int
+    let active: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case session
+        case sampleRate = "sample_rate"
+        case remoteCursor = "remote_cursor"
+        case localCursor = "local_cursor"
+        case remotePCM16Base64 = "remote_pcm16_base64"
+        case localPCM16Base64 = "local_pcm16_base64"
+        case remoteSamples = "remote_samples"
+        case localSamples = "local_samples"
+        case active
+    }
+}
+
+struct AccountDeletionPreparationResponse: Codable {
+    let mode: String
+    let deletionToken: String?
+    let manageURL: String?
+    let expiresAt: String?
+    let message: String?
+
+    enum CodingKeys: String, CodingKey {
+        case mode
+        case deletionToken = "deletion_token"
+        case manageURL = "manage_url"
+        case expiresAt = "expires_at"
+        case message
+    }
+}
+
+struct AccountDeletionResponse: Codable {
+    let status: String
+    let deactivatedMemberships: Int
+    let organizations: [String]
+    let deviceBindingRemoved: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case status
+        case deactivatedMemberships = "deactivated_memberships"
+        case organizations
+        case deviceBindingRemoved = "device_binding_removed"
+    }
+}

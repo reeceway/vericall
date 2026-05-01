@@ -13,13 +13,18 @@ actor KeychainService {
     
     private init() {}
     
-    func save(data: Data, service: String, account: String) throws {
+    func save(
+        data: Data,
+        service: String,
+        account: String,
+        accessibility: CFString = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+    ) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
             kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            kSecAttrAccessible as String: accessibility
         ]
         
         let status = SecItemAdd(query as CFDictionary, nil)
@@ -33,7 +38,8 @@ actor KeychainService {
             ]
             
             let attributesToUpdate: [String: Any] = [
-                kSecValueData as String: data
+                kSecValueData as String: data,
+                kSecAttrAccessible as String: accessibility
             ]
             
             let updateStatus = SecItemUpdate(updateQuery as CFDictionary, attributesToUpdate as CFDictionary)
@@ -87,11 +93,16 @@ actor KeychainService {
     }
     
     // Convenience methods for common types
-    func saveString(_ string: String, service: String, account: String) throws {
+    func saveString(
+        _ string: String,
+        service: String,
+        account: String,
+        accessibility: CFString = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+    ) throws {
         guard let data = string.data(using: .utf8) else {
             throw KeychainError.invalidData
         }
-        try save(data: data, service: service, account: account)
+        try save(data: data, service: service, account: account, accessibility: accessibility)
     }
     
     func retrieveString(service: String, account: String) throws -> String {

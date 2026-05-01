@@ -35,7 +35,7 @@ struct ContactListView: View {
                             Image(systemName: "person.crop.circle.badge.questionmark")
                                 .font(.system(size: 40))
                                 .foregroundColor(.secondary)
-                            Text("VeriCall needs access to your contacts to identify VeriCall users you can verify calls with.")
+                            Text("\(Constants.appName) needs access to your contacts to identify people you can call securely.")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
@@ -50,7 +50,7 @@ struct ContactListView: View {
                 }
 
                 if !filteredVerifiedContacts.isEmpty {
-                    Section(header: Text("VeriCall Users")) {
+                    Section(header: Text("\(Constants.appName) Users")) {
                         ForEach(filteredVerifiedContacts) { contact in
                             ContactRowView(contact: contact, onCall: {
                                 initiateCall(to: contact)
@@ -160,11 +160,6 @@ struct ContactListView: View {
             .replacingOccurrences(of: ")", with: "")
 
         Task {
-            // Send the handshake BEFORE opening the Phone app.
-            // Once we open tel: URL, VeriCall goes to background and WebSocket drops.
-            await NativeCallObserver.shared.sendHandshakeBeforeCall(to: cleaned)
-
-            // Now open the Phone app
             if let url = URL(string: "tel://\(cleaned)") {
                 await UIApplication.shared.open(url)
             }
@@ -421,7 +416,7 @@ struct ContactCallSheet: View {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.shield.fill")
                                 .foregroundColor(.green)
-                            Text("VeriCall User")
+                            Text("\(Constants.appName) User")
                                 .font(.subheadline)
                                 .foregroundColor(.green)
                         }
@@ -458,7 +453,7 @@ struct ContactCallSheet: View {
                                 .font(.title)
                                 .foregroundColor(.white)
                         }
-                        Text("VeriCall")
+                        Text(Constants.appName)
                             .font(.caption)
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)

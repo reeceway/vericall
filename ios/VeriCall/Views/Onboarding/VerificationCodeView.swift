@@ -2,6 +2,7 @@ import SwiftUI
 
 struct VerificationCodeView: View {
     let phoneNumber: String
+    let companyAccessCode: String?
     @Binding var code: String
     let onVerified: () -> Void
     let onBack: () -> Void
@@ -11,6 +12,8 @@ struct VerificationCodeView: View {
     @State private var errorMessage: String?
     @State private var resendTimer = 30
     @State private var canResend = false
+    @State private var submittedCode: String?
+    @State private var resendCountdownTimer: Timer?
     
     @FocusState private var focusedField: Int?
     
@@ -78,22 +81,22 @@ struct VerificationCodeView: View {
                         .keyboardType(.numberPad)
                         .textContentType(.oneTimeCode)
                         .focused($focusedField, equals: code.count)
+                        .disabled(isLoading)
                         .opacity(0)
                         .frame(width: 0, height: 0)
                         .onChange(of: code) { newValue in
-                            // Limit to numbers only
-                            let filtered = newValue.filter { $0.isNumber }
-                            if filtered != newValue {
-                                code = filtered
+                            let sanitized = String(newValue.filter { $0.isNumber }.prefix(codeLength))
+                            if sanitized != newValue {
+                                code = sanitized
+                                return
                             }
-                            
-                            // Limit length
-                            if code.count > codeLength {
-                                code = String(code.prefix(codeLength))
+
+                            if sanitized.count < codeLength {
+                                submittedCode = nil
+                                errorMessage = nil
                             }
-                            
-                            // Auto-verify when complete
-                            if code.count == codeLength {
+
+                            if sanitized.count == codeLength {
                                 verifyCode()
                             }
                         }
@@ -136,6 +139,9 @@ struct VerificationCodeView: View {
             focusedField = 0
             startResendTimer()
         }
+        .onDisappear {
+            stopResendTimer()
+        }
     }
     
     private func codeDigit(at index: Int) -> String {
@@ -158,8 +164,9 @@ struct VerificationCodeView: View {
     }
     
     private func verifyCode() {
-        guard code.count == codeLength else { return }
+        guard code.count == codeLength, !isLoading, submittedCode != code else { return }
         
+        submittedCode = code
         isLoading = true
         errorMessage = nil
         focusedField = nil
@@ -171,7 +178,8 @@ struct VerificationCodeView: View {
                 onVerified()
             } catch {
                 isLoading = false
-                errorMessage = error.localizedDescription
+                submittedCode = nil
+                errorMessage = friendlyVerificationErrorMessage(error)
                 code = ""
                 focusedField = 0
             }
@@ -186,27 +194,71 @@ struct VerificationCodeView: View {
 
         Task { @MainActor in
             do {
-                _ = try await authService.requestOTP(phoneNumber: phoneNumber)
+                let accessCode = Constants.sendCompanyAccessCodeToBackend ? companyAccessCode : nil
+                _ = try await authService.requestOTP(phoneNumber: phoneNumber, companyAccessCode: accessCode)
                 isLoading = false
+                submittedCode = nil
+                code = ""
+                focusedField = 0
                 canResend = false
                 resendTimer = 30
                 startResendTimer()
             } catch {
                 isLoading = false
-                errorMessage = error.localizedDescription
+                errorMessage = friendlyVerificationErrorMessage(error)
             }
+        }
+    }
+
+    private func friendlyVerificationErrorMessage(_ error: Error) -> String {
+        guard let apiError = error as? APIError else {
+            return "We couldn't verify that code right now. Check your connection and try again."
+        }
+
+        switch apiError {
+        case .httpError(402, let message):
+            let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty
+                ? "Your company's MSP needs to finish billing setup before this access code can activate seats."
+                : trimmed
+        case .httpError(409, let message):
+            let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty
+                ? "This company access code cannot activate another seat right now. Ask your MSP for a new code."
+                : trimmed
+        case .httpError(400, let message), .httpError(403, let message):
+            let lowered = message.lowercased()
+            if lowered.contains("access grant") || lowered.contains("access code") {
+                return "Your access session expired. Go back one step and request a new code."
+            }
+            return "That verification code wasn't accepted. Request a new code and try again."
+        case .httpError(429, _):
+            return "Too many verification attempts. Wait a moment, then try again."
+        case .networkError:
+            return "We couldn't reach the server. Check your connection and try again."
+        case .unauthorized:
+            return "This verification session expired. Request a new code and try again."
+        default:
+            return "We couldn't verify that code right now. Request a new code and try again."
         }
     }
     
     private func startResendTimer() {
-        Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
+        stopResendTimer()
+        resendCountdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
             if resendTimer > 0 {
                 resendTimer -= 1
             } else {
                 canResend = true
                 timer.invalidate()
+                resendCountdownTimer = nil
             }
         }
+    }
+
+    private func stopResendTimer() {
+        resendCountdownTimer?.invalidate()
+        resendCountdownTimer = nil
     }
 }
 
@@ -241,6 +293,7 @@ struct CodeDigitBox: View {
 #Preview {
     VerificationCodeView(
         phoneNumber: "+15551234567",
+        companyAccessCode: nil,
         code: .constant(""),
         onVerified: {},
         onBack: {}

@@ -8,11 +8,20 @@ class WebSocketService: NSObject, ObservableObject {
     
     @Published var connectionStatus: ConnectionStatus = .disconnected
     
+    private enum WebSocketAuthMode: String {
+        case queryParam = "query-param"
+        case authMessage = "auth-message"
+    }
+    
     private var webSocketTask: URLSessionWebSocketTask?
     private var reconnectAttempts = 0
     private let maxReconnectAttempts = 5
     private var reconnectDelay: TimeInterval = 1.0
     private var isReconnecting = false
+    private var isSwitchingAuthMode = false
+    private var authMode: WebSocketAuthMode = .queryParam
+    private var authTokenForSession: String?
+    private var attemptedAuthMessageFallback = false
     
     private var signalContinuation: AsyncStream<CallSignal>.Continuation?
     
@@ -28,6 +37,10 @@ class WebSocketService: NSObject, ObservableObject {
     
     // MARK: - Connection
     func connect() {
+        connect(using: authMode)
+    }
+    
+    private func connect(using mode: WebSocketAuthMode) {
         guard webSocketTask == nil || webSocketTask?.state == .completed else {
             print("[WebSocketService] Already connected or connecting")
             return
@@ -41,18 +54,30 @@ class WebSocketService: NSObject, ObservableObject {
             connectionStatus = .error("Not authenticated")
             return
         }
+        authTokenForSession = token
+        authMode = mode
         
         print("[WebSocketService] ✅ Found auth token: \(token.prefix(20))...")
         
-        // Use Constants for the WebSocket URL + add /ws path with token as query param
-        let wsURLString = Constants.wsBaseURL + "/ws?token=\(token)"
+        let wsURLString: String
+        switch mode {
+        case .queryParam:
+            guard let encodedToken = token.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+                connectionStatus = .error("Failed to encode auth token")
+                return
+            }
+            wsURLString = Constants.wsBaseURL + "/ws?token=\(encodedToken)"
+        case .authMessage:
+            wsURLString = Constants.wsBaseURL + "/ws"
+        }
+        
         guard let url = URL(string: wsURLString) else {
             connectionStatus = .error("Invalid WebSocket URL")
             print("[WebSocketService] ❌ Invalid URL")
             return
         }
         
-        print("[WebSocketService] 📡 Connecting to: \(Constants.wsBaseURL)/ws")
+        print("[WebSocketService] 📡 Connecting to: \(Constants.wsBaseURL)/ws [\(mode.rawValue)]")
         
         var request = URLRequest(url: url)
         request.timeoutInterval = 30
@@ -79,6 +104,10 @@ class WebSocketService: NSObject, ObservableObject {
         webSocketTask = nil
         connectionStatus = .disconnected
         reconnectAttempts = 0
+        isSwitchingAuthMode = false
+        authMode = .queryParam
+        authTokenForSession = nil
+        attemptedAuthMessageFallback = false
     }
     
     // MARK: - Reconnection
@@ -132,7 +161,6 @@ class WebSocketService: NSObject, ObservableObject {
     private func handleMessage(_ message: URLSessionWebSocketTask.Message) {
         switch message {
         case .string(let text):
-            print("[WebSocketService] Received: \(text.prefix(200))")
             handleTextMessage(text)
         case .data(let data):
             handleBinaryMessage(data)
@@ -150,9 +178,26 @@ class WebSocketService: NSObject, ObservableObject {
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let messageType = json["type"] as? String {
             
+            if messageType == "error",
+               let message = json["message"] as? String,
+               shouldFallbackToAuthMessage(for: message) {
+                fallbackToAuthMessageMode()
+                return
+            }
+            
             // Route VoIP call signaling messages
             if messageType.hasPrefix("voip:") {
-                print("[WebSocketService] VoIP message: \(messageType)")
+                guard Constants.preferredCallProvider != .twilioVoice else {
+                    print("[WebSocketService] Ignoring legacy VoIP signaling while Twilio is active: \(messageType)")
+                    return
+                }
+                if messageType != "voip:audio" &&
+                    messageType != "voip:ai-audio" &&
+                    messageType != "voip:sdp-offer" &&
+                    messageType != "voip:sdp-answer" &&
+                    messageType != "voip:ice-candidate" {
+                    print("[WebSocketService] VoIP message: \(messageType)")
+                }
                 Task { @MainActor in
                     VoIPCallService.shared.handleSignalingMessage(json, type: messageType)
                 }
@@ -160,10 +205,7 @@ class WebSocketService: NSObject, ObservableObject {
             }
             
             if messageType.hasPrefix("native_call:") {
-                print("[WebSocketService] Native call message: \(messageType)")
-                Task { @MainActor in
-                    await handleNativeCallMessage(json: json, type: messageType)
-                }
+                print("[WebSocketService] Ignoring legacy native call message while Twilio is active: \(messageType)")
                 return
             }
         }
@@ -176,69 +218,44 @@ class WebSocketService: NSObject, ObservableObject {
         }
     }
     
-    @MainActor
-    private func handleNativeCallMessage(json: [String: Any], type: String) async {
-        let observer = NativeCallObserver.shared
-        let notificationService = NotificationService.shared
-
-        switch type {
-        case "native_call:handshake":
-            // Someone is calling us - device handshake (proves they have VeriCall)
-            print("[WebSocketService] Received device HANDSHAKE")
-            if let fromUserId = json["fromUserId"] as? String,
-               let phoneNumber = json["phoneNumber"] as? String {
-
-                let displayName = json["displayName"] as? String
-
-                // Show notification immediately
-                await notificationService.showCallVerificationNotification(
-                    callerName: displayName ?? phoneNumber,
-                    callerId: fromUserId,
-                    isDeviceVerified: true,
-                    hasVoiceThumbprint: false
-                )
-
-                await observer.handleReceivedHandshake(
-                    fromUserId: fromUserId,
-                    displayName: displayName,
-                    phoneNumber: phoneNumber
-                )
-            }
-
-        case "native_call:request_thumbprint":
-            print("[WebSocketService] Received handshake request")
-            if let fromUserId = json["fromUserId"] as? String,
-               let phoneNumber = json["phoneNumber"] as? String {
-                await observer.handleHandshakeRequest(fromUserId: fromUserId, phoneNumber: phoneNumber)
-            }
-
-        case "native_call:handshake_response":
-            // The other party confirmed they have VeriCall
-            print("[WebSocketService] Received handshake RESPONSE")
-            if let fromUserId = json["fromUserId"] as? String {
-                let displayName = json["displayName"] as? String
-                let phoneNumber = json["phoneNumber"] as? String ?? "Unknown"
-
-                await observer.handleReceivedHandshake(
-                    fromUserId: fromUserId,
-                    displayName: displayName,
-                    phoneNumber: phoneNumber
-                )
-            }
-
-        case "native_call:matched":
-            let matchedName = json["matched_name"] as? String ?? "Unknown"
-            print("[WebSocketService] Matching pool matched us with \(matchedName)")
-
-        case "native_call:waiting":
-            print("[WebSocketService] Added to matching pool - waiting for other VeriCall user...")
-
-        case "native_call:call_ended":
-            print("[WebSocketService] Other party ended the call")
-
-        default:
-            print("[WebSocketService] Unknown native call message type: \(type)")
+    private func shouldFallbackToAuthMessage(for errorMessage: String) -> Bool {
+        guard authMode == .queryParam else { return false }
+        guard !attemptedAuthMessageFallback else { return false }
+        
+        let normalized = errorMessage.lowercased()
+        return normalized.contains("expected auth message")
+    }
+    
+    private func fallbackToAuthMessageMode() {
+        guard authMode == .queryParam else { return }
+        guard !attemptedAuthMessageFallback else { return }
+        
+        print("[WebSocketService] Server expects auth payload. Retrying with auth-message mode.")
+        attemptedAuthMessageFallback = true
+        authMode = .authMessage
+        isSwitchingAuthMode = true
+        
+        webSocketTask?.cancel(with: .goingAway, reason: nil)
+        webSocketTask = nil
+        connectionStatus = .disconnected
+        
+        connect(using: .authMessage)
+    }
+    
+    private func sendAuthMessageIfNeeded() async throws {
+        guard authMode == .authMessage else { return }
+        guard let token = authTokenForSession else { return }
+        
+        let payload: [String: Any] = [
+            "type": "auth",
+            "token": token
+        ]
+        let data = try JSONSerialization.data(withJSONObject: payload)
+        guard let jsonString = String(data: data, encoding: .utf8) else {
+            throw CallError.signalingError("Failed to encode auth message")
         }
+        
+        try await webSocketTask?.send(.string(jsonString))
     }
     
     // MARK: - Send Signal
@@ -270,7 +287,14 @@ class WebSocketService: NSObject, ObservableObject {
             throw CallError.signalingError("Failed to encode raw message")
         }
         
-        print("[WebSocketService] Sending: \(jsonString.prefix(200))")
+        if let messageType = message["type"] as? String,
+           messageType != "voip:audio",
+           messageType != "voip:ai-audio",
+           messageType != "voip:sdp-offer",
+           messageType != "voip:sdp-answer",
+           messageType != "voip:ice-candidate" {
+            print("[WebSocketService] Sending: \(jsonString.prefix(200))")
+        }
         try await webSocketTask?.send(.string(jsonString))
     }
 
@@ -301,6 +325,9 @@ extension WebSocketService: URLSessionWebSocketDelegate {
             print("[WebSocketService] Connected!")
             self.connectionStatus = .connected
             self.reconnectAttempts = 0
+            if self.authMode == .authMessage {
+                try? await self.sendAuthMessageIfNeeded()
+            }
         }
     }
     
@@ -312,6 +339,10 @@ extension WebSocketService: URLSessionWebSocketDelegate {
     ) {
         Task { @MainActor in
             print("[WebSocketService] Closed with code: \(closeCode)")
+            if self.isSwitchingAuthMode {
+                self.isSwitchingAuthMode = false
+                return
+            }
             self.connectionStatus = .disconnected
             self.scheduleReconnect()
         }
@@ -325,6 +356,10 @@ extension WebSocketService: URLSessionWebSocketDelegate {
         if let error = error {
             Task { @MainActor in
                 print("[WebSocketService] Error: \(error)")
+                if self.isSwitchingAuthMode {
+                    self.isSwitchingAuthMode = false
+                    return
+                }
                 self.connectionStatus = .error(error.localizedDescription)
                 self.scheduleReconnect()
             }

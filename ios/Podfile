@@ -1,0 +1,11 @@
+source 'https://cdn.cocoapods.org/'
+
+platform :ios, '17.0'
+
+project 'VeriCall.xcodeproj'
+
+target 'VeriCall' do
+  use_frameworks!
+
+  pod 'TwilioVoice', '~> 6.13'
+end

@@ -24,33 +24,58 @@ actor DeviceCrypto {
     func generateDeviceKeypair() async throws -> String {
         // Delete any existing key
         try? await deleteDeviceKey()
-        
-        // Generate new P-256 key pair in Secure Enclave
-        let attributes: [String: Any] = [
-            kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
-            kSecAttrKeySizeInBits as String: 256,
-            kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
-            kSecPrivateKeyAttrs as String: [
-                kSecAttrIsPermanent as String: true,
-                kSecAttrApplicationTag as String: tag.data(using: .utf8)!,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-            ]
-        ]
-        
+
         var error: Unmanaged<CFError>?
-        guard let privateKey = SecKeyCreateRandomKey(attributes as CFDictionary, &error) else {
-            if let error = error?.takeRetainedValue() {
+
+        // Try Secure Enclave first (correct attributes: AccessControl, not Accessible)
+        let privateKey: SecKey? = {
+            guard let access = SecAccessControlCreateWithFlags(
+                kCFAllocatorDefault,
+                kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+                .privateKeyUsage,
+                nil
+            ) else { return nil }
+
+            let seAttrs: [String: Any] = [
+                kSecAttrKeyType as String:       kSecAttrKeyTypeECSECPrimeRandom,
+                kSecAttrKeySizeInBits as String: 256,
+                kSecAttrTokenID as String:       kSecAttrTokenIDSecureEnclave,
+                kSecPrivateKeyAttrs as String: [
+                    kSecAttrIsPermanent as String:    true,
+                    kSecAttrApplicationTag as String: tag.data(using: .utf8)!,
+                    kSecAttrAccessControl as String:  access
+                ]
+            ]
+            return SecKeyCreateRandomKey(seAttrs as CFDictionary, &error)
+        }()
+
+        // Fall back to software key if SE unavailable (simulator, some betas)
+        let resolvedKey: SecKey
+        if let key = privateKey {
+            resolvedKey = key
+        } else {
+            error = nil
+            let softAttrs: [String: Any] = [
+                kSecAttrKeyType as String:       kSecAttrKeyTypeECSECPrimeRandom,
+                kSecAttrKeySizeInBits as String: 256,
+                kSecPrivateKeyAttrs as String: [
+                    kSecAttrIsPermanent as String:    true,
+                    kSecAttrApplicationTag as String: tag.data(using: .utf8)!,
+                    kSecAttrAccessible as String:     kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+                ]
+            ]
+            guard let key = SecKeyCreateRandomKey(softAttrs as CFDictionary, &error) else {
                 throw DeviceCryptoError.keyGenerationFailed
             }
+            resolvedKey = key
+        }
+
+        guard let publicKey = SecKeyCopyPublicKey(resolvedKey) else {
             throw DeviceCryptoError.keyGenerationFailed
         }
-        
-        guard let publicKey = SecKeyCopyPublicKey(privateKey) else {
-            throw DeviceCryptoError.keyGenerationFailed
-        }
-        
-        // Export public key as base64
-        guard let publicKeyData = SecKeyCopyExternalRepresentation(publicKey, &error) else {
+
+        var exportError: Unmanaged<CFError>?
+        guard let publicKeyData = SecKeyCopyExternalRepresentation(publicKey, &exportError) else {
             throw DeviceCryptoError.keyGenerationFailed
         }
         

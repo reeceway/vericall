@@ -7,13 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B5F71640DB27493AB537D11E /* MoQTransportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF693AB1F276459F985BC11D /* MoQTransportService.swift */; };
-		54B8D5A35E3D48868575B989 /* SelfVoiceEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2C2B57FC3E4833BE05C18F /* SelfVoiceEnrollmentView.swift */; };
 		12AF4F17B16F937FF9FFC7E8 /* DeepfakeLabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75E84BBD74D5B78DDD7CE6AC /* DeepfakeLabView.swift */; };
+		2CB936AA2F7FB1EF00E347FE /* Pods_VeriCall.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3F9C622BECA1221736968764 /* Pods_VeriCall.framework */; };
+		2CB936AB2F7FB1EF00E347FE /* Pods_VeriCall.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3F9C622BECA1221736968764 /* Pods_VeriCall.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		51BE11E960584E8F8B4E97E7 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8DC5DE8EEA48EC95B89342 /* HomeView.swift */; };
 		520B93C5072545BEBC0D6AC9 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38711FD7CDD24875B2627F4E /* NotificationService.swift */; };
-		58CE7C5A81703712C5BE85E5 /* HemggDeepfake.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = CC000102 /* HemggDeepfake.mlpackage */; };
+		54B8D5A35E3D48868575B989 /* SelfVoiceEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2C2B57FC3E4833BE05C18F /* SelfVoiceEnrollmentView.swift */; };
 		80F9BF8EABFB42FFB1DFDC2A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2C1B317B561B414BBDB60D1F /* Assets.xcassets */; };
+		81498816882E4B66B93CBB21 /* VoiceEmbedder.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = D4B00DAE47804480951EF2D6 /* VoiceEmbedder.mlpackage */; };
 		922A9FC1C44741E4B6BCCBBA /* NativeCallObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7FF01B4311944159CE6F57F /* NativeCallObserver.swift */; };
 		9C12D55DDCE94811B6281481 /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A75B8120B0F49E8BD549550 /* StorageService.swift */; };
 		AA000001 /* VeriCallApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101 /* VeriCallApp.swift */; };
@@ -48,18 +49,28 @@
 		AA000037 /* ContactRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000138 /* ContactRowView.swift */; };
 		AA000038 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000139 /* ProfileSetupView.swift */; };
 		AA000040 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000141 /* SettingsView.swift */; };
-		BB000001 /* WebRTCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000101 /* WebRTCService.swift */; };
+		AA000041 /* PerformanceProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000142 /* PerformanceProfile.swift */; };
+		AA001101 /* CallTransportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001001 /* CallTransportService.swift */; };
+		AA001102 /* AIAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001002 /* AIAnalysisService.swift */; };
+		AA001103 /* VoiceEnrollmentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001003 /* VoiceEnrollmentService.swift */; };
+		AA001104 /* EmbedderWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001004 /* EmbedderWrapper.swift */; };
+		AA001105 /* VeriCallSpoofDetector.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = AA001005 /* VeriCallSpoofDetector.mlpackage */; };
+		AA001106 /* SpoofDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001006 /* SpoofDetector.swift */; };
+		AA001107 /* LegacyStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001007 /* LegacyStubs.swift */; };
+		AA001108 /* WebRTCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001008 /* WebRTCService.swift */; };
+		AA001109 /* MoQTransportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001009 /* MoQTransportService.swift */; };
+		AA001110 /* CallProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001010 /* CallProvider.swift */; };
+		AA001111 /* CustomP2PCallProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001011 /* CustomP2PCallProvider.swift */; };
+		AA001112 /* TwilioCallProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001012 /* TwilioCallProvider.swift */; };
+		AA001113 /* VeriCallSpoofHead.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = AA001013 /* VeriCallSpoofHead.mlmodel */; };
+		AA001114 /* TwilioCallService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001014 /* TwilioCallService.swift */; };
+		AA001115 /* ClassicSpoofDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001015 /* ClassicSpoofDetector.swift */; };
+		AA001116 /* VeriCallClassicSpoof.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = AA001016 /* VeriCallClassicSpoof.mlmodel */; };
 		BB000002 /* VoIPCallService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000102 /* VoIPCallService.swift */; };
 		BB000003 /* VoIPActiveCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000103 /* VoIPActiveCallView.swift */; };
 		BB000004 /* VoIPIncomingCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000104 /* VoIPIncomingCallView.swift */; };
-		CC000001 /* DeepfakeDetectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000101 /* DeepfakeDetectionService.swift */; };
-		CC000106 /* OpusDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000105 /* OpusDecoder.swift */; };
-		CC000107 /* RTPAudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000108 /* RTPAudioService.swift */; };
-		DD000010 /* onnxruntime.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DD000020 /* onnxruntime.xcframework */; };
-		DD000011 /* onnxruntime.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DD000020 /* onnxruntime.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		DD000012 /* WavLMDeepfake.onnx in Resources */ = {isa = PBXBuildFile; fileRef = DD000021 /* WavLMDeepfake.onnx */; };
-		DD000013 /* ONNXRunner.mm in Sources */ = {isa = PBXBuildFile; fileRef = DD000023 /* ONNXRunner.mm */; };
 		EE000001 /* UITestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000101 /* UITestView.swift */; };
+		FE000001 /* VideoDemoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE000101 /* VideoDemoView.swift */; };
 		F3F1498750604DA89CF7CEF5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DE526AC80224DE480E8D062 /* AppDelegate.swift */; };
 		FCC8334E5F4C4E4445B6ADC2 /* FirebasePushService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBDDF7A76D1B57460BA3FC82 /* FirebasePushService.swift */; };
 /* End PBXBuildFile section */
@@ -71,7 +82,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				DD000011 /* onnxruntime.xcframework in Embed Frameworks */,
+				2CB936AB2F7FB1EF00E347FE /* Pods_VeriCall.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -79,12 +90,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		FF693AB1F276459F985BC11D /* MoQTransportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoQTransportService.swift; sourceTree = "<group>"; };
-		FB2C2B57FC3E4833BE05C18F /* SelfVoiceEnrollmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfVoiceEnrollmentView.swift; sourceTree = "<group>"; };
 		2C1B317B561B414BBDB60D1F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		38711FD7CDD24875B2627F4E /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		3A75B8120B0F49E8BD549550 /* StorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageService.swift; sourceTree = "<group>"; };
+		3F9C622BECA1221736968764 /* Pods_VeriCall.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_VeriCall.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		75E84BBD74D5B78DDD7CE6AC /* DeepfakeLabView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeepfakeLabView.swift; sourceTree = "<group>"; };
+		77DD0300B175429D51FAFC8B /* Pods-VeriCall.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VeriCall.debug.xcconfig"; path = "Target Support Files/Pods-VeriCall/Pods-VeriCall.debug.xcconfig"; sourceTree = "<group>"; };
 		7DE526AC80224DE480E8D062 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		AA000100 /* VeriCall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VeriCall.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA000101 /* VeriCallApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VeriCallApp.swift; sourceTree = "<group>"; };
@@ -120,21 +131,33 @@
 		AA000138 /* ContactRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactRowView.swift; sourceTree = "<group>"; };
 		AA000139 /* ProfileSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSetupView.swift; sourceTree = "<group>"; };
 		AA000141 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		BB000101 /* WebRTCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCService.swift; sourceTree = "<group>"; };
+		AA000142 /* PerformanceProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceProfile.swift; sourceTree = "<group>"; };
+		AA001001 /* CallTransportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallTransportService.swift; sourceTree = "<group>"; };
+		AA001002 /* AIAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAnalysisService.swift; sourceTree = "<group>"; };
+		AA001003 /* VoiceEnrollmentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceEnrollmentService.swift; sourceTree = "<group>"; };
+		AA001004 /* EmbedderWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbedderWrapper.swift; sourceTree = "<group>"; };
+		AA001005 /* VeriCallSpoofDetector.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = VeriCallSpoofDetector.mlpackage; sourceTree = "<group>"; };
+		AA001006 /* SpoofDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpoofDetector.swift; sourceTree = "<group>"; };
+		AA001007 /* LegacyStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyStubs.swift; sourceTree = "<group>"; };
+		AA001008 /* WebRTCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCService.swift; sourceTree = "<group>"; };
+		AA001009 /* MoQTransportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoQTransportService.swift; sourceTree = "<group>"; };
+		AA001010 /* CallProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallProvider.swift; sourceTree = "<group>"; };
+		AA001011 /* CustomP2PCallProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomP2PCallProvider.swift; sourceTree = "<group>"; };
+		AA001012 /* TwilioCallProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwilioCallProvider.swift; sourceTree = "<group>"; };
+		AA001013 /* VeriCallSpoofHead.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = VeriCallSpoofHead.mlmodel; sourceTree = "<group>"; };
+		AA001014 /* TwilioCallService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwilioCallService.swift; sourceTree = "<group>"; };
+		AA001015 /* ClassicSpoofDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassicSpoofDetector.swift; sourceTree = "<group>"; };
+		AA001016 /* VeriCallClassicSpoof.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = VeriCallClassicSpoof.mlmodel; sourceTree = "<group>"; };
+		B43EEA33BDC35274FCB68CB8 /* Pods-VeriCall.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VeriCall.release.xcconfig"; path = "Target Support Files/Pods-VeriCall/Pods-VeriCall.release.xcconfig"; sourceTree = "<group>"; };
 		BB000102 /* VoIPCallService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoIPCallService.swift; sourceTree = "<group>"; };
 		BB000103 /* VoIPActiveCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoIPActiveCallView.swift; sourceTree = "<group>"; };
 		BB000104 /* VoIPIncomingCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoIPIncomingCallView.swift; sourceTree = "<group>"; };
-		CC000101 /* DeepfakeDetectionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepfakeDetectionService.swift; sourceTree = "<group>"; };
-		CC000105 /* OpusDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpusDecoder.swift; sourceTree = "<group>"; };
-		CC000108 /* RTPAudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RTPAudioService.swift; sourceTree = "<group>"; };
-		DD000020 /* onnxruntime.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = onnxruntime.xcframework; path = Frameworks/onnxruntime.xcframework; sourceTree = "<group>"; };
-		CC000102 /* HemggDeepfake.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = HemggDeepfake.mlpackage; sourceTree = "<group>"; };
+		D4B00DAE47804480951EF2D6 /* VoiceEmbedder.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = VoiceEmbedder.mlpackage; sourceTree = "<group>"; };
 		DC8DC5DE8EEA48EC95B89342 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
-		DD000022 /* VeriCall-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "VeriCall-Bridging-Header.h"; sourceTree = "<group>"; };
-		DD000023 /* ONNXRunner.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ONNXRunner.mm; sourceTree = "<group>"; };
-		DD000024 /* ONNXRunner.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ONNXRunner.h; sourceTree = "<group>"; };
 		E7FF01B4311944159CE6F57F /* NativeCallObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeCallObserver.swift; sourceTree = "<group>"; };
 		EE000101 /* UITestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestView.swift; sourceTree = "<group>"; };
+		FE000101 /* VideoDemoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDemoView.swift; sourceTree = "<group>"; };
+		FB2C2B57FC3E4833BE05C18F /* SelfVoiceEnrollmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfVoiceEnrollmentView.swift; sourceTree = "<group>"; };
 		FBDDF7A76D1B57460BA3FC82 /* FirebasePushService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebasePushService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -143,7 +166,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DD000010 /* onnxruntime.xcframework in Frameworks */,
+				2CB936AA2F7FB1EF00E347FE /* Pods_VeriCall.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -153,8 +176,9 @@
 		AA000300 = {
 			isa = PBXGroup;
 			children = (
-				DD000020 /* onnxruntime.xcframework */,
 				AA000301 /* VeriCall */,
+				FA1797A3E21C4E7A94CE55F9 /* Pods */,
+				D7FF33FA514D57FF3B95E25C /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -167,8 +191,6 @@
 				AA000304 /* Services */,
 				AA000305 /* Views */,
 				AA000306 /* Utils */,
-				DD000030 /* ORT */,
-				DD000022 /* VeriCall-Bridging-Header.h */,
 				AA000125 /* Info.plist */,
 			);
 			path = VeriCall;
@@ -181,7 +203,9 @@
 				7DE526AC80224DE480E8D062 /* AppDelegate.swift */,
 				AA000102 /* RootView.swift */,
 				AA000103 /* Constants.swift */,
+				AA000142 /* PerformanceProfile.swift */,
 				EE000101 /* UITestView.swift */,
+				FE000101 /* VideoDemoView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -189,11 +213,18 @@
 		AA000303 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				AA001005 /* VeriCallSpoofDetector.mlpackage */,
+				AA001013 /* VeriCallSpoofHead.mlmodel */,
+				AA001016 /* VeriCallClassicSpoof.mlmodel */,
+				D4B00DAE47804480951EF2D6 /* VoiceEmbedder.mlpackage */,
+				AA001006 /* SpoofDetector.swift */,
+				AA001015 /* ClassicSpoofDetector.swift */,
+				AA001004 /* EmbedderWrapper.swift */,
+				AA001007 /* LegacyStubs.swift */,
 				AA000104 /* User.swift */,
 				AA000105 /* CallModels.swift */,
 				AA000106 /* Call.swift */,
 				AA000133 /* VoiceModels.swift */,
-				CC000102 /* HemggDeepfake.mlpackage */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -201,7 +232,15 @@
 		AA000304 /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				FF693AB1F276459F985BC11D /* MoQTransportService.swift */,
+				AA001001 /* CallTransportService.swift */,
+				AA001010 /* CallProvider.swift */,
+				AA001011 /* CustomP2PCallProvider.swift */,
+				AA001012 /* TwilioCallProvider.swift */,
+				AA001014 /* TwilioCallService.swift */,
+				AA001002 /* AIAnalysisService.swift */,
+				AA001003 /* VoiceEnrollmentService.swift */,
+				AA001008 /* WebRTCService.swift */,
+				AA001009 /* MoQTransportService.swift */,
 				3A75B8120B0F49E8BD549550 /* StorageService.swift */,
 				AA000107 /* APIService.swift */,
 				E7FF01B4311944159CE6F57F /* NativeCallObserver.swift */,
@@ -216,11 +255,7 @@
 				AA000112 /* CallWebSocketService.swift */,
 				AA000127 /* WebSocketService.swift */,
 				AA000113 /* AudioRecorder.swift */,
-				BB000101 /* WebRTCService.swift */,
 				BB000102 /* VoIPCallService.swift */,
-				CC000101 /* DeepfakeDetectionService.swift */,
-				CC000105 /* OpusDecoder.swift */,
-				CC000108 /* RTPAudioService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -307,13 +342,21 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		DD000030 /* ORT */ = {
+		D7FF33FA514D57FF3B95E25C /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				DD000024 /* ONNXRunner.h */,
-				DD000023 /* ONNXRunner.mm */,
+				3F9C622BECA1221736968764 /* Pods_VeriCall.framework */,
 			);
-			path = ORT;
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		FA1797A3E21C4E7A94CE55F9 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				77DD0300B175429D51FAFC8B /* Pods-VeriCall.debug.xcconfig */,
+				B43EEA33BDC35274FCB68CB8 /* Pods-VeriCall.release.xcconfig */,
+			);
+			path = Pods;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -323,10 +366,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = AA000501 /* Build configuration list for PBXNativeTarget "VeriCall" */;
 			buildPhases = (
+				BFE02D5A9A81148F169D5D22 /* [CP] Check Pods Manifest.lock */,
 				AA000502 /* Sources */,
 				AA000200 /* Frameworks */,
 				AA000503 /* Resources */,
 				DD000800 /* Embed Frameworks */,
+				DFABF67209B557E875EA260A /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -376,18 +421,79 @@
 			buildActionMask = 2147483647;
 			files = (
 				80F9BF8EABFB42FFB1DFDC2A /* Assets.xcassets in Resources */,
-				DD000012 /* WavLMDeepfake.onnx in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		BFE02D5A9A81148F169D5D22 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-VeriCall-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		DFABF67209B557E875EA260A /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-VeriCall/Pods-VeriCall-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			inputPaths = (
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-VeriCall/Pods-VeriCall-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-VeriCall/Pods-VeriCall-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		AA000502 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B5F71640DB27493AB537D11E /* MoQTransportService.swift in Sources */,
+				AA001105 /* VeriCallSpoofDetector.mlpackage in Sources */,
+				AA001113 /* VeriCallSpoofHead.mlmodel in Sources */,
+				AA001116 /* VeriCallClassicSpoof.mlmodel in Sources */,
+				81498816882E4B66B93CBB21 /* VoiceEmbedder.mlpackage in Sources */,
+				AA001106 /* SpoofDetector.swift in Sources */,
+				AA001115 /* ClassicSpoofDetector.swift in Sources */,
+				AA001104 /* EmbedderWrapper.swift in Sources */,
+				AA001107 /* LegacyStubs.swift in Sources */,
+				AA001101 /* CallTransportService.swift in Sources */,
+				AA001110 /* CallProvider.swift in Sources */,
+				AA001111 /* CustomP2PCallProvider.swift in Sources */,
+				AA001112 /* TwilioCallProvider.swift in Sources */,
+				AA001114 /* TwilioCallService.swift in Sources */,
+				AA001102 /* AIAnalysisService.swift in Sources */,
+				AA001103 /* VoiceEnrollmentService.swift in Sources */,
+				AA001108 /* WebRTCService.swift in Sources */,
+				AA001109 /* MoQTransportService.swift in Sources */,
 				54B8D5A35E3D48868575B989 /* SelfVoiceEnrollmentView.swift in Sources */,
 				51BE11E960584E8F8B4E97E7 /* HomeView.swift in Sources */,
 				9C12D55DDCE94811B6281481 /* StorageService.swift in Sources */,
@@ -398,6 +504,7 @@
 				AA000001 /* VeriCallApp.swift in Sources */,
 				AA000002 /* RootView.swift in Sources */,
 				AA000003 /* Constants.swift in Sources */,
+				AA000041 /* PerformanceProfile.swift in Sources */,
 				AA000004 /* User.swift in Sources */,
 				AA000005 /* CallModels.swift in Sources */,
 				AA000006 /* Call.swift in Sources */,
@@ -427,16 +534,11 @@
 				AA000037 /* ContactRowView.swift in Sources */,
 				AA000038 /* ProfileSetupView.swift in Sources */,
 				AA000040 /* SettingsView.swift in Sources */,
-				BB000001 /* WebRTCService.swift in Sources */,
 				BB000002 /* VoIPCallService.swift in Sources */,
 				BB000003 /* VoIPActiveCallView.swift in Sources */,
 				BB000004 /* VoIPIncomingCallView.swift in Sources */,
-				CC000001 /* DeepfakeDetectionService.swift in Sources */,
-				CC000106 /* OpusDecoder.swift in Sources */,
-				CC000107 /* RTPAudioService.swift in Sources */,
-				DD000013 /* ONNXRunner.mm in Sources */,
 				EE000001 /* UITestView.swift in Sources */,
-				58CE7C5A81703712C5BE85E5 /* HemggDeepfake.mlpackage in Sources */,
+				FE000001 /* VideoDemoView.swift in Sources */,
 				12AF4F17B16F937FF9FFC7E8 /* DeepfakeLabView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -446,23 +548,22 @@
 /* Begin XCBuildConfiguration section */
 		AA000700 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 77DD0300B175429D51FAFC8B /* Pods-VeriCall.debug.xcconfig */;
 			buildSettings = {
+				APS_ENVIRONMENT = development;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = VeriCall/VeriCall.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 96294C9WZU;
 				ENABLE_PREVIEWS = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/Frameworks",
-				);
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/Frameworks/Headers",
-					"$(PROJECT_DIR)/VeriCall/ORT",
-				);
 				INFOPLIST_FILE = VeriCall/Info.plist;
+				INFOPLIST_KEY_CFBundleIconName = AppIcon;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -473,35 +574,34 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.vericall.app;
+				MARKETING_VERSION = 1.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.reeceway.vericall.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "VeriCall/VeriCall-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
 		AA000701 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = B43EEA33BDC35274FCB68CB8 /* Pods-VeriCall.release.xcconfig */;
 			buildSettings = {
+				APS_ENVIRONMENT = production;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = VeriCall/VeriCall.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 96294C9WZU;
 				ENABLE_PREVIEWS = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/Frameworks",
-				);
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/Frameworks/Headers",
-					"$(PROJECT_DIR)/VeriCall/ORT",
-				);
 				INFOPLIST_FILE = VeriCall/Info.plist;
+				INFOPLIST_KEY_CFBundleIconName = AppIcon;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -512,13 +612,13 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.vericall.app;
+				MARKETING_VERSION = 1.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vicall.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "VeriCall/VeriCall-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -557,7 +657,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = 96294C9WZU;
+				DEVELOPMENT_TEAM = VZDF47ZU5H;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -582,6 +682,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -622,7 +723,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 96294C9WZU;
+				DEVELOPMENT_TEAM = VZDF47ZU5H;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -640,6 +741,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};

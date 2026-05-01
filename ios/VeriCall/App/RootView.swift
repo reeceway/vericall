@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject var authService: AuthService
+    @State private var didStartAuthCheck = false
 
     var body: some View {
         Group {
@@ -12,6 +13,8 @@ struct RootView: View {
             }
         }
         .task {
+            guard !didStartAuthCheck else { return }
+            didStartAuthCheck = true
             await authService.checkExistingAuth()
         }
     }
@@ -19,56 +22,27 @@ struct RootView: View {
 
 struct MainTabView: View {
     @EnvironmentObject var authService: AuthService
-    @ObservedObject private var callObserver = NativeCallObserver.shared
     @ObservedObject private var voipCallService = VoIPCallService.shared
     @State private var showVoIPIncoming = false
     @State private var showVoIPActive = false
+    private let isVideoDemoMode = VideoDemoKind.current() != nil
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Call verification banner - shown during active native calls
-            if callObserver.verificationStatus.isActive {
-                CallVerificationBanner(
-                    status: callObserver.verificationStatus,
-                    remoteName: callObserver.remoteUserName
-                )
+        Group {
+            if isVideoDemoMode {
+                tabContent
+                    .overlay {
+                        demoCallOverlay
+                    }
+            } else {
+                tabContent
+                    .fullScreenCover(isPresented: $showVoIPIncoming) {
+                        VoIPIncomingCallView()
+                    }
+                    .fullScreenCover(isPresented: $showVoIPActive) {
+                        VoIPActiveCallView()
+                    }
             }
-
-            TabView {
-                HomeView()
-                .tabItem {
-                    Image(systemName: "phone.fill")
-                    Text("Home")
-                }
-
-                NavigationStack {
-                    ContactListView()
-                }
-                .tabItem {
-                    Image(systemName: "person.2.fill")
-                    Text("Contacts")
-                }
-
-                NavigationStack {
-                    SettingsView()
-                        .environmentObject(authService)
-                }
-                .tabItem {
-                    Image(systemName: "gear")
-                    Text("Settings")
-                }
-            }
-            .accentColor(.veriBlue)
-        }
-        .onAppear {
-            // Ensure WebSocket is connected and NativeCallObserver is initialized
-            _ = NativeCallObserver.shared
-        }
-        .fullScreenCover(isPresented: $showVoIPIncoming) {
-            VoIPIncomingCallView()
-        }
-        .fullScreenCover(isPresented: $showVoIPActive) {
-            VoIPActiveCallView()
         }
         .onChange(of: voipCallService.callState) {
             switch voipCallService.callState {
@@ -86,77 +60,53 @@ struct MainTabView: View {
             }
         }
     }
-}
 
-// MARK: - Call Verification Banner
-struct CallVerificationBanner: View {
-    let status: NativeCallVerificationStatus
-    let remoteName: String?
-
-    var body: some View {
-        HStack(spacing: 10) {
-            statusIcon
-                .font(.system(size: 16))
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(status.displayText)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-
-                if let name = remoteName {
-                    Text(name)
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
+    private var tabContent: some View {
+        TabView {
+            HomeView()
+                .tabItem {
+                    Image(systemName: "phone.fill")
+                    Text("Home")
                 }
-            }
 
-            Spacer()
-
-            if status == .sendingHandshake || status == .awaitingResponse || status == .monitoring {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    .scaleEffect(0.8)
+            NavigationStack {
+                ContactListView()
             }
+                .tabItem {
+                    Image(systemName: "person.2.fill")
+                    Text("Contacts")
+                }
+
+            NavigationStack {
+                SettingsView()
+                    .environmentObject(authService)
+            }
+                .tabItem {
+                    Image(systemName: "gear")
+                    Text("Settings")
+                }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(backgroundColor)
-        .animation(.easeInOut(duration: 0.3), value: status)
+        .accentColor(.veriBlue)
     }
 
     @ViewBuilder
-    private var statusIcon: some View {
-        switch status {
-        case .verified:
-            Image(systemName: "checkmark.shield.fill")
-                .foregroundColor(.white)
-        case .unverified:
-            Image(systemName: "exclamationmark.shield.fill")
-                .foregroundColor(.white)
-        case .monitoring, .sendingHandshake, .awaitingResponse:
-            Image(systemName: "shield.lefthalf.filled")
-                .foregroundColor(.white)
-        case .handshakeTimeout, .handshakeFailed, .recipientNotOnVeriCall:
-            Image(systemName: "shield.slash")
-                .foregroundColor(.white)
-        case .idle:
-            EmptyView()
-        }
-    }
+    private var demoCallOverlay: some View {
+        ZStack {
+            if showVoIPIncoming {
+                VoIPIncomingCallView()
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                    .zIndex(1)
+            }
 
-    private var backgroundColor: Color {
-        switch status {
-        case .verified:
-            return .green
-        case .unverified:
-            return .red
-        case .monitoring, .sendingHandshake, .awaitingResponse:
-            return .orange
-        case .handshakeTimeout, .handshakeFailed, .recipientNotOnVeriCall:
-            return .gray
-        case .idle:
-            return .clear
+            if showVoIPActive {
+                VoIPActiveCallView()
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                    .zIndex(2)
+            }
         }
+        .animation(.easeInOut(duration: 0.22), value: showVoIPIncoming)
+        .animation(.easeInOut(duration: 0.22), value: showVoIPActive)
     }
 }

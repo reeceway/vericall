@@ -78,7 +78,7 @@ class AudioRecorder: NSObject, ObservableObject {
         // Configure audio session
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
+            try session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetoothHFP, .defaultToSpeaker])
             try session.setActive(true)
         } catch {
             print("Failed to configure audio session: \(error.localizedDescription)")

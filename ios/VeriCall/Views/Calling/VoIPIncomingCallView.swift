@@ -4,14 +4,16 @@ import SwiftUI
 struct VoIPIncomingCallView: View {
     @ObservedObject var callService = VoIPCallService.shared
     @Environment(\.dismiss) private var dismiss
+    private let isVideoDemoMode = VideoDemoKind.current() != nil
+    private let isCallKitDemoMode = VideoDemoKind.current() == .callkitIncoming
     
     var body: some View {
         ZStack {
             // Background
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color.black.opacity(0.95),
-                    Color(red: 0.02, green: 0.1, blue: 0.02)
+                    Color.black,
+                    isCallKitDemoMode ? Color.black : Color(red: 0.02, green: 0.1, blue: 0.02)
                 ]),
                 startPoint: .top,
                 endPoint: .bottom
@@ -19,18 +21,19 @@ struct VoIPIncomingCallView: View {
             .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                Spacer().frame(height: 80)
+                Spacer().frame(height: isCallKitDemoMode ? 96 : 80)
                 
                 // Incoming call label
-                Text("VeriCall Incoming")
-                    .font(.title3)
-                    .fontWeight(.medium)
+                Text(isCallKitDemoMode ? "Incoming Call" : "\(Constants.appName) Incoming")
+                    .font(.system(size: isCallKitDemoMode ? 20 : 21, weight: .medium))
                     .foregroundColor(.white.opacity(0.8))
                 
                 Spacer().frame(height: 16)
                 
                 // Verification badge
-                if callService.isDeviceVerified {
+                if isCallKitDemoMode {
+                    EmptyView()
+                } else if callService.isDeviceVerified {
                     HStack(spacing: 6) {
                         Image(systemName: "checkmark.shield.fill")
                             .font(.title2)
@@ -65,22 +68,22 @@ struct VoIPIncomingCallView: View {
                 // Avatar with pulse animation
                 ZStack {
                     Circle()
-                        .stroke(Color.green.opacity(0.2), lineWidth: 2)
+                        .stroke((isCallKitDemoMode ? Color.white : Color.green).opacity(0.18), lineWidth: 2)
                         .frame(width: 160, height: 160)
                         .scaleEffect(pulseScale)
                         .opacity(pulseOpacity)
                         .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: pulseScale)
                     
                     Circle()
-                        .fill(callService.isDeviceVerified ? Color.green.opacity(0.3) : Color.gray.opacity(0.3))
+                        .fill((isCallKitDemoMode ? Color.white : (callService.isDeviceVerified ? Color.green : Color.gray)).opacity(0.18))
                         .frame(width: 120, height: 120)
                     
                     Text(initials)
                         .font(.system(size: 48, weight: .medium))
-                        .foregroundColor(callService.isDeviceVerified ? .green : .white)
+                        .foregroundColor(isCallKitDemoMode ? .white : (callService.isDeviceVerified ? .green : .white))
                 }
                 .overlay(alignment: .bottomTrailing) {
-                    if callService.isDeviceVerified {
+                    if callService.isDeviceVerified && !isCallKitDemoMode {
                         Image(systemName: "checkmark.seal.fill")
                             .foregroundColor(.green)
                             .font(.title)
@@ -92,17 +95,17 @@ struct VoIPIncomingCallView: View {
                 
                 // Caller name
                 Text(callService.currentCall?.remoteName ?? "Unknown")
-                    .font(.system(size: 36, weight: .medium))
+                    .font(.system(size: isCallKitDemoMode ? 38 : 36, weight: .medium))
                     .foregroundColor(.white)
                 
                 Spacer().frame(height: 8)
                 
-                Text("VoIP Call")
-                    .font(.title3)
-                    .foregroundColor(.white.opacity(0.6))
+                Text(isCallKitDemoMode ? "Vicall Audio" : "\(Constants.appName) Voice")
+                    .font(.system(size: isCallKitDemoMode ? 22 : 20, weight: .regular))
+                    .foregroundColor(.white.opacity(isCallKitDemoMode ? 0.72 : 0.6))
                 
-                if callService.isDeviceVerified {
-                    Text("AI deepfake detection will begin when answered")
+                if callService.isDeviceVerified && !isCallKitDemoMode {
+                    Text("Voice check starts when you answer")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.5))
                         .padding(.top, 8)
@@ -114,16 +117,20 @@ struct VoIPIncomingCallView: View {
                 HStack(spacing: 60) {
                     // Decline
                     Button(action: {
-                        callService.declineCall()
+                        if let callId = callService.currentCall?.id {
+                            CallKitManager.shared.performEndCall(callId: callId)
+                        } else {
+                            callService.declineCall()
+                        }
                         dismiss()
                     }) {
                         VStack(spacing: 12) {
                             ZStack {
                                 Circle()
                                     .fill(Color.red)
-                                    .frame(width: 80, height: 80)
+                                    .frame(width: isCallKitDemoMode ? 84 : 80, height: isCallKitDemoMode ? 84 : 80)
                                 Image(systemName: "phone.down.fill")
-                                    .font(.title)
+                                    .font(.system(size: 28, weight: .semibold))
                                     .foregroundColor(.white)
                             }
                             Text("Decline")
@@ -135,17 +142,21 @@ struct VoIPIncomingCallView: View {
                     
                     // Accept
                     Button(action: {
-                        Task {
-                            await callService.answerCall()
+                        if let callId = callService.currentCall?.id {
+                            CallKitManager.shared.performAnswerCall(callId: callId)
+                        } else {
+                            Task {
+                                await callService.answerCall()
+                            }
                         }
                     }) {
                         VStack(spacing: 12) {
                             ZStack {
                                 Circle()
                                     .fill(Color.green)
-                                    .frame(width: 80, height: 80)
+                                    .frame(width: isCallKitDemoMode ? 84 : 80, height: isCallKitDemoMode ? 84 : 80)
                                 Image(systemName: "phone.fill")
-                                    .font(.title)
+                                    .font(.system(size: 28, weight: .semibold))
                                     .foregroundColor(.white)
                             }
                             Text("Accept")

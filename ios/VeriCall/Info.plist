@@ -4,25 +4,36 @@
 <dict>
     <!-- App Identity -->
     <key>CFBundleDisplayName</key>
-    <string>VeriCall vDEBUG</string>
+    <string>Vicall</string>
     <key>CFBundleName</key>
-    <string>VeriCall</string>
+    <string>Vicall</string>
     <key>CFBundleIdentifier</key>
-    <string>com.vericall.app</string>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleVersion</key>
-    <string>999</string>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>CFBundleShortVersionString</key>
-    <string>9.9.9</string>
+    <string>$(MARKETING_VERSION)</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>com.reeceway.vericall.invite</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>vicall</string>
+            </array>
+        </dict>
+    </array>
     
     <!-- Required Permissions -->
     <key>NSMicrophoneUsageDescription</key>
-    <string>VeriCall needs access to your microphone to record voice samples for authentication and to make calls.</string>
+    <string>Vicall needs access to your microphone for secure voice calls and live voice checking.</string>
     
     <key>NSCameraUsageDescription</key>
-    <string>VeriCall needs access to your camera for future video calling features.</string>
+    <string>Vicall needs access to your camera for future video calling features.</string>
     
     <key>NSContactsUsageDescription</key>
-    <string>VeriCall needs access to your contacts to help you find and call your friends securely.</string>
+    <string>Vicall needs access to your contacts to show trusted caller names and help you call people securely.</string>
     
     <!-- Push Notifications -->
     <key>UIBackgroundModes</key>

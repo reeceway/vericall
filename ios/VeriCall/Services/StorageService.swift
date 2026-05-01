@@ -42,6 +42,16 @@ actor StorageService {
         callHistory.removeAll()
         persistCallHistory()
     }
+
+    func clearFavorites() {
+        favoriteIds.removeAll()
+        persistFavorites()
+    }
+
+    func clearAllLocalData() {
+        clearCallHistory()
+        clearFavorites()
+    }
     
     private func loadCallHistory() {
         guard let data = try? Data(contentsOf: historyFileURL) else { return }

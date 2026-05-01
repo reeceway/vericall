@@ -266,7 +266,7 @@ final class RTPAudioService: ObservableObject {
         do {
             // Use voice chat mode for lowest latency
             // Speaker option depends on isSpeakerOn setting
-            var options: AVAudioSession.CategoryOptions = [.allowBluetooth]
+            var options: AVAudioSession.CategoryOptions = [.allowBluetoothHFP]
             if isSpeakerOn {
                 options.insert(.defaultToSpeaker)
             }
