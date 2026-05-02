@@ -23,7 +23,6 @@ twilio_voice_service/.venv*/
 twilio_voice_service/browser_tests/node_modules/
 twilio_voice_service/browser_tests/test-results/
 node_modules/
-.github/workflows/
 
 # ML model packages (large binaries)
 ios/VeriCall/Models/*.mlpackage/
