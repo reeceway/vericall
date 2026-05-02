@@ -239,10 +239,14 @@ actor APIService {
     func fetchTwilioVoiceAccessToken(clientIdentity: String?, accessToken: String) async throws -> TwilioVoiceAccessTokenResponse {
         let endpoint = "\(Constants.twilioVoiceBaseURL)\(Constants.twilioVoiceTokenEndpoint)"
         let identity = clientIdentity ?? ""
+        let accountContext = await repairedVoiceAccountContextIfNeeded()
         let cacheKey = [
             identity,
             Constants.twilioPushEnvironment,
-            Constants.appBundleIdentifier
+            Constants.appBundleIdentifier,
+            accountContext?.mspId ?? "",
+            accountContext?.organizationId ?? "",
+            accountContext?.membershipId ?? ""
         ].joined(separator: "|")
 
         if let cached = cachedTwilioVoiceToken,
@@ -255,11 +259,17 @@ actor APIService {
             let identity: String
             let pushEnvironment: String
             let bundleIdentifier: String
+            let membershipId: String?
+            let organizationId: String?
+            let mspId: String?
 
             enum CodingKeys: String, CodingKey {
                 case identity
                 case pushEnvironment = "push_environment"
                 case bundleIdentifier = "bundle_identifier"
+                case membershipId = "membership_id"
+                case organizationId = "organization_id"
+                case mspId = "msp_id"
             }
         }
 
@@ -267,7 +277,10 @@ actor APIService {
             TokenRequest(
                 identity: identity,
                 pushEnvironment: Constants.twilioPushEnvironment,
-                bundleIdentifier: Constants.appBundleIdentifier
+                bundleIdentifier: Constants.appBundleIdentifier,
+                membershipId: accountContext?.membershipId,
+                organizationId: accountContext?.organizationId,
+                mspId: accountContext?.mspId
             )
         )
 
@@ -290,18 +303,25 @@ actor APIService {
 
     func syncTwilioVoiceBinding(identity: String, voipToken: String, context: String) async throws {
         let endpoint = "\(Constants.twilioVoiceBaseURL)\(Constants.twilioVoiceDeviceBindingEndpoint)"
+        let accountContext = await repairedVoiceAccountContextIfNeeded()
 
         struct BindingRequest: Codable {
             let identity: String
             let voipToken: String
             let platform: String
             let context: String
+            let membershipId: String?
+            let organizationId: String?
+            let mspId: String?
 
             enum CodingKeys: String, CodingKey {
                 case identity
                 case voipToken = "voip_token"
                 case platform
                 case context
+                case membershipId = "membership_id"
+                case organizationId = "organization_id"
+                case mspId = "msp_id"
             }
         }
 
@@ -314,7 +334,10 @@ actor APIService {
                 identity: identity,
                 voipToken: voipToken,
                 platform: "ios",
-                context: context
+                context: context,
+                membershipId: accountContext?.membershipId,
+                organizationId: accountContext?.organizationId,
+                mspId: accountContext?.mspId
             )
         )
 
@@ -337,16 +360,23 @@ actor APIService {
         accessToken: String
     ) async throws -> TwilioConferenceInviteResponse {
         let endpoint = "\(Constants.twilioVoiceBaseURL)\(Constants.twilioConferenceInviteEndpoint)"
+        let accountContext = await repairedVoiceAccountContextIfNeeded()
 
         struct InviteRequest: Codable {
             let to: String
             let fromIdentity: String
             let room: String
+            let fromMembershipId: String?
+            let fromOrganizationId: String?
+            let fromMspId: String?
 
             enum CodingKeys: String, CodingKey {
                 case to
                 case fromIdentity = "from_identity"
                 case room
+                case fromMembershipId = "from_membership_id"
+                case fromOrganizationId = "from_organization_id"
+                case fromMspId = "from_msp_id"
             }
         }
 
@@ -354,7 +384,10 @@ actor APIService {
             InviteRequest(
                 to: targetIdentity,
                 fromIdentity: callerIdentity,
-                room: room
+                room: room,
+                fromMembershipId: accountContext?.membershipId,
+                fromOrganizationId: accountContext?.organizationId,
+                fromMspId: accountContext?.mspId
             )
         )
 
@@ -364,6 +397,42 @@ actor APIService {
             body: body,
             accessToken: accessToken
         )
+    }
+
+    private func repairedVoiceAccountContextIfNeeded() async -> CompanyAccessContext? {
+        if let active = Constants.activeVoiceAccountContext(),
+           !active.mspId.isEmpty,
+           !active.organizationId.isEmpty {
+            return active
+        }
+
+        if let pending = Constants.storedPendingAccessContext(),
+           !pending.mspId.isEmpty,
+           !pending.organizationId.isEmpty {
+            Constants.storeActiveOrganizationContext(pending)
+            return pending
+        }
+
+        let phoneNumber = UserDefaults.standard.string(forKey: "userPhoneNumber") ?? ""
+        let accessCode = Constants.normalizedCompanyAccessCode(Constants.storedCompanyAccessCode())
+        guard !phoneNumber.isEmpty, !accessCode.isEmpty else {
+            return Constants.activeVoiceAccountContext()
+        }
+
+        do {
+            let validation = try await validateCompanyAccessCode(accessCode, phoneNumber: phoneNumber)
+            if var context = validation.accessContext,
+               !context.mspId.isEmpty,
+               !context.organizationId.isEmpty {
+                context.grantToken = nil
+                Constants.storeActiveOrganizationContext(context)
+                return context
+            }
+        } catch {
+            print("[APIService] Could not repair voice account context before Twilio request: \(error)")
+        }
+
+        return Constants.activeVoiceAccountContext()
     }
 
     func fetchTwilioAIAudioMirror(

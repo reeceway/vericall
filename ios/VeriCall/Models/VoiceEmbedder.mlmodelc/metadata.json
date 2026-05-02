@@ -1,0 +1,94 @@
+[
+  {
+    "shortDescription" : "ECAPA-TDNN speaker embedding model (192-dim)",
+    "metadataOutputVersion" : "3.0",
+    "outputSchema" : [
+      {
+        "hasShapeFlexibility" : "0",
+        "isOptional" : "0",
+        "dataType" : "Float16",
+        "formattedType" : "MultiArray (Float16 1 × 192)",
+        "shortDescription" : "",
+        "shape" : "[1, 192]",
+        "name" : "embedding",
+        "type" : "MultiArray"
+      }
+    ],
+    "version" : "1.0",
+    "modelParameters" : [
+
+    ],
+    "author" : "VeriCall",
+    "specificationVersion" : 7,
+    "storagePrecision" : "Float16",
+    "mlProgramOperationTypeHistogram" : {
+      "Transpose" : 2,
+      "Range1d" : 1,
+      "Ios16.gather" : 1,
+      "Squeeze" : 1,
+      "Ios16.reduceMean" : 3,
+      "Ios16.softmax" : 1,
+      "Split" : 3,
+      "Select" : 2,
+      "Concat" : 8,
+      "Ios16.add" : 21,
+      "Ios16.sigmoid" : 3,
+      "Ios16.realDiv" : 2,
+      "Tile" : 3,
+      "Ios16.reduceSum" : 5,
+      "Shape" : 2,
+      "Pad" : 22,
+      "ExpandDims" : 7,
+      "Ios16.sub" : 2,
+      "Ios16.cast" : 3,
+      "Ios16.relu" : 33,
+      "Ios16.conv" : 38,
+      "Ios16.less" : 1,
+      "Ios16.pow" : 2,
+      "Ios16.batchNorm" : 31,
+      "Ios16.clip" : 2,
+      "Ios16.equal" : 2,
+      "Ios16.sqrt" : 2,
+      "Ios16.tanh" : 1,
+      "Ios16.mul" : 8
+    },
+    "computePrecision" : "Mixed (Float16, Int32)",
+    "stateSchema" : [
+
+    ],
+    "isUpdatable" : "0",
+    "availability" : {
+      "macOS" : "13.0",
+      "tvOS" : "16.0",
+      "visionOS" : "1.0",
+      "watchOS" : "9.0",
+      "iOS" : "16.0",
+      "macCatalyst" : "16.0"
+    },
+    "modelType" : {
+      "name" : "MLModelType_mlProgram"
+    },
+    "inputSchema" : [
+      {
+        "dataType" : "Float16",
+        "hasShapeFlexibility" : "1",
+        "isOptional" : "0",
+        "shapeFlexibility" : "1 × 50...3000 × 80",
+        "shapeRange" : "[[1, 1], [50, 3000], [80, 80]]",
+        "formattedType" : "MultiArray (Float16 1 × 300 × 80)",
+        "type" : "MultiArray",
+        "shape" : "[1, 300, 80]",
+        "name" : "fbank_features",
+        "shortDescription" : ""
+      }
+    ],
+    "userDefinedMetadata" : {
+      "com.github.apple.coremltools.conversion_date" : "2026-02-18",
+      "com.github.apple.coremltools.source" : "torch==2.8.0",
+      "com.github.apple.coremltools.version" : "9.0",
+      "com.github.apple.coremltools.source_dialect" : "TorchScript"
+    },
+    "generatedClassName" : "VoiceEmbedder",
+    "method" : "predict"
+  }
+]

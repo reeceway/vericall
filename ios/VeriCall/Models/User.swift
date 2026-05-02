@@ -66,6 +66,12 @@ struct AuthResponse: Codable {
     let userId: String?
     let deviceId: String?
     let expiresIn: Int
+    let membershipId: String?
+    let organizationId: String?
+    let organizationName: String?
+    let mspId: String?
+    let mspName: String?
+    let accessCodeId: String?
 
     enum CodingKeys: String, CodingKey {
         case accessToken = "access_token"
@@ -73,6 +79,12 @@ struct AuthResponse: Codable {
         case userId = "user_id"
         case deviceId = "device_id"
         case expiresIn = "expires_in"
+        case membershipId = "membership_id"
+        case organizationId = "organization_id"
+        case organizationName = "organization_name"
+        case mspId = "msp_id"
+        case mspName = "msp_name"
+        case accessCodeId = "access_code_id"
     }
 }
 
@@ -157,6 +169,7 @@ struct AccessCodeValidationResponse: Codable {
             mspId: mspId,
             mspName: mspName,
             accessCodeId: accessCodeId,
+            membershipId: nil,
             grantToken: grantToken,
             seatPriceCents: seatPriceCents
         )
@@ -169,6 +182,7 @@ struct CompanyAccessContext: Codable {
     let mspId: String
     let mspName: String
     let accessCodeId: String
+    var membershipId: String?
     var grantToken: String?
     let seatPriceCents: Int?
 
@@ -178,6 +192,7 @@ struct CompanyAccessContext: Codable {
         case mspId = "msp_id"
         case mspName = "msp_name"
         case accessCodeId = "access_code_id"
+        case membershipId = "membership_id"
         case grantToken = "grant_token"
         case seatPriceCents = "seat_price_cents"
     }
@@ -212,11 +227,17 @@ struct TwilioVoiceAccessTokenResponse: Codable {
     let token: String
     let identity: String?
     let expiresIn: Int?
+    let membershipId: String?
+    let organizationId: String?
+    let mspId: String?
 
     enum CodingKeys: String, CodingKey {
         case token
         case identity
         case expiresIn = "expires_in"
+        case membershipId = "membership_id"
+        case organizationId = "organization_id"
+        case mspId = "msp_id"
     }
 }
 

@@ -1,5 +1,8 @@
 from dotenv import load_dotenv
-load_dotenv()
+try:
+    load_dotenv()
+except OSError:
+    pass
 from fastapi import FastAPI, Depends, HTTPException, WebSocket, Header, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -8,13 +11,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional, Dict
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
+import hmac
 import logging
 
 from app.database import get_db, init_db
 from app.models import User, Device, Call, RefreshToken
 from app.auth import (
     generate_otp, verify_otp, create_access_token,
-    create_refresh_token, verify_refresh_token, REFRESH_TOKEN_EXPIRE_DAYS
+    create_refresh_token, verify_refresh_token, REFRESH_TOKEN_EXPIRE_DAYS,
+    latest_staging_smoke_otp, normalize_phone as normalize_auth_phone,
+    staging_smoke_enabled, staging_smoke_secret
 )
 from app.crypto import (
     verify_ecdsa_signature, get_public_key_fingerprint,
@@ -71,6 +77,16 @@ class VerifyOTPRequest(BaseModel):
     otp: str
     public_key: str
     device_name: Optional[str] = None
+
+
+class CheckOTPRequest(BaseModel):
+    phone_number: str = Field(..., min_length=10, max_length=20)
+    otp: str = Field(..., min_length=4, max_length=12)
+
+
+class CheckOTPResponse(BaseModel):
+    ok: bool
+    phone_number: str
 
 
 class VerifyOTPResponse(BaseModel):
@@ -137,6 +153,26 @@ class RegisterPushTokenRequest(BaseModel):
     platform: str = Field(default="ios")
 
 
+def require_staging_smoke_secret(provided_secret: Optional[str]) -> str:
+    if not staging_smoke_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not found"
+        )
+    configured_secret = staging_smoke_secret()
+    if not configured_secret:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Staging smoke secret is not configured"
+        )
+    if not provided_secret or not hmac.compare_digest(provided_secret, configured_secret):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid staging ops secret"
+        )
+    return configured_secret
+
+
 # ============= Auth Endpoints =============
 
 @app.post("/auth/request-otp", response_model=RequestOTPResponse)
@@ -154,6 +190,49 @@ async def request_otp(request: RequestOTPRequest):
         message="Verification code sent via SMS",
         phone_number=request.phone_number
     )
+
+
+@app.get("/auth/staging/otp/latest")
+async def get_staging_otp(
+    phone_number: str,
+    x_vicall_staging_ops_secret: Optional[str] = Header(default=None, alias="X-Vicall-Staging-Ops-Secret"),
+):
+    """Return the latest OTP for the requested phone in dedicated staging smoke environments."""
+    require_staging_smoke_secret(x_vicall_staging_ops_secret)
+    normalized_phone = normalize_auth_phone(phone_number)
+    if not normalized_phone:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="phone_number is required"
+        )
+    cached_otp = latest_staging_smoke_otp(normalized_phone)
+    if not cached_otp or not cached_otp.get("otp"):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No staging OTP available for phone number"
+        )
+    return {
+        "status": "ready",
+        "phone_number": normalized_phone,
+        "otp": cached_otp["otp"],
+        "captured_at": cached_otp.get("captured_at"),
+    }
+
+
+@app.post("/auth/check-otp", response_model=CheckOTPResponse)
+async def check_otp(request: CheckOTPRequest):
+    """Verify an OTP without creating app users, devices, or tokens.
+
+    This is used by the MSP portal login flow. The mobile app should continue
+    using /auth/verify-otp so device-bound app sessions are created normally.
+    """
+    normalized_phone = normalize_auth_phone(request.phone_number)
+    if not verify_otp(normalized_phone, request.otp):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP"
+        )
+    return CheckOTPResponse(ok=True, phone_number=normalized_phone)
 
 
 @app.post("/auth/verify-otp", response_model=VerifyOTPResponse)

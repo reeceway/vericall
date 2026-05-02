@@ -155,9 +155,12 @@ class AuthService: ObservableObject {
 
             // Store auth data
             try await storeAuth(response: response, phoneNumber: phoneNumber)
-            if let pendingAccessContext {
+            if var pendingAccessContext {
+                pendingAccessContext.membershipId = response.membershipId
                 Constants.storeActiveOrganizationContext(pendingAccessContext)
                 Constants.clearPendingAccessContext()
+            } else if let accountContext = accessContext(from: response) {
+                Constants.storeActiveOrganizationContext(accountContext)
             }
 
             // Create local user from response
@@ -318,6 +321,30 @@ class AuthService: ObservableObject {
             code: normalizedCode
         )
         return validation.accessContext ?? Constants.storedPendingAccessContext()
+    }
+
+    private func accessContext(from response: AuthResponse) -> CompanyAccessContext? {
+        guard
+            let organizationId = response.organizationId,
+            let organizationName = response.organizationName,
+            let mspId = response.mspId,
+            let mspName = response.mspName
+        else {
+            return nil
+        }
+        return CompanyAccessContext(
+            organizationId: organizationId,
+            organizationName: organizationName,
+            mspId: mspId,
+            mspName: mspName,
+            accessCodeId: response.accessCodeId
+                ?? Constants.storedActiveOrganizationContext()?.accessCodeId
+                ?? Constants.storedPendingAccessContext()?.accessCodeId
+                ?? "",
+            membershipId: response.membershipId,
+            grantToken: nil,
+            seatPriceCents: nil
+        )
     }
 
     private func prepareDeviceKeyForOTPVerification() {

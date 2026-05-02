@@ -1,0 +1,82 @@
+[
+  {
+    "scene": "scene01",
+    "target_duration": 5.6,
+    "raw_duration": 3.994,
+    "final_voice_duration": 3.994,
+    "silence_added": 1.606,
+    "speed_factor": 1.0
+  },
+  {
+    "scene": "scene02",
+    "target_duration": 7.37,
+    "raw_duration": 8.777,
+    "final_voice_duration": 7.199,
+    "silence_added": 0.171,
+    "speed_factor": 1.2207
+  },
+  {
+    "scene": "scene03",
+    "target_duration": 5.47,
+    "raw_duration": 5.016,
+    "final_voice_duration": 5.016,
+    "silence_added": 0.454,
+    "speed_factor": 1.0
+  },
+  {
+    "scene": "scene04",
+    "target_duration": 8.73,
+    "raw_duration": 9.056,
+    "final_voice_duration": 8.563,
+    "silence_added": 0.167,
+    "speed_factor": 1.0592
+  },
+  {
+    "scene": "scene05",
+    "target_duration": 6.67,
+    "raw_duration": 3.994,
+    "final_voice_duration": 3.994,
+    "silence_added": 2.676,
+    "speed_factor": 1.0
+  },
+  {
+    "scene": "scene06",
+    "target_duration": 8.93,
+    "raw_duration": 7.198,
+    "final_voice_duration": 7.198,
+    "silence_added": 1.732,
+    "speed_factor": 1.0
+  },
+  {
+    "scene": "scene07",
+    "target_duration": 10.6,
+    "raw_duration": 7.941,
+    "final_voice_duration": 7.941,
+    "silence_added": 2.659,
+    "speed_factor": 1.0
+  },
+  {
+    "scene": "scene08",
+    "target_duration": 6.37,
+    "raw_duration": 5.851,
+    "final_voice_duration": 5.851,
+    "silence_added": 0.519,
+    "speed_factor": 1.0
+  },
+  {
+    "scene": "scene09",
+    "target_duration": 10.27,
+    "raw_duration": 12.121,
+    "final_voice_duration": 10.102,
+    "silence_added": 0.168,
+    "speed_factor": 1.2013
+  },
+  {
+    "scene": "scene10",
+    "target_duration": 5.0,
+    "raw_duration": 3.483,
+    "final_voice_duration": 3.483,
+    "silence_added": 1.517,
+    "speed_factor": 1.0
+  }
+]

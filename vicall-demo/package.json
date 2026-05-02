@@ -1,0 +1,27 @@
+{
+  "name": "vicall-demo",
+  "version": "1.0.0",
+  "description": "Vicall Remotion product demo",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts ViCallDemo out/vicall-demo.mp4",
+    "render:general": "remotion render src/index.ts ViCallDemo out/vicall-demo.mp4 --props='{\"channelVariant\":\"general\"}'",
+    "render:esafe": "remotion render src/index.ts ViCallDemo out/vicall-demo.mp4 --props='{\"channelVariant\":\"esafe\"}'",
+    "test-preview": "remotion still src/index.ts ViCallDemo out/preview-frame.png --frame=1500"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@remotion/cli": "^4.0.448",
+    "@remotion/google-fonts": "^4.0.448",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "remotion": "^4.0.448",
+    "typescript": "^6.0.2"
+  }
+}

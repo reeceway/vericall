@@ -1,0 +1,23 @@
+You've seen AI deepfakes fool millions online.
+
+Now the same technology is being used to clone voices and exploit live phone calls.
+
+Thirty five million dollars stolen in one CEO fraud call. Billions of deepfake calls placed last year. And the attacks keep accelerating.
+
+Email has filters. Endpoints have protection. But when the phone rings, most teams still trust the voice on the other end.
+
+That's where Vicall comes in.
+
+Vicall is a secure calling app deployed by your IT team. Employees install it, place or receive calls, and the app monitors live call audio for synthetic patterns while the conversation happens.
+
+The experience still feels familiar. You open the app. You call a contact. Or you receive a call and answer it like you normally would.
+
+Then, once enough live speech is available, Vicall can show a human voice signal right on the call screen.
+
+If the audio starts to look synthetic, the warning state turns red and the alert becomes impossible to ignore while the call is still live.
+
+The detection decision runs on device. Vicall does not store call recordings, and the alerting path does not rely on cloud inference.
+
+One cloned call can cost six figures. Protecting a team costs less than a daily coffee budget.
+
+Vicall. Your secure line.

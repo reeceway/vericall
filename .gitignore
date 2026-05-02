@@ -2,14 +2,28 @@
 ios/build/
 ios/build.log
 ios/build_generic.log
+*.log
 
 # Xcode user-specific data
 ios/VeriCall.xcodeproj/project.xcworkspace/xcuserdata/
 ios/VeriCall.xcodeproj/xcuserdata/
+ios/VeriCall.xcworkspace/xcuserdata/
+*.xcuserstate
 *.pbxproj.bak*
 
 # macOS
 .DS_Store
+
+# Python/node local generated state
+__pycache__/
+*.py[cod]
+.pytest_cache/
+backend/.venv*/
+twilio_voice_service/.venv*/
+twilio_voice_service/browser_tests/node_modules/
+twilio_voice_service/browser_tests/test-results/
+node_modules/
+.github/workflows/
 
 # ML model packages (large binaries)
 ios/VeriCall/Models/*.mlpackage/
@@ -17,6 +31,22 @@ ios/VeriCall/Models/*.mlpackage/
 # Large frameworks and archives
 ios/Frameworks/onnxruntime.xcframework/
 ios/Frameworks/*.zip
+ios/Pods/
+ios/VeriCall/AssetBackups/
 
 # Build debug logs
 ios/build_debug*.log
+
+# Local secrets and private signing material
+.env
+.env.*
+release/apple/*.key
+release/apple/**/*.key
+release/apple/*.key*
+release/apple/**/*.key*
+release/apple/
+
+# Generated demo/media outputs and local corpora
+vicall-demo/out/
+datasets/
+voice-ml/benchmark_100/

@@ -254,14 +254,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             CallDebugReporter.post("twilio_register_skipped", details: ["context": context, "reason": "unstable_identity", "identity": identity])
             return
         }
-        let deviceTokenHex = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
-        await syncTwilioVoiceBinding(token: deviceTokenHex, context: context)
-
         do {
             let response = try await APIService.shared.fetchTwilioVoiceAccessToken(
                 clientIdentity: identity,
                 accessToken: authToken
             )
+            let deviceTokenHex = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
+            await syncTwilioVoiceBinding(token: deviceTokenHex, context: context)
 #if canImport(TwilioVoice)
             TwilioCallService.shared.registerForIncomingCalls(
                 accessToken: response.token,
@@ -399,7 +398,7 @@ extension AppDelegate: PKPushRegistryDelegate {
             "voip_token": token,
             "platform": "ios",
             "context": context
-        ]
+        ].merging(Self.activeVoiceAccountContextPayload()) { current, _ in current }
 
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -421,5 +420,19 @@ extension AppDelegate: PKPushRegistryDelegate {
                 details: ["identity": identity, "context": context, "error": String(describing: error)]
             )
         }
+    }
+
+    private static func activeVoiceAccountContextPayload() -> [String: Any] {
+        guard let accountContext = Constants.activeVoiceAccountContext() else {
+            return [:]
+        }
+        var payload: [String: Any] = [
+            "msp_id": accountContext.mspId,
+            "organization_id": accountContext.organizationId
+        ]
+        if let membershipId = accountContext.membershipId, !membershipId.isEmpty {
+            payload["membership_id"] = membershipId
+        }
+        return payload
     }
 }

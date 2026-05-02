@@ -234,6 +234,10 @@ enum Constants {
         UserDefaults.standard.removeObject(forKey: activeOrganizationContextUserDefaultsKey)
     }
 
+    static func activeVoiceAccountContext() -> CompanyAccessContext? {
+        storedActiveOrganizationContext()
+    }
+
     @discardableResult
     static func storeCompanyAccessCode(from url: URL) -> Bool {
         guard let code = companyAccessCode(from: url) else { return false }
