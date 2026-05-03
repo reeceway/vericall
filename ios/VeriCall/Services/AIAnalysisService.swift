@@ -28,14 +28,17 @@ final class AIAnalysisService: ObservableObject {
 
     // MARK: - Configuration
 
-    private let performanceProfile = AppPerformanceProfile.shared
-    private let spoofWindowSamples = AudioConfiguration.analysisWindowSamples  // 48000 (3s)
-    private let speakerWindowSamples = AudioConfiguration.analysisWindowSamples  // 48000 (3s)
-    private let speechRMSFloor: Float = AudioConfiguration.spoofAudibleRMSCall
-    private let speechFrameSamples = 1_600  // 100ms at 16 kHz
-    private let minimumSpeechActivityRatio: Float = 0.06
-    private let minimumDecisionSpeechActivityRatio: Float = AudioConfiguration.spoofDecisionSpeechActivityCall
-    private let minSpeakerRMS: Float = 0.006
+    private nonisolated let performanceProfile = AppPerformanceProfile.shared
+    private nonisolated let spoofWindowSamples = AudioConfiguration.analysisWindowSamples  // 48000 (3s)
+    private nonisolated let speakerWindowSamples = AudioConfiguration.analysisWindowSamples  // 48000 (3s)
+    private nonisolated let liveDecisionInterval = AudioConfiguration.liveSpoofDecisionIntervalSeconds
+    private nonisolated let liveDecisionChunkSamples = AudioConfiguration.liveSpoofDecisionChunkSamples
+    private nonisolated let liveDecisionStrideSamples = AudioConfiguration.liveSpoofDecisionStrideSamples
+    private nonisolated let speechRMSFloor: Float = AudioConfiguration.spoofAudibleRMSCall
+    private nonisolated let speechFrameSamples = 1_600  // 100ms at 16 kHz
+    private nonisolated let minimumSpeechActivityRatio: Float = 0.06
+    private nonisolated let minimumDecisionSpeechActivityRatio: Float = AudioConfiguration.spoofDecisionSpeechActivityCall
+    private nonisolated let minSpeakerRMS: Float = 0.006
 
     // MARK: - Internals
 
@@ -43,11 +46,11 @@ final class AIAnalysisService: ObservableObject {
     private let analysisQueue = DispatchQueue(label: "com.vericall.ai", qos: .userInitiated)
     private(set) var diagnostics: String = "idle"
     private var isAnalyzing = false
-    private var remoteSpoofHistory: [Float] = []
-    private var localSpoofHistory: [Float] = []
     private var hasWarmedModels = false
     private var modelWarmupWorkItem: DispatchWorkItem?
     private var lastImmediateAnalysisAt: Date?
+    private var liveDecisionStartedAt: Date?
+    private var lastLiveDecisionAt: Date?
 
     private init() {}
 
@@ -123,28 +126,40 @@ final class AIAnalysisService: ObservableObject {
         latestSpeaker = nil
         latestLocalSpoof = nil
         latestLocalSpeaker = nil
-        remoteSpoofHistory.removeAll()
-        localSpoofHistory.removeAll()
         lastImmediateAnalysisAt = nil
+        liveDecisionStartedAt = Date()
+        lastLiveDecisionAt = nil
 
-        // Start the loop quickly; runCycle still waits for the trained 3s window.
-        DispatchQueue.main.asyncAfter(deadline: .now() + performanceProfile.analysisFirstRunDelay) { [weak self] in
+        diagnostics = String(format: "collecting %.0fs", liveDecisionInterval)
+
+        // Product loop: collect a full 10s chunk, then emit one direct model
+        // decision from the strongest speech-bearing 3s slice in that chunk.
+        DispatchQueue.main.asyncAfter(deadline: .now() + liveDecisionInterval) { [weak self] in
             guard let self, self.isRunning else { return }
             self.runCycle()
             self.timer = Timer.scheduledTimer(
-                withTimeInterval: self.performanceProfile.analysisInterval,
+                withTimeInterval: self.liveDecisionInterval,
                 repeats: true
             ) { [weak self] _ in
                 Task { @MainActor [weak self] in self?.runCycle() }
             }
         }
 
-        performanceProfile.logAI("[AIAnalysis] Started \(performanceProfile.summary) remote-enrolled=\(remoteEnrolledEmbedding != nil ? "yes" : "no") local-enrolled=\(localEnrolledEmbedding != nil ? "yes" : "no")")
+        performanceProfile.logAI("[AIAnalysis] Started \(performanceProfile.summary) live-decision-interval=\(liveDecisionInterval)s remote-enrolled=\(remoteEnrolledEmbedding != nil ? "yes" : "no") local-enrolled=\(localEnrolledEmbedding != nil ? "yes" : "no")")
     }
 
     func requestImmediateAnalysis() {
         guard isRunning else { return }
         let now = Date()
+        if let liveDecisionStartedAt,
+           lastLiveDecisionAt == nil,
+           now.timeIntervalSince(liveDecisionStartedAt) < liveDecisionInterval {
+            return
+        }
+        if let lastLiveDecisionAt,
+           now.timeIntervalSince(lastLiveDecisionAt) < liveDecisionInterval {
+            return
+        }
         if let lastImmediateAnalysisAt,
            now.timeIntervalSince(lastImmediateAnalysisAt) < performanceProfile.immediateAnalysisMinimumInterval {
             return
@@ -159,6 +174,8 @@ final class AIAnalysisService: ObservableObject {
         isRunning = false
         isAnalyzing = false
         lastImmediateAnalysisAt = nil
+        liveDecisionStartedAt = nil
+        lastLiveDecisionAt = nil
         diagnostics = "stopped"
         performanceProfile.logAI("[AIAnalysis] Stopped")
     }
@@ -228,44 +245,59 @@ final class AIAnalysisService: ObservableObject {
         }
         isAnalyzing = true
 
+        CallTransportService.shared.refreshBuffers()
+        let transport = CallTransportService.shared
+        let remoteBufferQueue = transport.remoteBufferQueue
+        let localBufferQueue = transport.localBufferQueue
+        let debugCaptureEnabled = isDebugCaptureEnabled
+
         analysisQueue.async { [weak self] in
             guard let self else { return }
             // Thread-safe snapshots of remote/local audio buffers off the main thread
-            CallTransportService.shared.refreshBuffers()
-            let remoteSamples: [Float] = CallTransportService.shared.remoteBufferQueue.sync {
-                CallTransportService.shared.remoteAudioBuffer
+            let remoteSamples: [Float] = remoteBufferQueue.sync {
+                transport.remoteAudioBuffer
             }
-            let localSamples: [Float] = CallTransportService.shared.localBufferQueue.sync {
-                CallTransportService.shared.localAudioBuffer
+            let localSamples: [Float] = localBufferQueue.sync {
+                transport.localAudioBuffer
             }
 
-            guard remoteSamples.count >= self.spoofWindowSamples || localSamples.count >= self.spoofWindowSamples else {
+            guard remoteSamples.count >= self.liveDecisionChunkSamples || localSamples.count >= self.liveDecisionChunkSamples else {
                 Task { @MainActor [weak self] in
                     guard let self else { return }
-                    self.diagnostics = "waiting-audio remote=\(remoteSamples.count) local=\(localSamples.count)"
+                    self.diagnostics = "collecting-10s remote=\(remoteSamples.count) local=\(localSamples.count)"
                     self.isAnalyzing = false
                 }
-                self.performanceProfile.logAI("[AIAnalysis] Waiting for audio (remote \(remoteSamples.count)/\(self.spoofWindowSamples), local \(localSamples.count)/\(self.spoofWindowSamples))")
+                self.performanceProfile.logAI("[AIAnalysis] Waiting for 10s audio chunk (remote \(remoteSamples.count)/\(self.liveDecisionChunkSamples), local \(localSamples.count)/\(self.liveDecisionChunkSamples))")
                 return
             }
 
-            // Keep the spoof model on the same 3s context it was calibrated on.
-            let remoteSpoofChunk = remoteSamples.count >= self.spoofWindowSamples ? Array(remoteSamples.suffix(self.spoofWindowSamples)) : nil
-            let localSpoofChunk = localSamples.count >= self.spoofWindowSamples ? Array(localSamples.suffix(self.spoofWindowSamples)) : nil
+            // Keep the spoof model on the same 3s context it was calibrated on,
+            // but choose that context once from the last 10s instead of averaging
+            // many overlapping model outputs.
+            let remoteDecisionWindow = remoteSamples.count >= self.liveDecisionChunkSamples
+                ? self.bestSpeechSpoofWindow(from: remoteSamples)
+                : nil
+            let localDecisionWindow = localSamples.count >= self.liveDecisionChunkSamples
+                ? self.bestSpeechSpoofWindow(from: localSamples)
+                : nil
+            let remoteSpoofChunk = remoteDecisionWindow?.samples
+            let localSpoofChunk = localDecisionWindow?.samples
             let remoteSpeakerChunk: [Float]? = nil
             let localSpeakerChunk: [Float]? = nil
 
             var remoteSpoof: SpoofResult?
-            var remoteSpeaker: SpeakerResult?
+            let remoteSpeaker: SpeakerResult? = nil
             var localSpoof: SpoofResult?
-            var localSpeaker: SpeakerResult?
+            let localSpeaker: SpeakerResult? = nil
             var remoteSpoofRms: Float?
             var localSpoofRms: Float?
             var remoteClassicProb: Float?
             var localClassicProb: Float?
 
             if let chunk = remoteSpoofChunk {
-                let remoteSpeech = speechMetrics(chunk)
+                let remoteSpeech = remoteDecisionWindow.map {
+                    (rms: $0.rms, activityRatio: $0.activityRatio, hasSpeech: $0.hasSpeech)
+                } ?? speechMetrics(chunk)
                 let remoteRms = remoteSpeech.rms
                 remoteSpoofRms = remoteRms
                 if !remoteSpeech.hasSpeech {
@@ -283,21 +315,11 @@ final class AIAnalysisService: ObservableObject {
                     let remoteSpoofMs = 0.0
                     let enoughSpeechForDecision = remoteSpeech.activityRatio >= self.minimumDecisionSpeechActivityRatio
                     let confidence: AnalysisConfidence = enoughSpeechForDecision ? .high : .low
-                    let includeInHistory = enoughSpeechForDecision
-                        || classicProb >= AudioConfiguration.spoofImmediateFakeThresholdCall
-                    if includeInHistory {
-                        self.appendRolling(
-                            &self.remoteSpoofHistory,
-                            value: classicProb,
-                            max: AudioConfiguration.spoofHistoryWindowsCall
-                        )
-                    }
-                    let stableClone = includeInHistory
-                        ? self.stableSpoofScore(history: self.remoteSpoofHistory, latest: classicProb)
-                        : classicProb
-                    let supportingWindows = self.remoteSpoofHistory.count
+                    let supportingWindows = enoughSpeechForDecision
+                        ? AudioConfiguration.spoofWarmupWindowsCall
+                        : 1
                     remoteSpoof = SpoofResult(
-                        cloneProbability: stableClone,
+                        cloneProbability: classicProb,
                         confidence: confidence,
                         threshold: AudioConfiguration.spoofHumanThresholdCall,
                         supportingWindows: supportingWindows,
@@ -307,12 +329,11 @@ final class AIAnalysisService: ObservableObject {
                     )
                     self.performanceProfile.logAI(
                         String(
-                            format: "[AIAnalysis] remote rms=%.5f speech=yes activity=%.2f decision=%@ classic=%.3f stable=%.3f conf=%@ th=%.2f",
+                            format: "[AIAnalysis] remote 10s-decision rms=%.5f speech=yes activity=%.2f decision=%@ classic=%.3f conf=%@ th=%.2f",
                             remoteRms,
                             remoteSpeech.activityRatio,
                             enoughSpeechForDecision ? "yes" : "no",
                             classicProb,
-                            stableClone,
                             confidence.rawValue,
                             AudioConfiguration.spoofHumanThresholdCall
                         )
@@ -323,7 +344,9 @@ final class AIAnalysisService: ObservableObject {
             }
 
             if let chunk = localSpoofChunk {
-                let localSpeech = speechMetrics(chunk)
+                let localSpeech = localDecisionWindow.map {
+                    (rms: $0.rms, activityRatio: $0.activityRatio, hasSpeech: $0.hasSpeech)
+                } ?? speechMetrics(chunk)
                 let localRms = localSpeech.rms
                 localSpoofRms = localRms
                 if !localSpeech.hasSpeech {
@@ -341,21 +364,11 @@ final class AIAnalysisService: ObservableObject {
                     let localSpoofMs = 0.0
                     let enoughSpeechForDecision = localSpeech.activityRatio >= self.minimumDecisionSpeechActivityRatio
                     let confidence: AnalysisConfidence = enoughSpeechForDecision ? .high : .low
-                    let includeInHistory = enoughSpeechForDecision
-                        || classicProb >= AudioConfiguration.spoofImmediateFakeThresholdCall
-                    if includeInHistory {
-                        self.appendRolling(
-                            &self.localSpoofHistory,
-                            value: classicProb,
-                            max: AudioConfiguration.spoofHistoryWindowsCall
-                        )
-                    }
-                    let stableClone = includeInHistory
-                        ? self.stableSpoofScore(history: self.localSpoofHistory, latest: classicProb)
-                        : classicProb
-                    let supportingWindows = self.localSpoofHistory.count
+                    let supportingWindows = enoughSpeechForDecision
+                        ? AudioConfiguration.spoofWarmupWindowsCall
+                        : 1
                     localSpoof = SpoofResult(
-                        cloneProbability: stableClone,
+                        cloneProbability: classicProb,
                         confidence: confidence,
                         threshold: AudioConfiguration.spoofHumanThresholdCall,
                         supportingWindows: supportingWindows,
@@ -365,12 +378,11 @@ final class AIAnalysisService: ObservableObject {
                     )
                     self.performanceProfile.logAI(
                         String(
-                            format: "[AIAnalysis] local  rms=%.5f speech=yes activity=%.2f decision=%@ classic=%.3f stable=%.3f conf=%@ th=%.2f",
+                            format: "[AIAnalysis] local 10s-decision rms=%.5f speech=yes activity=%.2f decision=%@ classic=%.3f conf=%@ th=%.2f",
                             localRms,
                             localSpeech.activityRatio,
                             enoughSpeechForDecision ? "yes" : "no",
                             classicProb,
-                            stableClone,
                             confidence.rawValue,
                             AudioConfiguration.spoofHumanThresholdCall
                         )
@@ -408,12 +420,13 @@ final class AIAnalysisService: ObservableObject {
 
                 let remoteComponents = String(format: "rC=%.3f", remoteClassicProb ?? -1)
                 let localComponents = String(format: "lC=%.3f", localClassicProb ?? -1)
-                self.diagnostics = "ok \(remoteSpoofText) \(localSpoofText) \(remoteComponents) \(localComponents)"
+                self.diagnostics = "10s \(remoteSpoofText) \(localSpoofText) \(remoteComponents) \(localComponents)"
                 self.performanceProfile.logAI("[AIAnalysis] \(self.diagnostics)")
+                self.lastLiveDecisionAt = Date()
                 self.isAnalyzing = false
             }
 
-            if self.isDebugCaptureEnabled {
+            if debugCaptureEnabled {
                 if let raw = remoteSpoofChunk ?? remoteSpeakerChunk {
                     ModelCaptureExportService.shared.capture(
                         streamSource: "remote",
@@ -450,12 +463,56 @@ final class AIAnalysisService: ObservableObject {
         }
     }
 
-    private func appendRolling(_ arr: inout [Float], value: Float, max: Int) {
+    private nonisolated func bestSpeechSpoofWindow(
+        from samples: [Float]
+    ) -> (samples: [Float], rms: Float, activityRatio: Float, hasSpeech: Bool)? {
+        guard samples.count >= spoofWindowSamples else { return nil }
+
+        let chunk = samples.count > liveDecisionChunkSamples
+            ? Array(samples.suffix(liveDecisionChunkSamples))
+            : samples
+        let maxStart = chunk.count - spoofWindowSamples
+        let strideSamples = max(1, liveDecisionStrideSamples)
+        var starts = Array(stride(from: 0, through: maxStart, by: strideSamples))
+        if starts.last != maxStart {
+            starts.append(maxStart)
+        }
+
+        var bestSamples: [Float]?
+        var bestRMS: Float = 0
+        var bestActivity: Float = -1
+        var bestHasSpeech = false
+
+        for start in starts {
+            let end = start + spoofWindowSamples
+            guard end <= chunk.count else { continue }
+            let window = Array(chunk[start..<end])
+            let metrics = speechMetrics(window)
+            let isBetter = metrics.activityRatio > bestActivity
+                || (metrics.activityRatio == bestActivity && metrics.rms > bestRMS)
+            if isBetter {
+                bestSamples = window
+                bestRMS = metrics.rms
+                bestActivity = metrics.activityRatio
+                bestHasSpeech = metrics.hasSpeech
+            }
+        }
+
+        guard let bestSamples else { return nil }
+        return (
+            samples: bestSamples,
+            rms: bestRMS,
+            activityRatio: max(0, bestActivity),
+            hasSpeech: bestHasSpeech
+        )
+    }
+
+    private nonisolated func appendRolling(_ arr: inout [Float], value: Float, max: Int) {
         arr.append(value)
         if arr.count > max { arr.removeFirst(arr.count - max) }
     }
 
-    private func stableSpoofScore(history: [Float], latest: Float) -> Float {
+    private nonisolated func stableSpoofScore(history: [Float], latest: Float) -> Float {
         guard !history.isEmpty else { return latest }
 
         if latest >= AudioConfiguration.spoofImmediateFakeThresholdCall {
@@ -466,7 +523,17 @@ final class AIAnalysisService: ObservableObject {
         guard recent.count > 1 else { return latest }
 
         let humanEdge = max(0, AudioConfiguration.spoofHumanThresholdCall - AudioConfiguration.spoofUncertaintyMarginCall)
+        let syntheticCandidateEdge = AudioConfiguration.spoofSyntheticCandidateThresholdCall
         let recentAverage = average(recent)
+
+        if latest >= syntheticCandidateEdge {
+            return latest
+        }
+
+        let recentSyntheticCandidateCount = recent.filter { $0 >= syntheticCandidateEdge }.count
+        if recentSyntheticCandidateCount >= 2 {
+            return max(recentAverage, recent.max() ?? latest)
+        }
 
         if recentAverage <= humanEdge {
             return recentAverage
@@ -474,7 +541,7 @@ final class AIAnalysisService: ObservableObject {
 
         let fakeEdge = max(
             AudioConfiguration.spoofExtremeFakeThresholdCall,
-            AudioConfiguration.spoofHumanThresholdCall + AudioConfiguration.spoofUncertaintyMarginCall
+            syntheticCandidateEdge
         )
         let recentFakeCount = recent.filter { $0 >= fakeEdge }.count
         if recentFakeCount >= 2 {
@@ -484,12 +551,12 @@ final class AIAnalysisService: ObservableObject {
         return recentAverage
     }
 
-    private func average(_ arr: [Float]) -> Float {
+    private nonisolated func average(_ arr: [Float]) -> Float {
         guard !arr.isEmpty else { return 0 }
         return arr.reduce(0, +) / Float(arr.count)
     }
 
-    private func speechMetrics(_ samples: [Float]) -> (rms: Float, activityRatio: Float, hasSpeech: Bool) {
+    private nonisolated func speechMetrics(_ samples: [Float]) -> (rms: Float, activityRatio: Float, hasSpeech: Bool) {
         let fullRMS = rms(samples)
         guard samples.count >= speechFrameSamples else {
             let hasSpeech = fullRMS >= speechRMSFloor
@@ -598,7 +665,7 @@ final class AIAnalysisService: ObservableObject {
         return (spoofResult, speakerResult)
     }
 
-    private func rms(_ arr: [Float]) -> Float {
+    private nonisolated func rms(_ arr: [Float]) -> Float {
         guard !arr.isEmpty else { return 0 }
         return sqrt(arr.reduce(0) { $0 + ($1 * $1) } / Float(arr.count))
     }

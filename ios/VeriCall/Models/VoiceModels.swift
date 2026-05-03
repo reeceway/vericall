@@ -42,6 +42,9 @@ public struct AudioConfiguration {
     public static let remoteSampleRate: Double = 48_000.0
     public static let analysisWindowSeconds: Double = 3.0
     public static let analysisWindowSamples: Int = 48_000  // 3s x 16kHz
+    public static let liveSpoofDecisionIntervalSeconds: Double = 10.0
+    public static let liveSpoofDecisionChunkSamples: Int = 160_000  // 10s x 16kHz
+    public static let liveSpoofDecisionStrideSamples: Int = 16_000  // 1s stride inside the 10s chunk
     public static let fbankFrames: Int = 300
     public static let fbankBands: Int = 80
     public static let embeddingDim: Int = 192
@@ -53,6 +56,7 @@ public struct AudioConfiguration {
     // cloneProbability is spoof probability. These values match the release
     // calibration used with the live 240-feature classic spoof model.
     public static let spoofUncertaintyMarginCall: Float = 0.05
+    public static let spoofSyntheticCandidateThresholdCall: Float = 0.95
     public static let spoofExtremeFakeThresholdCall: Float = 0.98
     public static let spoofImmediateFakeThresholdCall: Float = 0.995
     public static let spoofWarmupWindowsCall: Int = 4
