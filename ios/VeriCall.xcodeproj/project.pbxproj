@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		12AF4F17B16F937FF9FFC7E8 /* DeepfakeLabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75E84BBD74D5B78DDD7CE6AC /* DeepfakeLabView.swift */; };
 		2CB936AA2F7FB1EF00E347FE /* Pods_VeriCall.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3F9C622BECA1221736968764 /* Pods_VeriCall.framework */; };
-		2CB936AB2F7FB1EF00E347FE /* Pods_VeriCall.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3F9C622BECA1221736968764 /* Pods_VeriCall.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		51BE11E960584E8F8B4E97E7 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8DC5DE8EEA48EC95B89342 /* HomeView.swift */; };
 		520B93C5072545BEBC0D6AC9 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38711FD7CDD24875B2627F4E /* NotificationService.swift */; };
 		54B8D5A35E3D48868575B989 /* SelfVoiceEnrollmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2C2B57FC3E4833BE05C18F /* SelfVoiceEnrollmentView.swift */; };
@@ -82,7 +81,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				2CB936AB2F7FB1EF00E347FE /* Pods_VeriCall.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -556,7 +554,7 @@
 				CODE_SIGN_ENTITLEMENTS = VeriCall/VeriCall.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-					CURRENT_PROJECT_VERSION = 11;
+					CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = 96294C9WZU;
 				ENABLE_PREVIEWS = YES;
@@ -593,7 +591,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 					CODE_SIGN_ENTITLEMENTS = VeriCall/VeriCall.entitlements;
 					CODE_SIGN_STYLE = Automatic;
-					CURRENT_PROJECT_VERSION = 11;
+					CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = 96294C9WZU;
 				ENABLE_PREVIEWS = YES;
