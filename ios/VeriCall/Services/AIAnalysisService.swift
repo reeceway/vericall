@@ -130,10 +130,10 @@ final class AIAnalysisService: ObservableObject {
         liveDecisionStartedAt = Date()
         lastLiveDecisionAt = nil
 
-        diagnostics = String(format: "collecting %.0fs", liveDecisionInterval)
+        diagnostics = "collecting audio"
 
-        // Product loop: collect a full 10s chunk, then emit one direct model
-        // decision from the strongest speech-bearing 3s slice in that chunk.
+        // Product loop: emit one direct model decision every 10s from the
+        // strongest available speech-bearing 3s slice.
         DispatchQueue.main.asyncAfter(deadline: .now() + liveDecisionInterval) { [weak self] in
             guard let self, self.isRunning else { return }
             self.runCycle()
@@ -261,23 +261,23 @@ final class AIAnalysisService: ObservableObject {
                 transport.localAudioBuffer
             }
 
-            guard remoteSamples.count >= self.liveDecisionChunkSamples || localSamples.count >= self.liveDecisionChunkSamples else {
+            guard remoteSamples.count >= self.spoofWindowSamples || localSamples.count >= self.spoofWindowSamples else {
                 Task { @MainActor [weak self] in
                     guard let self else { return }
-                    self.diagnostics = "collecting-10s remote=\(remoteSamples.count) local=\(localSamples.count)"
+                    self.diagnostics = "waiting-audio remote=\(remoteSamples.count) local=\(localSamples.count)"
                     self.isAnalyzing = false
                 }
-                self.performanceProfile.logAI("[AIAnalysis] Waiting for 10s audio chunk (remote \(remoteSamples.count)/\(self.liveDecisionChunkSamples), local \(localSamples.count)/\(self.liveDecisionChunkSamples))")
+                self.performanceProfile.logAI("[AIAnalysis] Waiting for trained 3s audio window (remote \(remoteSamples.count)/\(self.spoofWindowSamples), local \(localSamples.count)/\(self.spoofWindowSamples)); cadence remains \(self.liveDecisionInterval)s")
                 return
             }
 
             // Keep the spoof model on the same 3s context it was calibrated on,
-            // but choose that context once from the last 10s instead of averaging
-            // many overlapping model outputs.
-            let remoteDecisionWindow = remoteSamples.count >= self.liveDecisionChunkSamples
+            // but choose that context once per cadence from up to the last 10s
+            // instead of averaging many overlapping model outputs.
+            let remoteDecisionWindow = remoteSamples.count >= self.spoofWindowSamples
                 ? self.bestSpeechSpoofWindow(from: remoteSamples)
                 : nil
-            let localDecisionWindow = localSamples.count >= self.liveDecisionChunkSamples
+            let localDecisionWindow = localSamples.count >= self.spoofWindowSamples
                 ? self.bestSpeechSpoofWindow(from: localSamples)
                 : nil
             let remoteSpoofChunk = remoteDecisionWindow?.samples
