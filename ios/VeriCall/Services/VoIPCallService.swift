@@ -59,6 +59,7 @@ final class VoIPCallService: ObservableObject {
     private var hasSentHighSyntheticAlert = false
     private var callKitTrustDisplayState: CallKitTrustDisplayState = .normal
     private let remoteFakeConfirmationWindows = 2
+    private let remoteStrongSyntheticScore: Float = AudioConfiguration.spoofSyntheticCandidateThresholdCall
     private let remoteExtremeFakeScore: Float = 0.995
     private let suspiciousSpeechDisplaySeconds: TimeInterval = 2.0
     private let suspiciousSpeechAlertSeconds: TimeInterval = 5.0
@@ -516,7 +517,7 @@ final class VoIPCallService: ObservableObject {
             return result
 
         case .likelyFake:
-            guard isAudibleRemoteResult(result) else {
+            guard isDecisionQualityRemoteResult(result) else {
                 remoteFakeCandidateCount = 0
                 return lastStableRemoteSpoofResult
             }
@@ -555,7 +556,7 @@ final class VoIPCallService: ObservableObject {
 
         case .uncertain:
             remoteFakeCandidateCount = 0
-            guard isAudibleRemoteResult(result) else {
+            guard isDecisionQualityRemoteResult(result) else {
                 return lastStableRemoteSpoofResult
             }
 
@@ -565,6 +566,15 @@ final class VoIPCallService: ObservableObject {
             }
 
             markSuspiciousSpeech(at: result.timestamp)
+
+            if result.cloneProbability >= remoteStrongSyntheticScore {
+                sendLikelySyntheticAlertIfNeeded(result: result)
+                updateCallKitTrustDisplay(.likelySynthetic, result: result)
+                let warning = warningRemoteSpoofResult(from: result)
+                lastStableRemoteSpoofResult = warning
+                return warning
+            }
+
             sendLikelySyntheticAlertIfNeeded(result: result)
 
             if suspiciousSpeechSeconds >= suspiciousSpeechDisplaySeconds {
@@ -577,9 +587,22 @@ final class VoIPCallService: ObservableObject {
 
     private func isAudibleRemoteResult(_ result: SpoofResult) -> Bool {
         if let rms = result.rms {
-            return rms >= AudioConfiguration.spoofAudibleRMSCall * 0.6
+            return rms >= AudioConfiguration.spoofAudibleRMSCall * 0.35
         }
         return result.confidence == .high
+    }
+
+    private func isDecisionQualityRemoteResult(_ result: SpoofResult) -> Bool {
+        guard result.confidence == .high, isAudibleRemoteResult(result) else {
+            return false
+        }
+        if result.cloneProbability >= remoteStrongSyntheticScore {
+            return true
+        }
+        if let speechActivity = result.speechActivityRatio {
+            return speechActivity >= AudioConfiguration.spoofDecisionSpeechActivityCall
+        }
+        return true
     }
 
     private func warningRemoteSpoofResult(from result: SpoofResult) -> SpoofResult {
@@ -596,7 +619,8 @@ final class VoIPCallService: ObservableObject {
     }
 
     private func sendLikelySyntheticAlertIfNeeded(result: SpoofResult) {
-        guard suspiciousSpeechSeconds >= suspiciousSpeechAlertSeconds,
+        let strongSynthetic = result.cloneProbability >= remoteStrongSyntheticScore
+        guard (strongSynthetic || suspiciousSpeechSeconds >= suspiciousSpeechAlertSeconds),
               !hasSentLikelySyntheticAlert,
               !hasSentHighSyntheticAlert else { return }
 

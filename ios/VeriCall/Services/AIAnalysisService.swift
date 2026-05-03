@@ -38,6 +38,8 @@ final class AIAnalysisService: ObservableObject {
     private nonisolated let speechFrameSamples = 1_600  // 100ms at 16 kHz
     private nonisolated let minimumSpeechActivityRatio: Float = 0.06
     private nonisolated let minimumDecisionSpeechActivityRatio: Float = AudioConfiguration.spoofDecisionSpeechActivityCall
+    private nonisolated let minimumSpoofAnalysisRMS: Float = AudioConfiguration.spoofAudibleRMSCall * 0.35
+    private nonisolated let minimumSyntheticActivityRatio: Float = 0.03
     private nonisolated let minSpeakerRMS: Float = 0.006
 
     // MARK: - Internals
@@ -300,10 +302,15 @@ final class AIAnalysisService: ObservableObject {
                 } ?? speechMetrics(chunk)
                 let remoteRms = remoteSpeech.rms
                 remoteSpoofRms = remoteRms
-                if !remoteSpeech.hasSpeech {
+                let canAnalyzeRemote = shouldAnalyzeSpoofWindow(
+                    rms: remoteSpeech.rms,
+                    activityRatio: remoteSpeech.activityRatio,
+                    hasSpeech: remoteSpeech.hasSpeech
+                )
+                if !canAnalyzeRemote {
                     self.performanceProfile.logAI(
                         String(
-                            format: "[AIAnalysis] remote rms=%.5f speech=no activity=%.2f",
+                            format: "[AIAnalysis] remote rms=%.5f speech=no activity=%.2f model=skip",
                             remoteRms,
                             remoteSpeech.activityRatio
                         )
@@ -314,8 +321,15 @@ final class AIAnalysisService: ObservableObject {
                 if let classicProb = remoteClassicProb {
                     let remoteSpoofMs = 0.0
                     let enoughSpeechForDecision = remoteSpeech.activityRatio >= self.minimumDecisionSpeechActivityRatio
-                    let confidence: AnalysisConfidence = enoughSpeechForDecision ? .high : .low
-                    let supportingWindows = enoughSpeechForDecision
+                    let syntheticCandidateDecision = self.isSyntheticCandidateDecision(
+                        probability: classicProb,
+                        rms: remoteSpeech.rms,
+                        activityRatio: remoteSpeech.activityRatio,
+                        hasSpeech: remoteSpeech.hasSpeech
+                    )
+                    let highConfidenceDecision = enoughSpeechForDecision || syntheticCandidateDecision
+                    let confidence: AnalysisConfidence = highConfidenceDecision ? .high : .low
+                    let supportingWindows = highConfidenceDecision
                         ? AudioConfiguration.spoofWarmupWindowsCall
                         : 1
                     remoteSpoof = SpoofResult(
@@ -329,10 +343,12 @@ final class AIAnalysisService: ObservableObject {
                     )
                     self.performanceProfile.logAI(
                         String(
-                            format: "[AIAnalysis] remote 10s-decision rms=%.5f speech=yes activity=%.2f decision=%@ classic=%.3f conf=%@ th=%.2f",
+                            format: "[AIAnalysis] remote 10s-decision rms=%.5f speech=%@ activity=%.2f decision=%@ syntheticCandidate=%@ classic=%.3f conf=%@ th=%.2f",
                             remoteRms,
+                            remoteSpeech.hasSpeech ? "yes" : "low",
                             remoteSpeech.activityRatio,
                             enoughSpeechForDecision ? "yes" : "no",
+                            syntheticCandidateDecision ? "yes" : "no",
                             classicProb,
                             confidence.rawValue,
                             AudioConfiguration.spoofHumanThresholdCall
@@ -349,10 +365,15 @@ final class AIAnalysisService: ObservableObject {
                 } ?? speechMetrics(chunk)
                 let localRms = localSpeech.rms
                 localSpoofRms = localRms
-                if !localSpeech.hasSpeech {
+                let canAnalyzeLocal = shouldAnalyzeSpoofWindow(
+                    rms: localSpeech.rms,
+                    activityRatio: localSpeech.activityRatio,
+                    hasSpeech: localSpeech.hasSpeech
+                )
+                if !canAnalyzeLocal {
                     self.performanceProfile.logAI(
                         String(
-                            format: "[AIAnalysis] local  rms=%.5f speech=no activity=%.2f",
+                            format: "[AIAnalysis] local  rms=%.5f speech=no activity=%.2f model=skip",
                             localRms,
                             localSpeech.activityRatio
                         )
@@ -363,8 +384,15 @@ final class AIAnalysisService: ObservableObject {
                 if let classicProb = localClassicProb {
                     let localSpoofMs = 0.0
                     let enoughSpeechForDecision = localSpeech.activityRatio >= self.minimumDecisionSpeechActivityRatio
-                    let confidence: AnalysisConfidence = enoughSpeechForDecision ? .high : .low
-                    let supportingWindows = enoughSpeechForDecision
+                    let syntheticCandidateDecision = self.isSyntheticCandidateDecision(
+                        probability: classicProb,
+                        rms: localSpeech.rms,
+                        activityRatio: localSpeech.activityRatio,
+                        hasSpeech: localSpeech.hasSpeech
+                    )
+                    let highConfidenceDecision = enoughSpeechForDecision || syntheticCandidateDecision
+                    let confidence: AnalysisConfidence = highConfidenceDecision ? .high : .low
+                    let supportingWindows = highConfidenceDecision
                         ? AudioConfiguration.spoofWarmupWindowsCall
                         : 1
                     localSpoof = SpoofResult(
@@ -378,10 +406,12 @@ final class AIAnalysisService: ObservableObject {
                     )
                     self.performanceProfile.logAI(
                         String(
-                            format: "[AIAnalysis] local 10s-decision rms=%.5f speech=yes activity=%.2f decision=%@ classic=%.3f conf=%@ th=%.2f",
+                            format: "[AIAnalysis] local 10s-decision rms=%.5f speech=%@ activity=%.2f decision=%@ syntheticCandidate=%@ classic=%.3f conf=%@ th=%.2f",
                             localRms,
+                            localSpeech.hasSpeech ? "yes" : "low",
                             localSpeech.activityRatio,
                             enoughSpeechForDecision ? "yes" : "no",
+                            syntheticCandidateDecision ? "yes" : "no",
                             classicProb,
                             confidence.rawValue,
                             AudioConfiguration.spoofHumanThresholdCall
@@ -585,6 +615,28 @@ final class AIAnalysisService: ObservableObject {
             && maxFrameRMS >= speechRMSFloor
             && fullRMS >= speechRMSFloor * 0.4
         return (fullRMS, activityRatio, hasSpeech)
+    }
+
+    private nonisolated func shouldAnalyzeSpoofWindow(
+        rms: Float,
+        activityRatio: Float,
+        hasSpeech: Bool
+    ) -> Bool {
+        hasSpeech || activityRatio > 0 || rms >= minimumSpoofAnalysisRMS
+    }
+
+    private nonisolated func isSyntheticCandidateDecision(
+        probability: Float,
+        rms: Float,
+        activityRatio: Float,
+        hasSpeech: Bool
+    ) -> Bool {
+        guard probability >= AudioConfiguration.spoofSyntheticCandidateThresholdCall else {
+            return false
+        }
+        return hasSpeech
+            || activityRatio >= minimumSyntheticActivityRatio
+            || rms >= minimumSpoofAnalysisRMS
     }
 
     private func temporalSpoofConfidence(
