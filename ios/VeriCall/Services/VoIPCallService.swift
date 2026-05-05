@@ -63,6 +63,8 @@ final class VoIPCallService: ObservableObject {
     private let remoteExtremeFakeScore: Float = 0.995
     private let suspiciousSpeechDisplaySeconds: TimeInterval = 2.0
     private let suspiciousSpeechAlertSeconds: TimeInterval = 2.0
+    private let aiLoadingWarningSeconds: TimeInterval = 10.0
+    private var aiLoadingWatchdogWorkItem: DispatchWorkItem?
     private static let contactCacheQueue = DispatchQueue(label: "com.vicall.incoming-contact-cache")
     private nonisolated(unsafe) static var cachedContactNamesByDigits: [String: String] = [:]
 
@@ -456,6 +458,7 @@ final class VoIPCallService: ObservableObject {
         )
         startDiagnosticsTicker()
         scheduleAIAudioMirrorWatchdog()
+        scheduleAILoadingWatchdog()
         print("[VoIPCall] Spoof analysis started (diagnostics=\(aiAnalysis.diagnostics))")
     }
 
@@ -557,6 +560,80 @@ final class VoIPCallService: ObservableObject {
         }
     }
 
+    private func scheduleAILoadingWatchdog() {
+        aiLoadingWatchdogWorkItem?.cancel()
+        guard let callId = currentCall?.id else { return }
+        let delay = aiLoadingWarningSeconds
+
+        let workItem = DispatchWorkItem { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.flagAILoadingIfNeeded(callId: callId)
+            }
+        }
+        aiLoadingWatchdogWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+    }
+
+    private func cancelAILoadingWatchdog() {
+        aiLoadingWatchdogWorkItem?.cancel()
+        aiLoadingWatchdogWorkItem = nil
+    }
+
+    private func flagAILoadingIfNeeded(callId: String) {
+        aiLoadingWatchdogWorkItem = nil
+
+        guard callState == .connected,
+              currentCall?.id == callId,
+              lastStableRemoteSpoofResult?.verdict != .human,
+              !hasSentLikelySyntheticAlert,
+              !hasSentHighSyntheticAlert else {
+            return
+        }
+
+        let currentOtherPartyResult = otherPartySpoofResultForCurrentCall()
+        if let current = currentOtherPartyResult {
+            let displayed = applyRemoteTrustPolicy(to: current)
+            spoofResult = displayed
+            if displayed?.verdict == .human
+                || hasSentLikelySyntheticAlert
+                || hasSentHighSyntheticAlert {
+                return
+            }
+        }
+
+        let loadingWarning = SpoofResult(
+            cloneProbability: AudioConfiguration.spoofHumanThresholdCall,
+            confidence: .high,
+            threshold: AudioConfiguration.spoofHumanThresholdCall,
+            supportingWindows: AudioConfiguration.spoofWarmupWindowsCall,
+            processingTimeMs: 0,
+            rms: currentOtherPartyResult?.rms,
+            speechActivityRatio: currentOtherPartyResult?.speechActivityRatio
+        )
+
+        suspiciousSpeechWindows = max(suspiciousSpeechWindows, AudioConfiguration.spoofWarmupWindowsCall)
+        suspiciousSpeechSeconds = max(suspiciousSpeechSeconds, aiLoadingWarningSeconds)
+        lastSuspiciousSpeechAt = Date()
+
+        lastStableRemoteSpoofResult = loadingWarning
+        spoofResult = loadingWarning
+        updateCallKitTrustDisplay(.likelySynthetic, result: loadingWarning)
+
+        hasSentLikelySyntheticAlert = true
+        let audio = callTransport.debugAudioSnapshot()
+        CallDebugReporter.post(
+            "ai_loading_watchdog_flagged",
+            details: [
+                "callId": callId,
+                "delay": String(format: "%.1f", aiLoadingWarningSeconds),
+                "diagnostics": aiDiagnosticsText,
+                "remoteSamples": "\(audio.remoteSamples)",
+                "localSamples": "\(audio.localSamples)"
+            ]
+        )
+        sendLiveSpoofAlert(severity: .suspectedSynthetic, result: loadingWarning)
+    }
+
     private func applyRemoteTrustPolicy(to result: SpoofResult?) -> SpoofResult? {
         guard callState == .connected, let result else {
             remoteFakeCandidateCount = 0
@@ -565,6 +642,7 @@ final class VoIPCallService: ObservableObject {
 
         switch result.verdict {
         case .human:
+            cancelAILoadingWatchdog()
             hasSentLikelySyntheticAlert = false
             hasSentHighSyntheticAlert = false
             remoteFakeCandidateCount = 0
@@ -591,6 +669,7 @@ final class VoIPCallService: ObservableObject {
             let confirmed = remoteFakeCandidateCount >= remoteFakeConfirmationWindows
                 || result.cloneProbability >= remoteExtremeFakeScore
             if confirmed {
+                cancelAILoadingWatchdog()
                 resetSuspiciousSpeech()
                 lastStableRemoteSpoofResult = result
                 updateCallKitTrustDisplay(.highSynthetic, result: result)
@@ -854,6 +933,7 @@ final class VoIPCallService: ObservableObject {
     }
 
     private func resetSpoofAlertState() {
+        cancelAILoadingWatchdog()
         latestRawRemoteSpoofResult = nil
         latestRawLocalSpoofResult = nil
         lastStableRemoteSpoofResult = nil
