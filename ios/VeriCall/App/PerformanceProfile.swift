@@ -58,13 +58,12 @@ struct AppPerformanceProfile {
             mirrorPoll: UInt64
         )
 
+        // Keep the live verification cadence identical across supported phones.
+        // Device tiers still get reported for diagnostics, but the AI should
+        // feed the same 3s windows into the same model on iPhone 13 and newer.
         switch tier {
-        case .modern:
+        case .modern, .balanced, .legacy:
             tuning = (0.12, 0.25, 0.25, 0.25, 0.05, 150_000_000)
-        case .balanced:
-            tuning = (0.25, 0.35, 0.45, 0.85, 0.12, 200_000_000)
-        case .legacy:
-            tuning = (0.45, 0.50, 0.75, 1.50, 0.20, 250_000_000)
         }
 
         let explicitVerboseLogs = UserDefaults.standard.bool(forKey: "vericall.verbosePerformanceLogs")

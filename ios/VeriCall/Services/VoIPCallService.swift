@@ -62,7 +62,7 @@ final class VoIPCallService: ObservableObject {
     private let remoteStrongSyntheticScore: Float = AudioConfiguration.spoofSyntheticCandidateThresholdCall
     private let remoteExtremeFakeScore: Float = 0.995
     private let suspiciousSpeechDisplaySeconds: TimeInterval = 2.0
-    private let suspiciousSpeechAlertSeconds: TimeInterval = 5.0
+    private let suspiciousSpeechAlertSeconds: TimeInterval = 2.0
     private static let contactCacheQueue = DispatchQueue(label: "com.vicall.incoming-contact-cache")
     private nonisolated(unsafe) static var cachedContactNamesByDigits: [String: String] = [:]
 
@@ -460,7 +460,65 @@ final class VoIPCallService: ObservableObject {
     }
 
     private func refreshDisplayedSpoofResult() {
-        spoofResult = applyRemoteTrustPolicy(to: otherPartySpoofResultForCurrentCall())
+        let other = otherPartySpoofResultForCurrentCall()
+        let displayed = applyRemoteTrustPolicy(to: other)
+        spoofResult = displayed
+        postLiveSpoofDecisionTrace(other: other, displayed: displayed)
+    }
+
+    private func postLiveSpoofDecisionTrace(other: SpoofResult?, displayed: SpoofResult?) {
+        let direction: String
+        let selectedStream: String
+        if let dir = currentCall?.direction {
+            switch dir {
+            case .outgoing:
+                direction = "outgoing"
+                selectedStream = "remote"
+            case .incoming:
+                direction = "incoming"
+                selectedStream = "local"
+            }
+        } else {
+            direction = "none"
+            selectedStream = "remote"
+        }
+
+        let session = AVAudioSession.sharedInstance()
+        let outputs = session.currentRoute.outputs.map { $0.portType.rawValue }.joined(separator: "+")
+        let inputs = session.currentRoute.inputs.map { $0.portType.rawValue }.joined(separator: "+")
+
+        let r = latestRawRemoteSpoofResult
+        let l = latestRawLocalSpoofResult
+
+        let details: [String: String] = [
+            "direction": direction,
+            "selected_stream": selectedStream,
+            "remote_clone_prob": r.map { String(format: "%.4f", $0.cloneProbability) } ?? "nil",
+            "local_clone_prob":  l.map { String(format: "%.4f", $0.cloneProbability) } ?? "nil",
+            "remote_rms":        r?.rms.map { String(format: "%.5f", $0) } ?? "nil",
+            "local_rms":         l?.rms.map { String(format: "%.5f", $0) } ?? "nil",
+            "remote_speech_activity": r?.speechActivityRatio.map { String(format: "%.3f", $0) } ?? "nil",
+            "local_speech_activity":  l?.speechActivityRatio.map { String(format: "%.3f", $0) } ?? "nil",
+            "remote_verdict":    r?.verdict.rawValue ?? "nil",
+            "local_verdict":     l?.verdict.rawValue ?? "nil",
+            "remote_confidence": r?.confidence.rawValue ?? "nil",
+            "local_confidence":  l?.confidence.rawValue ?? "nil",
+            "displayed_verdict": displayed?.verdict.rawValue ?? "nil",
+            "displayed_clone_prob": displayed.map { String(format: "%.4f", $0.cloneProbability) } ?? "nil",
+            "stable_verdict":    lastStableRemoteSpoofResult?.verdict.rawValue ?? "nil",
+            "green_locked":      (lastStableRemoteSpoofResult?.verdict == .human) ? "yes" : "no",
+            "call_state":        "\(callState)",
+            "callkit_trust":     "\(callKitTrustDisplayState)",
+            "audio_output":      outputs.isEmpty ? "none" : outputs,
+            "audio_input":       inputs.isEmpty ? "none" : inputs,
+            "device_hwid":       performanceProfile.hardwareIdentifier,
+            "device_tier":       performanceProfile.tier.rawValue,
+            "alert_likely_sent": hasSentLikelySyntheticAlert ? "yes" : "no",
+            "alert_high_sent":   hasSentHighSyntheticAlert ? "yes" : "no",
+            "remote_fake_candidate_count": "\(remoteFakeCandidateCount)",
+            "suspicious_speech_seconds": String(format: "%.2f", suspiciousSpeechSeconds)
+        ]
+        CallDebugReporter.post("live_spoof_decision_trace", details: details)
     }
 
     private func otherPartySpoofResultForCurrentCall() -> SpoofResult? {
@@ -507,9 +565,8 @@ final class VoIPCallService: ObservableObject {
 
         switch result.verdict {
         case .human:
-            if lastStableRemoteSpoofResult?.verdict == .likelyFake || hasSentHighSyntheticAlert {
-                return lastStableRemoteSpoofResult
-            }
+            hasSentLikelySyntheticAlert = false
+            hasSentHighSyntheticAlert = false
             remoteFakeCandidateCount = 0
             resetSuspiciousSpeech()
             lastStableRemoteSpoofResult = result
@@ -521,6 +578,12 @@ final class VoIPCallService: ObservableObject {
                 remoteFakeCandidateCount = 0
                 return lastStableRemoteSpoofResult
             }
+            if lastStableRemoteSpoofResult?.verdict == .human {
+                remoteFakeCandidateCount = 0
+                resetSuspiciousSpeech()
+                updateCallKitTrustDisplay(.normal, result: lastStableRemoteSpoofResult)
+                return lastStableRemoteSpoofResult
+            }
 
             remoteFakeCandidateCount += 1
             markSuspiciousSpeech(at: result.timestamp)
@@ -528,17 +591,24 @@ final class VoIPCallService: ObservableObject {
             let confirmed = remoteFakeCandidateCount >= remoteFakeConfirmationWindows
                 || result.cloneProbability >= remoteExtremeFakeScore
             if confirmed {
-                sendFlaggedSyntheticAlertIfNeeded(result: result)
                 resetSuspiciousSpeech()
                 lastStableRemoteSpoofResult = result
+                updateCallKitTrustDisplay(.highSynthetic, result: result)
+                sendFlaggedSyntheticAlertIfNeeded(result: result)
                 return result
             }
 
+            sendLikelySyntheticAlertIfNeeded(result: result)
             if lastStableRemoteSpoofResult?.verdict == .human {
+                if suspiciousSpeechSeconds >= suspiciousSpeechDisplaySeconds {
+                    let warning = warningRemoteSpoofResult(from: result)
+                    lastStableRemoteSpoofResult = warning
+                    updateCallKitTrustDisplay(.likelySynthetic, result: result)
+                    return warning
+                }
                 return lastStableRemoteSpoofResult
             }
 
-            sendLikelySyntheticAlertIfNeeded(result: result)
             if lastStableRemoteSpoofResult == nil || suspiciousSpeechSeconds >= suspiciousSpeechDisplaySeconds {
                 updateCallKitTrustDisplay(.likelySynthetic, result: result)
                 CallDebugReporter.post(
@@ -559,9 +629,9 @@ final class VoIPCallService: ObservableObject {
             guard isDecisionQualityRemoteResult(result) else {
                 return lastStableRemoteSpoofResult
             }
-
             if lastStableRemoteSpoofResult?.verdict == .human {
                 resetSuspiciousSpeech()
+                updateCallKitTrustDisplay(.normal, result: lastStableRemoteSpoofResult)
                 return lastStableRemoteSpoofResult
             }
 
@@ -586,8 +656,12 @@ final class VoIPCallService: ObservableObject {
     }
 
     private func isAudibleRemoteResult(_ result: SpoofResult) -> Bool {
+        // Use the real audible-speech floor (not the silence/codec-noise floor)
+        // so silence-driven clone-prob spikes can't pass the alert gate. The
+        // model still runs on quieter windows; we just don't act on results
+        // that don't carry audible speech energy.
         if let rms = result.rms {
-            return rms >= AudioConfiguration.spoofAudibleRMSCall * 0.35
+            return rms >= AudioConfiguration.spoofAudibleRMSCall
         }
         return result.confidence == .high
     }
@@ -619,10 +693,44 @@ final class VoIPCallService: ObservableObject {
     }
 
     private func sendLikelySyntheticAlertIfNeeded(result: SpoofResult) {
-        let strongSynthetic = result.cloneProbability >= remoteStrongSyntheticScore
-        guard (strongSynthetic || suspiciousSpeechSeconds >= suspiciousSpeechAlertSeconds),
-              !hasSentLikelySyntheticAlert,
+        guard !hasSentLikelySyntheticAlert,
               !hasSentHighSyntheticAlert else { return }
+
+        let sustainedEvidence = suspiciousSpeechSeconds >= suspiciousSpeechAlertSeconds
+
+        // Sticky-green policy: single-window noise on a green-locked call must
+        // not buzz the user. But if suspicion has been sustained for the same
+        // window we use to display yellow, the synthetic evidence is real — that
+        // is the "clone played after a real human spoke" attack we have to flag.
+        if lastStableRemoteSpoofResult?.verdict == .human, !sustainedEvidence {
+            CallDebugReporter.post(
+                "live_spoof_likely_alert_suppressed_green_locked",
+                details: [
+                    "score": String(format: "%.3f", result.cloneProbability),
+                    "windows": "\(result.supportingWindows)",
+                    "suspicious_speech_seconds": String(format: "%.2f", suspiciousSpeechSeconds),
+                    "rms": result.rms.map { String(format: "%.5f", $0) } ?? "nil",
+                    "speech_activity": result.speechActivityRatio.map { String(format: "%.3f", $0) } ?? "nil"
+                ]
+            )
+            return
+        }
+        // Require sustained suspicious-speech evidence before firing a
+        // suspected-synthetic notification. A single noisy window on a real
+        // human call (especially when the other leg's audio source spikes
+        // through telephony/codec) must NOT alert. Confirmed/extreme synthetic
+        // still fires immediately via sendFlaggedSyntheticAlertIfNeeded.
+        guard sustainedEvidence else {
+            CallDebugReporter.post(
+                "live_spoof_likely_alert_held_for_evidence",
+                details: [
+                    "score": String(format: "%.3f", result.cloneProbability),
+                    "suspicious_speech_seconds": String(format: "%.2f", suspiciousSpeechSeconds),
+                    "required_seconds": String(format: "%.1f", suspiciousSpeechAlertSeconds)
+                ]
+            )
+            return
+        }
 
         hasSentLikelySyntheticAlert = true
         sendLiveSpoofAlert(severity: .suspectedSynthetic, result: result)
@@ -670,10 +778,17 @@ final class VoIPCallService: ObservableObject {
 
         CallDebugReporter.post("live_spoof_alert_triggered", details: traceDetails)
         CallDebugReporter.post("live_spoof_alert_\(severity.rawValue)", details: traceDetails)
-        updateCallKitTrustDisplay(
-            severity == .flaggedSynthetic ? .highSynthetic : .likelySynthetic,
-            result: result
-        )
+        if lastStableRemoteSpoofResult?.verdict == .human {
+            CallDebugReporter.post(
+                "live_spoof_callkit_display_locked_green",
+                details: traceDetails
+            )
+        } else {
+            updateCallKitTrustDisplay(
+                severity == .flaggedSynthetic ? .highSynthetic : .likelySynthetic,
+                result: result
+            )
+        }
 
         Task {
             await NotificationService.shared.showLiveSpoofAlert(

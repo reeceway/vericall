@@ -31,9 +31,6 @@ final class AIAnalysisService: ObservableObject {
     private nonisolated let performanceProfile = AppPerformanceProfile.shared
     private nonisolated let spoofWindowSamples = AudioConfiguration.analysisWindowSamples  // 48000 (3s)
     private nonisolated let speakerWindowSamples = AudioConfiguration.analysisWindowSamples  // 48000 (3s)
-    private nonisolated let liveDecisionInterval = AudioConfiguration.liveSpoofDecisionIntervalSeconds
-    private nonisolated let liveDecisionChunkSamples = AudioConfiguration.liveSpoofDecisionChunkSamples
-    private nonisolated let liveDecisionStrideSamples = AudioConfiguration.liveSpoofDecisionStrideSamples
     private nonisolated let speechRMSFloor: Float = AudioConfiguration.spoofAudibleRMSCall
     private nonisolated let speechFrameSamples = 1_600  // 100ms at 16 kHz
     private nonisolated let minimumSpeechActivityRatio: Float = 0.06
@@ -51,8 +48,6 @@ final class AIAnalysisService: ObservableObject {
     private var hasWarmedModels = false
     private var modelWarmupWorkItem: DispatchWorkItem?
     private var lastImmediateAnalysisAt: Date?
-    private var liveDecisionStartedAt: Date?
-    private var lastLiveDecisionAt: Date?
 
     private init() {}
 
@@ -129,39 +124,28 @@ final class AIAnalysisService: ObservableObject {
         latestLocalSpoof = nil
         latestLocalSpeaker = nil
         lastImmediateAnalysisAt = nil
-        liveDecisionStartedAt = Date()
-        lastLiveDecisionAt = nil
 
         diagnostics = "collecting audio"
 
-        // Product loop: emit one direct model decision every 10s from the
-        // strongest available speech-bearing 3s slice.
-        DispatchQueue.main.asyncAfter(deadline: .now() + liveDecisionInterval) { [weak self] in
+        // Match the trained model contract: each live decision uses the latest
+        // 3s / 16 kHz call window, then the product policy decides stickiness.
+        DispatchQueue.main.asyncAfter(deadline: .now() + performanceProfile.analysisFirstRunDelay) { [weak self] in
             guard let self, self.isRunning else { return }
             self.runCycle()
             self.timer = Timer.scheduledTimer(
-                withTimeInterval: self.liveDecisionInterval,
+                withTimeInterval: self.performanceProfile.analysisInterval,
                 repeats: true
             ) { [weak self] _ in
                 Task { @MainActor [weak self] in self?.runCycle() }
             }
         }
 
-        performanceProfile.logAI("[AIAnalysis] Started \(performanceProfile.summary) live-decision-interval=\(liveDecisionInterval)s remote-enrolled=\(remoteEnrolledEmbedding != nil ? "yes" : "no") local-enrolled=\(localEnrolledEmbedding != nil ? "yes" : "no")")
+        performanceProfile.logAI("[AIAnalysis] Started \(performanceProfile.summary) window=3s remote-enrolled=\(remoteEnrolledEmbedding != nil ? "yes" : "no") local-enrolled=\(localEnrolledEmbedding != nil ? "yes" : "no")")
     }
 
     func requestImmediateAnalysis() {
         guard isRunning else { return }
         let now = Date()
-        if let liveDecisionStartedAt,
-           lastLiveDecisionAt == nil,
-           now.timeIntervalSince(liveDecisionStartedAt) < liveDecisionInterval {
-            return
-        }
-        if let lastLiveDecisionAt,
-           now.timeIntervalSince(lastLiveDecisionAt) < liveDecisionInterval {
-            return
-        }
         if let lastImmediateAnalysisAt,
            now.timeIntervalSince(lastImmediateAnalysisAt) < performanceProfile.immediateAnalysisMinimumInterval {
             return
@@ -176,8 +160,6 @@ final class AIAnalysisService: ObservableObject {
         isRunning = false
         isAnalyzing = false
         lastImmediateAnalysisAt = nil
-        liveDecisionStartedAt = nil
-        lastLiveDecisionAt = nil
         diagnostics = "stopped"
         performanceProfile.logAI("[AIAnalysis] Stopped")
     }
@@ -269,21 +251,12 @@ final class AIAnalysisService: ObservableObject {
                     self.diagnostics = "waiting-audio remote=\(remoteSamples.count) local=\(localSamples.count)"
                     self.isAnalyzing = false
                 }
-                self.performanceProfile.logAI("[AIAnalysis] Waiting for trained 3s audio window (remote \(remoteSamples.count)/\(self.spoofWindowSamples), local \(localSamples.count)/\(self.spoofWindowSamples)); cadence remains \(self.liveDecisionInterval)s")
+                self.performanceProfile.logAI("[AIAnalysis] Waiting for trained 3s audio window (remote \(remoteSamples.count)/\(self.spoofWindowSamples), local \(localSamples.count)/\(self.spoofWindowSamples))")
                 return
             }
 
-            // Keep the spoof model on the same 3s context it was calibrated on,
-            // but choose that context once per cadence from up to the last 10s
-            // instead of averaging many overlapping model outputs.
-            let remoteDecisionWindow = remoteSamples.count >= self.spoofWindowSamples
-                ? self.bestSpeechSpoofWindow(from: remoteSamples)
-                : nil
-            let localDecisionWindow = localSamples.count >= self.spoofWindowSamples
-                ? self.bestSpeechSpoofWindow(from: localSamples)
-                : nil
-            let remoteSpoofChunk = remoteDecisionWindow?.samples
-            let localSpoofChunk = localDecisionWindow?.samples
+            let remoteSpoofChunk = remoteSamples.count >= self.spoofWindowSamples ? Array(remoteSamples.suffix(self.spoofWindowSamples)) : nil
+            let localSpoofChunk = localSamples.count >= self.spoofWindowSamples ? Array(localSamples.suffix(self.spoofWindowSamples)) : nil
             let remoteSpeakerChunk: [Float]? = nil
             let localSpeakerChunk: [Float]? = nil
 
@@ -297,9 +270,7 @@ final class AIAnalysisService: ObservableObject {
             var localClassicProb: Float?
 
             if let chunk = remoteSpoofChunk {
-                let remoteSpeech = remoteDecisionWindow.map {
-                    (rms: $0.rms, activityRatio: $0.activityRatio, hasSpeech: $0.hasSpeech)
-                } ?? speechMetrics(chunk)
+                let remoteSpeech = speechMetrics(chunk)
                 let remoteRms = remoteSpeech.rms
                 remoteSpoofRms = remoteRms
                 let canAnalyzeRemote = shouldAnalyzeSpoofWindow(
@@ -343,7 +314,7 @@ final class AIAnalysisService: ObservableObject {
                     )
                     self.performanceProfile.logAI(
                         String(
-                            format: "[AIAnalysis] remote 10s-decision rms=%.5f speech=%@ activity=%.2f decision=%@ syntheticCandidate=%@ classic=%.3f conf=%@ th=%.2f",
+                            format: "[AIAnalysis] remote 3s-window rms=%.5f speech=%@ activity=%.2f decision=%@ syntheticCandidate=%@ classic=%.3f conf=%@ th=%.2f",
                             remoteRms,
                             remoteSpeech.hasSpeech ? "yes" : "low",
                             remoteSpeech.activityRatio,
@@ -360,9 +331,7 @@ final class AIAnalysisService: ObservableObject {
             }
 
             if let chunk = localSpoofChunk {
-                let localSpeech = localDecisionWindow.map {
-                    (rms: $0.rms, activityRatio: $0.activityRatio, hasSpeech: $0.hasSpeech)
-                } ?? speechMetrics(chunk)
+                let localSpeech = speechMetrics(chunk)
                 let localRms = localSpeech.rms
                 localSpoofRms = localRms
                 let canAnalyzeLocal = shouldAnalyzeSpoofWindow(
@@ -406,7 +375,7 @@ final class AIAnalysisService: ObservableObject {
                     )
                     self.performanceProfile.logAI(
                         String(
-                            format: "[AIAnalysis] local 10s-decision rms=%.5f speech=%@ activity=%.2f decision=%@ syntheticCandidate=%@ classic=%.3f conf=%@ th=%.2f",
+                            format: "[AIAnalysis] local 3s-window rms=%.5f speech=%@ activity=%.2f decision=%@ syntheticCandidate=%@ classic=%.3f conf=%@ th=%.2f",
                             localRms,
                             localSpeech.hasSpeech ? "yes" : "low",
                             localSpeech.activityRatio,
@@ -450,9 +419,27 @@ final class AIAnalysisService: ObservableObject {
 
                 let remoteComponents = String(format: "rC=%.3f", remoteClassicProb ?? -1)
                 let localComponents = String(format: "lC=%.3f", localClassicProb ?? -1)
-                self.diagnostics = "10s \(remoteSpoofText) \(localSpoofText) \(remoteComponents) \(localComponents)"
+                self.diagnostics = "3s \(remoteSpoofText) \(localSpoofText) \(remoteComponents) \(localComponents)"
                 self.performanceProfile.logAI("[AIAnalysis] \(self.diagnostics)")
-                self.lastLiveDecisionAt = Date()
+
+                let traceDetails: [String: String] = [
+                    "remote_clone_prob": remoteClassicProb.map { String(format: "%.4f", $0) } ?? "nil",
+                    "local_clone_prob":  localClassicProb.map { String(format: "%.4f", $0) } ?? "nil",
+                    "remote_rms": remoteSpoofRms.map { String(format: "%.5f", $0) } ?? "nil",
+                    "local_rms":  localSpoofRms.map { String(format: "%.5f", $0) } ?? "nil",
+                    "remote_speech_activity": remoteSpoof?.speechActivityRatio.map { String(format: "%.3f", $0) } ?? "nil",
+                    "local_speech_activity":  localSpoof?.speechActivityRatio.map { String(format: "%.3f", $0) } ?? "nil",
+                    "remote_verdict": remoteSpoof?.verdict.rawValue ?? "nil",
+                    "local_verdict":  localSpoof?.verdict.rawValue ?? "nil",
+                    "remote_confidence": remoteSpoof?.confidence.rawValue ?? "nil",
+                    "local_confidence":  localSpoof?.confidence.rawValue ?? "nil",
+                    "remote_window_samples": "\(remoteSpoofChunk?.count ?? 0)",
+                    "local_window_samples":  "\(localSpoofChunk?.count ?? 0)",
+                    "device_hwid": self.performanceProfile.hardwareIdentifier,
+                    "device_tier": self.performanceProfile.tier.rawValue
+                ]
+                CallDebugReporter.post("live_spoof_window_trace", details: traceDetails)
+
                 self.isAnalyzing = false
             }
 
@@ -491,99 +478,6 @@ final class AIAnalysisService: ObservableObject {
                 }
             }
         }
-    }
-
-    private nonisolated func bestSpeechSpoofWindow(
-        from samples: [Float]
-    ) -> (samples: [Float], rms: Float, activityRatio: Float, hasSpeech: Bool)? {
-        guard samples.count >= spoofWindowSamples else { return nil }
-
-        let chunk = samples.count > liveDecisionChunkSamples
-            ? Array(samples.suffix(liveDecisionChunkSamples))
-            : samples
-        let maxStart = chunk.count - spoofWindowSamples
-        let strideSamples = max(1, liveDecisionStrideSamples)
-        var starts = Array(stride(from: 0, through: maxStart, by: strideSamples))
-        if starts.last != maxStart {
-            starts.append(maxStart)
-        }
-
-        var bestSamples: [Float]?
-        var bestRMS: Float = 0
-        var bestActivity: Float = -1
-        var bestHasSpeech = false
-
-        for start in starts {
-            let end = start + spoofWindowSamples
-            guard end <= chunk.count else { continue }
-            let window = Array(chunk[start..<end])
-            let metrics = speechMetrics(window)
-            let isBetter = metrics.activityRatio > bestActivity
-                || (metrics.activityRatio == bestActivity && metrics.rms > bestRMS)
-            if isBetter {
-                bestSamples = window
-                bestRMS = metrics.rms
-                bestActivity = metrics.activityRatio
-                bestHasSpeech = metrics.hasSpeech
-            }
-        }
-
-        guard let bestSamples else { return nil }
-        return (
-            samples: bestSamples,
-            rms: bestRMS,
-            activityRatio: max(0, bestActivity),
-            hasSpeech: bestHasSpeech
-        )
-    }
-
-    private nonisolated func appendRolling(_ arr: inout [Float], value: Float, max: Int) {
-        arr.append(value)
-        if arr.count > max { arr.removeFirst(arr.count - max) }
-    }
-
-    private nonisolated func stableSpoofScore(history: [Float], latest: Float) -> Float {
-        guard !history.isEmpty else { return latest }
-
-        if latest >= AudioConfiguration.spoofImmediateFakeThresholdCall {
-            return latest
-        }
-
-        let recent = Array(history.suffix(min(AudioConfiguration.spoofHistoryWindowsCall, history.count)))
-        guard recent.count > 1 else { return latest }
-
-        let humanEdge = max(0, AudioConfiguration.spoofHumanThresholdCall - AudioConfiguration.spoofUncertaintyMarginCall)
-        let syntheticCandidateEdge = AudioConfiguration.spoofSyntheticCandidateThresholdCall
-        let recentAverage = average(recent)
-
-        if latest >= syntheticCandidateEdge {
-            return latest
-        }
-
-        let recentSyntheticCandidateCount = recent.filter { $0 >= syntheticCandidateEdge }.count
-        if recentSyntheticCandidateCount >= 2 {
-            return max(recentAverage, recent.max() ?? latest)
-        }
-
-        if recentAverage <= humanEdge {
-            return recentAverage
-        }
-
-        let fakeEdge = max(
-            AudioConfiguration.spoofExtremeFakeThresholdCall,
-            syntheticCandidateEdge
-        )
-        let recentFakeCount = recent.filter { $0 >= fakeEdge }.count
-        if recentFakeCount >= 2 {
-            return max(recentAverage, latest)
-        }
-
-        return recentAverage
-    }
-
-    private nonisolated func average(_ arr: [Float]) -> Float {
-        guard !arr.isEmpty else { return 0 }
-        return arr.reduce(0, +) / Float(arr.count)
     }
 
     private nonisolated func speechMetrics(_ samples: [Float]) -> (rms: Float, activityRatio: Float, hasSpeech: Bool) {
@@ -637,14 +531,6 @@ final class AIAnalysisService: ObservableObject {
         return hasSpeech
             || activityRatio >= minimumSyntheticActivityRatio
             || rms >= minimumSpoofAnalysisRMS
-    }
-
-    private func temporalSpoofConfidence(
-        base: AnalysisConfidence,
-        supportingWindows: Int
-    ) -> AnalysisConfidence {
-        guard base == .high else { return .low }
-        return supportingWindows >= AudioConfiguration.spoofWarmupWindowsCall ? .high : .low
     }
 
     private func analyzeSingleWindow(

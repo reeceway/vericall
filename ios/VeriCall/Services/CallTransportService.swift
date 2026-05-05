@@ -61,8 +61,8 @@ final class CallTransportService: ObservableObject {
 
     func refreshBuffers(clear: Bool = false) {
         if clear {
-            remoteBufferQueue.async { [weak self] in self?.remoteAudioBuffer.removeAll() }
-            localBufferQueue.async { [weak self] in self?.localAudioBuffer.removeAll() }
+            remoteBufferQueue.sync { remoteAudioBuffer.removeAll() }
+            localBufferQueue.sync { localAudioBuffer.removeAll() }
             provider.refreshBuffers(clear: true)
             return
         }
@@ -70,8 +70,8 @@ final class CallTransportService: ObservableObject {
         provider.refreshBuffers(clear: false)
         let remoteSnapshot = provider.remoteAudioSnapshot()
         let localSnapshot = provider.localAudioSnapshot()
-        remoteBufferQueue.async { [weak self] in self?.remoteAudioBuffer = remoteSnapshot }
-        localBufferQueue.async { [weak self] in self?.localAudioBuffer = localSnapshot }
+        remoteBufferQueue.sync { remoteAudioBuffer = remoteSnapshot }
+        localBufferQueue.sync { localAudioBuffer = localSnapshot }
     }
 
     func ensureAIAudioMirrorRunning() {
